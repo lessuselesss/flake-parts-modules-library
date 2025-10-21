@@ -20,9 +20,17 @@ This directory contains flake-parts modules for integrating various Nix ecosyste
   - Docs: https://flake.parts/options/devshell.html
   - Input: `github:numtide/devshell`
 
+- **devenv.nix** - Fast, declarative development environments with extensive language support
+  - Docs: https://flake.parts/options/devenv.html
+  - Input: `github:cachix/devenv`
+
 - **haskell-flake.nix** - Automatic Haskell project discovery and building
   - Docs: https://flake.parts/options/haskell-flake.html
   - Input: `github:srid/haskell-flake`
+
+- **input-branches.nix** - Manage flake inputs using Git submodules and branches
+  - Docs: https://flake.parts/options/input-branches.html
+  - Input: `github:Platonic-Systems/input-branches`
 
 ### Code Quality & Formatting
 
@@ -40,11 +48,19 @@ This directory contains flake-parts modules for integrating various Nix ecosyste
   - Docs: https://flake.parts/options/agenix-rekey.html
   - Input: `github:oddlama/agenix-rekey`
 
-### Services
+- **agenix-shell.nix** - Age-encrypted secrets for development shells
+  - Docs: https://flake.parts/options/agenix-shell
+  - Input: `github:aciceri/agenix-shell`
+
+### Services & Process Management
 
 - **services-flake.nix** - NixOS-like services for development environments
   - Docs: https://github.com/juspay/services-flake
   - Input: `github:juspay/services-flake`
+
+- **process-compose-flake.nix** - Declarative process-compose configurations for multi-process apps
+  - Docs: https://flake.parts/options/process-compose-flake
+  - Input: `github:Platonic-Systems/process-compose-flake`
 
 ## Usage
 

@@ -63,7 +63,9 @@ The `modules/` directory contains pre-configured flake-parts modules for integra
 
 **Development Tools:**
 - `devshell.nix` - Enhanced developer shells with commands, env vars, and services
+- `devenv.nix` - Fast, declarative development environments with extensive language support
 - `haskell-flake.nix` - Automatic Haskell project discovery and building
+- `input-branches.nix` - Manage flake inputs using Git submodules and branches
 
 **Code Quality:**
 - `treefmt-nix.nix` - Multi-language formatter configuration (80+ formatters supported)
@@ -71,9 +73,11 @@ The `modules/` directory contains pre-configured flake-parts modules for integra
 
 **Security:**
 - `agenix-rekey.nix` - Age-based secrets management with rekeying support
+- `agenix-shell.nix` - Age-encrypted secrets for development shells
 
-**Services:**
+**Services & Process Management:**
 - `services-flake.nix` - NixOS-like services for development (Postgres, Redis, etc.)
+- `process-compose-flake.nix` - Declarative process-compose configurations for multi-process apps
 
 ### Usage
 
