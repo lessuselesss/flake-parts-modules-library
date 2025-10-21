@@ -24,6 +24,10 @@ This directory contains flake-parts modules for integrating various Nix ecosyste
   - Docs: https://flake.parts/options/devenv.html
   - Input: `github:cachix/devenv`
 
+- **flake-root.nix** - Discover project root directory with programmatic and environment variable access
+  - Docs: https://github.com/srid/flake-root
+  - Input: `github:srid/flake-root`
+
 - **haskell-flake.nix** - Automatic Haskell project discovery and building
   - Docs: https://flake.parts/options/haskell-flake.html
   - Input: `github:srid/haskell-flake`
@@ -31,6 +35,14 @@ This directory contains flake-parts modules for integrating various Nix ecosyste
 - **input-branches.nix** - Manage flake inputs using Git submodules and branches
   - Docs: https://flake.parts/options/input-branches.html
   - Input: `github:Platonic-Systems/input-branches`
+
+- **mission-control.nix** - Dev shell with banner and categorized script commands
+  - Docs: https://flake.parts/options/mission-control.html
+  - Input: `github:Platonic-Systems/mission-control`
+
+- **std.nix** - Standard DevOps framework for organizing Nix configurations
+  - Docs: https://flake.parts/options/std.html
+  - Input: `github:divnix/std`
 
 ### Code Quality & Formatting
 
@@ -61,6 +73,24 @@ This directory contains flake-parts modules for integrating various Nix ecosyste
 - **process-compose-flake.nix** - Declarative process-compose configurations for multi-process apps
   - Docs: https://flake.parts/options/process-compose-flake
   - Input: `github:Platonic-Systems/process-compose-flake`
+
+### Infrastructure & System Configuration
+
+- **disko.nix** - Declarative disk partitioning and formatting
+  - Docs: https://flake.parts/options/disko.html
+  - Input: `github:nix-community/disko`
+
+### CI/CD & Deployment
+
+- **hercules-ci-effects.nix** - CI/CD integration with automated flake updates and GitHub releases
+  - Docs: https://flake.parts/options/hercules-ci-effects.html
+  - Input: `github:hercules-ci/hercules-ci-effects`
+
+### Visualization & Documentation
+
+- **nix-topology.nix** - Automatically generate infrastructure and network diagrams from NixOS configurations
+  - Docs: https://flake.parts/options/nix-topology.html
+  - Input: `github:oddlama/nix-topology`
 
 ## Usage
 

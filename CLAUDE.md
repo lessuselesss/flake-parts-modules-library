@@ -63,9 +63,12 @@ The `modules/` directory contains pre-configured flake-parts modules for integra
 
 **Development Tools:**
 - `devshell.nix` - Enhanced developer shells with commands, env vars, and services
-- `devenv.nix` - Fast, declarative development environments with extensive language support
+- `devenv.nix` - Fast, declarative development environments with extensive language support (40+ languages, services, containers)
+- `flake-root.nix` - Discover project root directory with programmatic and environment variable access
 - `haskell-flake.nix` - Automatic Haskell project discovery and building
 - `input-branches.nix` - Manage flake inputs using Git submodules and branches
+- `mission-control.nix` - Dev shell with banner and categorized script commands
+- `std.nix` - Standard DevOps framework for organizing Nix configurations
 
 **Code Quality:**
 - `treefmt-nix.nix` - Multi-language formatter configuration (80+ formatters supported)
@@ -78,6 +81,15 @@ The `modules/` directory contains pre-configured flake-parts modules for integra
 **Services & Process Management:**
 - `services-flake.nix` - NixOS-like services for development (Postgres, Redis, etc.)
 - `process-compose-flake.nix` - Declarative process-compose configurations for multi-process apps
+
+**Infrastructure & System Configuration:**
+- `disko.nix` - Declarative disk partitioning and formatting
+
+**CI/CD & Deployment:**
+- `hercules-ci-effects.nix` - CI/CD integration with automated flake updates, GitHub Pages, and GitHub releases
+
+**Visualization & Documentation:**
+- `nix-topology.nix` - Automatically generate infrastructure and network diagrams from NixOS configurations
 
 ### Usage
 
