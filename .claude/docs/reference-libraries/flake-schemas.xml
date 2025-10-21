@@ -1,0 +1,627 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    check.yml
+    hub.yml
+.editorconfig
+flake.nix
+LICENSE
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/check.yml">
+name: Checks
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/determinate-nix-action@main
+      - uses: DeterminateSystems/flakehub-cache-action@main
+
+      - name: Check Nix formatting
+        run: |
+          nix shell "https://flakehub.com/f/NixOS/nixpkgs/0.2411.715026#nixfmt-rfc-style" --command \
+            sh -c "git ls-files '*.nix' | xargs nixfmt --check"
+
+      - name: Check links in README
+        run: |
+          nix shell "https://flakehub.com/f/NixOS/nixpkgs/0.2411.715026#lychee" --command \
+            lychee README.md
+</file>
+
+<file path=".github/workflows/hub.yml">
+name: Publish on FlakeHub
+on:
+  push:
+    tags:
+      - v*.*.*
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/determinate-nix-action@main
+      - uses: DeterminateSystems/flakehub-push@main
+        with:
+          visibility: public
+</file>
+
+<file path=".editorconfig">
+# https://editorconfig.org
+root = true
+
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+</file>
+
+<file path="flake.nix">
+{
+  description = "Schemas for well-known Nix flake output types";
+
+  outputs =
+    { self }:
+    let
+      mapAttrsToList = f: attrs: map (name: f name attrs.${name}) (builtins.attrNames attrs);
+
+      checkDerivation =
+        drv: drv.type or null == "derivation" && drv ? drvPath && drv ? name && builtins.isString drv.name;
+
+      checkModule = module: builtins.isAttrs module || builtins.isFunction module;
+
+      schemasSchema = {
+        version = 1;
+        doc = ''
+          The `schemas` flake output is used to define and document flake outputs.
+          For the expected format, consult the Nix manual.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (schemaName: schemaDef: {
+              shortDescription = "A schema checker for the `${schemaName}` flake output";
+              evalChecks.isValidSchema =
+                schemaDef.version or 0 == 1
+                && schemaDef ? doc
+                && builtins.isString (schemaDef.doc)
+                && schemaDef ? inventory
+                && builtins.isFunction (schemaDef.inventory);
+              what = "flake schema";
+            }) output
+          );
+      };
+
+      appsSchema = {
+        version = 1;
+        doc = ''
+          The `apps` output provides commands available via `nix run`.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (
+              system: apps:
+              let
+                forSystems = [ system ];
+              in
+              {
+                inherit forSystems;
+                children = builtins.mapAttrs (appName: app: {
+                  inherit forSystems;
+                  evalChecks.isValidApp =
+                    app ? type
+                    && app.type == "app"
+                    && app ? program
+                    && builtins.isString app.program
+                    &&
+                      builtins.removeAttrs app [
+                        "type"
+                        "program"
+                        "meta"
+                      ] == { };
+                  what = "app";
+                }) apps;
+              }
+            ) output
+          );
+      };
+
+      packagesSchema = {
+        version = 1;
+        doc = ''
+          The `packages` flake output contains packages that can be added to a shell using `nix shell`.
+        '';
+        inventory = self.lib.derivationsInventory "package" false;
+      };
+
+      dockerImagesSchema = {
+        version = 1;
+        doc = ''
+          The `dockerImages` flake output contains derivations that build valid Docker images.
+        '';
+        inventory = self.lib.derivationsInventory "Docker image" false;
+      };
+
+      legacyPackagesSchema = {
+        version = 1;
+        doc = ''
+          The `legacyPackages` flake output is similar to `packages` but different in that it can be nested and thus contain attribute sets that contain more packages.
+          Since enumerating packages in nested attribute sets can be inefficient, you should favor `packages` over `legacyPackages`.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (systemType: packagesForSystem: {
+              forSystems = [ systemType ];
+              children =
+                let
+                  recurse =
+                    prefix: attrs:
+                    builtins.mapAttrs (
+                      attrName: attrs:
+                      # Necessary to deal with `AAAAAASomeThingsFailToEvaluate` etc. in Nixpkgs.
+                      self.lib.try (
+                        if attrs.type or null == "derivation" then
+                          {
+                            forSystems = [ attrs.system ];
+                            shortDescription = attrs.meta.description or "";
+                            derivation = attrs;
+                            evalChecks.isDerivation = checkDerivation attrs;
+                            what = "package";
+                          }
+                        else
+                        # Recurse at the first and second levels, or if the
+                        # recurseForDerivations attribute if set.
+                        if attrs.recurseForDerivations or false then
+                          {
+                            children = recurse (prefix + attrName + ".") attrs;
+                          }
+                        else
+                          {
+                            what = "unknown";
+                          }
+                      ) (throw "failed")
+                    ) attrs;
+                in
+                # The top-level cannot be a derivation.
+                assert packagesForSystem.type or null != "derivation";
+                recurse (systemType + ".") packagesForSystem;
+            }) output
+          );
+      };
+
+      checksSchema = {
+        version = 1;
+        doc = ''
+          The `checks` flake output contains derivations that will be built by `nix flake check`.
+        '';
+        inventory = self.lib.derivationsInventory "CI test" true;
+      };
+
+      devShellsSchema = {
+        version = 1;
+        doc = ''
+          The `devShells` flake output contains derivations that provide a development environment for `nix develop`.
+        '';
+        inventory = self.lib.derivationsInventory "development environment" false;
+      };
+
+      formatterSchema = {
+        version = 1;
+        doc = ''
+          The `formatter` output specifies the package to use to format the project.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (system: formatter: {
+              forSystems = [ system ];
+              shortDescription = formatter.meta.description or "";
+              derivation = formatter;
+              evalChecks.isDerivation = checkDerivation formatter;
+              what = "package";
+              isFlakeCheck = false;
+            }) output
+          );
+      };
+
+      templatesSchema = {
+        version = 1;
+        doc = ''
+          The `templates` output provides project templates.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (templateName: template: {
+              shortDescription = template.description or "";
+              evalChecks.isValidTemplate =
+                template ? path
+                && builtins.isPath template.path
+                && template ? description
+                && builtins.isString template.description;
+              what = "template";
+            }) output
+          );
+      };
+
+      hydraJobsSchema = {
+        version = 1;
+        doc = ''
+          The `hydraJobs` flake output defines derivations to be built by the Hydra continuous integration system.
+        '';
+        allowIFD = false;
+        inventory =
+          output:
+          let
+            recurse =
+              prefix: attrs:
+              self.lib.mkChildren (
+                builtins.mapAttrs (
+                  attrName: attrs:
+                  if attrs.type or null == "derivation" then
+                    {
+                      forSystems = [ attrs.system ];
+                      shortDescription = attrs.meta.description or "";
+                      derivation = attrs;
+                      evalChecks.isDerivation = checkDerivation attrs;
+                      what = "Hydra CI test";
+                    }
+                  else
+                    recurse (prefix + attrName + ".") attrs
+                ) attrs
+              );
+          in
+          # The top-level cannot be a derivation.
+          assert output.type or null != "derivation";
+          recurse "" output;
+      };
+
+      overlaysSchema = {
+        version = 1;
+        doc = ''
+          The `overlays` flake output defines ["overlays"](https://nixos.org/manual/nixpkgs/stable/#chap-overlays) that can be plugged into Nixpkgs.
+          Overlays add additional packages or modify or replace existing packages.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (overlayName: overlay: {
+              what = "Nixpkgs overlay";
+              evalChecks.isOverlay =
+                # FIXME: should try to apply the overlay to an actual
+                # Nixpkgs.  But we don't have access to a nixpkgs
+                # flake here. Maybe this schema should be moved to the
+                # nixpkgs flake, where it does have access.
+                if !builtins.isFunction overlay then
+                  throw "overlay is not a function, but a set instead"
+                else
+                  builtins.isAttrs (overlay { } { });
+            }) output
+          );
+      };
+
+      nixosConfigurationsSchema = {
+        version = 1;
+        doc = ''
+          The `nixosConfigurations` flake output defines [NixOS system configurations](https://nixos.org/manual/nixos/stable/#ch-configuration).
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (configName: machine: {
+              what = "NixOS configuration";
+              derivation = machine.config.system.build.toplevel;
+              forSystems = [ machine.pkgs.stdenv.system ];
+            }) output
+          );
+      };
+
+      nixosModulesSchema = {
+        version = 1;
+        doc = ''
+          The `nixosModules` flake output defines importable [NixOS modules](https://nixos.org/manual/nixos/stable/#sec-writing-modules).
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (moduleName: module: {
+              what = "NixOS module";
+              evalChecks.isFunctionOrAttrs = checkModule module;
+            }) output
+          );
+      };
+
+      homeConfigurationsSchema = {
+        version = 1;
+        doc = ''
+          The `homeConfigurations` flake output defines [Home Manager configurations](https://github.com/nix-community/home-manager).
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (configName: this: {
+              what = "Home Manager configuration";
+              derivation = this.activationPackage;
+              forSystems = [ this.activationPackage.system ];
+            }) output
+          );
+      };
+
+      homeModulesSchema = {
+        version = 1;
+        doc = ''
+          The `homeModules` flake output defines importable [Home Manager](https://github.com/nix-community/home-manager) modules.
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (moduleName: module: {
+              what = "Home Manager module";
+              evalChecks.isFunctionOrAttrs = checkModule module;
+            }) output
+          );
+      };
+
+      darwinConfigurationsSchema = {
+        version = 1;
+        doc = ''
+          The `darwinConfigurations` flake output defines [nix-darwin configurations](https://github.com/LnL7/nix-darwin).
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (configName: this: {
+              what = "nix-darwin configuration";
+              derivation = this.system;
+              forSystems = [ this.system.system ];
+            }) output
+          );
+      };
+
+      darwinModulesSchema = {
+        version = 1;
+        doc = ''
+          The `darwinModules` flake output defines importable [nix-darwin modules](https://github.com/LnL7/nix-darwin).
+        '';
+        inventory =
+          output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (moduleName: module: {
+              what = "nix-darwin module";
+              evalChecks.isFunctionOrAttrs = checkModule module;
+            }) output
+          );
+      };
+    in
+
+    {
+      # Helper functions
+      lib = {
+        try =
+          e: default:
+          let
+            res = builtins.tryEval e;
+          in
+          if res.success then res.value else default;
+
+        mkChildren = children: { inherit children; };
+
+        derivationsInventory =
+          what: isFlakeCheck: output:
+          self.lib.mkChildren (
+            builtins.mapAttrs (systemType: packagesForSystem: {
+              forSystems = [ systemType ];
+              children = builtins.mapAttrs (packageName: package: {
+                forSystems = [ systemType ];
+                shortDescription = package.meta.description or "";
+                derivation = package;
+                evalChecks.isDerivation = checkDerivation package;
+                inherit what;
+                isFlakeCheck = isFlakeCheck;
+              }) packagesForSystem;
+            }) output
+          );
+      };
+
+      # FIXME: distinguish between available and active schemas?
+      schemas.schemas = schemasSchema;
+      schemas.apps = appsSchema;
+      schemas.packages = packagesSchema;
+      schemas.legacyPackages = legacyPackagesSchema;
+      schemas.checks = checksSchema;
+      schemas.devShells = devShellsSchema;
+      schemas.formatter = formatterSchema;
+      schemas.templates = templatesSchema;
+      schemas.hydraJobs = hydraJobsSchema;
+      schemas.overlays = overlaysSchema;
+      schemas.nixosConfigurations = nixosConfigurationsSchema;
+      schemas.nixosModules = nixosModulesSchema;
+      schemas.homeConfigurations = homeConfigurationsSchema;
+      schemas.homeModules = homeModulesSchema;
+      schemas.darwinConfigurations = darwinConfigurationsSchema;
+      schemas.darwinModules = darwinModulesSchema;
+      schemas.dockerImages = dockerImagesSchema;
+    };
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2023 Determinate Systems
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="README.md">
+# Flake schemas
+
+> [!NOTE]
+> Flake schemas are not yet supported in Nix.
+> You can track ongoing work in [this pull request][pr] against the upstream project.
+> Until that merges, you may see this warning:
+>
+> ```sh
+> warning: unknown flake output 'schemas'
+> ```
+>
+> You can also [experiment with flake schemas](#experimenting-with-flake-schemas) using a candidate version of Nix.
+
+This [Nix flake][flakes] provides a set of schema definitions for commonly used flake output types.
+It's used by default for flakes that do not have a `schemas` output.
+
+It supports the following flake output types:
+
+* [`apps`][apps]
+* [`checks`][checks]
+* [`darwinConfigurations`][darwin]
+* [`darwinModules`][darwin]
+* [`devShells`][develop]
+* [`dockerImages`][docker]
+* [`formatter`][formatter]
+* [`homeConfigurations`][home]
+* [`homeModules`][home]
+* [`hydraJobs`][hydra]
+* [`legacyPackages`][legacy]
+* [`nixosConfigurations`][nixos]
+* [`nixosModules`][nixosmodules]
+* [`overlays`][overlays]
+* [`packages`][packages]
+* `schemas`
+* [`templates`][templates]
+
+## Experimenting with flake schemas
+
+Flake schemas are not yet supported in Nix.
+To experiment with them, you can use the version of Nix from the [pull request][pr] to upstream.
+Below are some example commands.
+
+> [!WARNING]
+> The first time you run one of the commands, you will build Nix in its entirety, which is resource intensive and could take a while.
+
+```shell
+# Display the flake schema for this repo
+nix run github:DeterminateSystems/nix-src/flake-schemas -- \
+  flake show "https://flakehub.com/f/DeterminateSystems/flake-schemas/*"
+
+# Display the flake schema for this repo as JSON
+nix run github:DeterminateSystems/nix-src/flake-schemas -- \
+  flake show --json "https://flakehub.com/f/DeterminateSystems/flake-schemas/*"
+
+# Display the flake schema for Nixpkgs
+nix run github:DeterminateSystems/nix-src/flake-schemas -- \
+  flake show "https://flakehub.com/f/NixOS/nixpkgs/*"
+
+# Display the flake schema for Nixpkgs as JSON
+nix run github:DeterminateSystems/nix-src/flake-schemas -- \
+  flake show --json "https://flakehub.com/f/NixOS/nixpkgs/*"
+```
+
+## Read more
+
+- [Flake schemas: Making flake outputs extensible][blog] &mdash; the blog post introducing flake schemas.
+- [Flake schemas][video] &mdash; [Eelco Dolstra][eelco]'s talk on flake schemas at [NixCon 2023][nixcon-2023].
+
+[apps]: https://nix.dev/manual/nix/latest/command-ref/new-cli/nix3-run#apps
+[blog]: https://determinate.systems/posts/flake-schemas
+[branch]: https://github.com/DeterminateSystems/nix-src/tree/flake-schemas
+[checks]: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-flake-check.html
+[darwin]: https://github.com/LnL7/nix-darwin
+[docker]: https://nixos.org/manual/nixpkgs/stable/#sec-pkgs-dockerTools
+[develop]: https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-develop.html
+[eelco]: https://determinate.systems/people/eelco-dolstra
+[flakes]: https://zero-to-nix.com/concepts/flakes
+[formatter]: https://nix.dev/manual/nix/latest/command-ref/new-cli/nix3-fmt
+[home]: https://github.com/nix-community/home-manager
+[hydra]: https://github.com/NixOS/hydra
+[legacy]: https://github.com/NixOS/nixpkgs/blob/d1eaf1acfce382f14d26d20e0a9342884f3127b0/flake.nix#L47-L56
+[nixcon-2023]: https://2023.nixcon.org
+[nixos]: https://github.com/NixOS/nixpkgs/tree/master/nixos
+[nixosmodules]: https://nixos.wiki/wiki/NixOS_modules
+[overlays]: https://nixos.wiki/wiki/Overlays
+[packages]: https://search.nixos.org/packages
+[pr]: https://github.com/NixOS/nix/pull/8892
+[templates]: https://nix.dev/manual/nix/latest/command-ref/new-cli/nix3-flake-init
+[video]: https://www.youtube.com/watch?v=ChaJY0V4ElM
+</file>
+
+</files>

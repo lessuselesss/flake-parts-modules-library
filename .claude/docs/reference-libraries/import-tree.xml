@@ -1,0 +1,1128 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    test.yml
+  FUNDING.yml
+checkmate/
+  .gitignore
+  flake.nix
+tree/
+  a/
+    b/
+      _c/
+        d/
+          e.nix
+      _n.nix
+      b_a.nix
+      m.nix
+    a_b.nix
+    a.txt
+  hello/
+    world
+  modules/
+    hello-option/
+      mod.nix
+    hello-world/
+      mod.nix
+  x/
+    y.nix
+checkmate.nix
+default.nix
+flake.nix
+LICENSE
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/test.yml">
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  flake-check:
+    name: nix flake check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: cachix/install-nix-action@v30
+      - run: nix flake check -L github:vic/checkmate --override-input target github:$GITHUB_REPOSITORY/$GITHUB_SHA
+</file>
+
+<file path=".github/FUNDING.yml">
+# These are supported funding model platforms
+github: [vic] # Replace with up to 4 GitHub Sponsors-enabled usernames e.g., [user1, user2]
+patreon: # Replace with a single Patreon username
+open_collective: # Replace with a single Open Collective username
+ko_fi: oeiuwq # Replace with a single Ko-fi username
+tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
+community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
+liberapay: # Replace with a single Liberapay username
+issuehunt: # Replace with a single IssueHunt username
+lfx_crowdfunding: # Replace with a single LFX Crowdfunding project-name e.g., cloud-foundry
+polar: # Replace with a single Polar username
+buy_me_a_coffee: # Replace with a single Buy Me a Coffee username
+thanks_dev: # Replace with a single thanks.dev username
+custom: # Replace with up to 4 custom sponsorship URLs e.g., ['link1', 'link2']
+</file>
+
+<file path="checkmate/.gitignore">
+flake.lock
+</file>
+
+<file path="checkmate/flake.nix">
+{
+  inputs.target.url = "path:..";
+  inputs.checkmate.url = "github:vic/checkmate";
+  inputs.checkmate.inputs.target.follows = "target";
+  outputs = inputs: inputs.checkmate.lib.newFlake;
+}
+</file>
+
+<file path="tree/a/b/_c/d/e.nix">
+{ }
+</file>
+
+<file path="tree/a/b/_n.nix">
+{ }
+</file>
+
+<file path="tree/a/b/b_a.nix">
+{ }
+</file>
+
+<file path="tree/a/b/m.nix">
+{ }
+</file>
+
+<file path="tree/a/a_b.nix">
+{ }
+</file>
+
+<file path="tree/a/a.txt">
+hello
+</file>
+
+<file path="tree/hello/world">
+hola
+</file>
+
+<file path="tree/modules/hello-option/mod.nix">
+{ lib, ... }:
+{
+  options.hello = lib.mkOption {
+    type = lib.types.str;
+    default = "goodbye";
+  };
+}
+</file>
+
+<file path="tree/modules/hello-world/mod.nix">
+{
+  hello = "world";
+}
+</file>
+
+<file path="tree/x/y.nix">
+"z"
+</file>
+
+<file path="checkmate.nix">
+# If formatting fails, run
+#   nix run github:vic/checkmate#checkmate-treefmt
+#
+{ inputs, lib, ... }:
+let
+  # since we are tested by github:vic/checkmate
+  it = inputs.target;
+  lit = it.withLib lib;
+in
+{
+  perSystem = (
+    { ... }:
+    {
+      nix-unit.tests = {
+        leafs."test fails if no lib has been set" = {
+          expr = it.leafs ./trees;
+          expectedError.type = "ThrownError";
+        };
+
+        leafs."test succeeds when lib has been set" = {
+          expr = (it.withLib lib).leafs ./tree/hello;
+          expected = [ ];
+        };
+
+        leafs."test only returns nix non-ignored files" = {
+          expr = lit.leafs ./tree/a;
+          expected = [
+            ./tree/a/a_b.nix
+            ./tree/a/b/b_a.nix
+            ./tree/a/b/m.nix
+          ];
+        };
+
+        filter."test returns empty if no nix files with true predicate" = {
+          expr = (lit.filter (_: false)).leafs ./tree;
+          expected = [ ];
+        };
+
+        filter."test only returns nix files with true predicate" = {
+          expr = (lit.filter (lib.hasSuffix "m.nix")).leafs ./tree;
+          expected = [ ./tree/a/b/m.nix ];
+        };
+
+        filter."test multiple `filter`s compose" = {
+          expr = ((lit.filter (lib.hasInfix "b/")).filter (lib.hasInfix "_")).leafs ./tree;
+          expected = [ ./tree/a/b/b_a.nix ];
+        };
+
+        match."test returns empty if no files match regex" = {
+          expr = (lit.match "badregex").leafs ./tree;
+          expected = [ ];
+        };
+
+        match."test returns files matching regex" = {
+          expr = (lit.match ".*/[^/]+_[^/]+\.nix").leafs ./tree;
+          expected = [
+            ./tree/a/a_b.nix
+            ./tree/a/b/b_a.nix
+          ];
+        };
+
+        matchNot."test returns files not matching regex" = {
+          expr = (lit.matchNot ".*/[^/]+_[^/]+\.nix").leafs ./tree/a/b;
+          expected = [
+            ./tree/a/b/m.nix
+          ];
+        };
+
+        match."test `match` composes with `filter`" = {
+          expr = ((lit.match ".*a_b.nix").filter (lib.hasInfix "/a/")).leafs ./tree;
+          expected = [ ./tree/a/a_b.nix ];
+        };
+
+        match."test multiple `match`s compose" = {
+          expr = ((lit.match ".*/[^/]+_[^/]+\.nix").match ".*b\.nix").leafs ./tree;
+          expected = [ ./tree/a/a_b.nix ];
+        };
+
+        map."test transforms each matching file with function" = {
+          expr = (lit.map import).leafs ./tree/x;
+          expected = [ "z" ];
+        };
+
+        map."test `map` composes with `filter`" = {
+          expr = ((lit.filter (lib.hasInfix "/x")).map import).leafs ./tree;
+          expected = [ "z" ];
+        };
+
+        map."test multiple `map`s compose" = {
+          expr = ((lit.map import).map builtins.stringLength).leafs ./tree/x;
+          expected = [ 1 ];
+        };
+
+        addPath."test `addPath` prepends a path to filter" = {
+          expr = (lit.addPath ./tree/x).files;
+          expected = [ ./tree/x/y.nix ];
+        };
+
+        addPath."test `addPath` can be called multiple times" = {
+          expr = ((lit.addPath ./tree/x).addPath ./tree/a/b).files;
+          expected = [
+            ./tree/x/y.nix
+            ./tree/a/b/b_a.nix
+            ./tree/a/b/m.nix
+          ];
+        };
+
+        addPath."test `addPath` identity" = {
+          expr = ((lit.addPath ./tree/x).addPath ./tree/a/b).files;
+          expected = lit.leafs [
+            ./tree/x
+            ./tree/a/b
+          ];
+        };
+
+        new."test `new` returns a clear state" = {
+          expr = lib.pipe lit [
+            (i: i.addPath ./tree/x)
+            (i: i.addPath ./tree/a/b)
+            (i: i.new)
+            (i: i.addPath ./tree/modules/hello-world)
+            (i: i.withLib lib)
+            (i: i.files)
+          ];
+          expected = [ ./tree/modules/hello-world/mod.nix ];
+        };
+
+        initFilter."test can change the initial filter to look for other file types" = {
+          expr = (lit.initFilter (p: lib.hasSuffix ".txt" p)).leafs [ ./tree/a ];
+          expected = [ ./tree/a/a.txt ];
+        };
+
+        initFilter."test initf does filter non-paths" = {
+          expr =
+            let
+              mod = (it.initFilter (x: !(x ? config.boom))) [
+                {
+                  options.hello = lib.mkOption {
+                    default = "world";
+                    type = lib.types.str;
+                  };
+                }
+                {
+                  config.boom = "boom";
+                }
+              ];
+              res = lib.modules.evalModules { modules = [ mod ]; };
+            in
+            res.config.hello;
+          expected = "world";
+        };
+
+        addAPI."test extends the API available on an import-tree object" = {
+          expr =
+            let
+              extended = lit.addAPI { helloOption = self: self.addPath ./tree/modules/hello-option; };
+            in
+            extended.helloOption.files;
+          expected = [ ./tree/modules/hello-option/mod.nix ];
+        };
+
+        addAPI."test preserves previous API extensions on an import-tree object" = {
+          expr =
+            let
+              first = lit.addAPI { helloOption = self: self.addPath ./tree/modules/hello-option; };
+              second = first.addAPI { helloWorld = self: self.addPath ./tree/modules/hello-world; };
+              extended = second.addAPI { res = self: self.helloOption.files; };
+            in
+            extended.res;
+          expected = [ ./tree/modules/hello-option/mod.nix ];
+        };
+
+        addAPI."test API extensions are late bound" = {
+          expr =
+            let
+              first = lit.addAPI { res = self: self.late; };
+              extended = first.addAPI { late = _self: "hello"; };
+            in
+            extended.res;
+          expected = "hello";
+        };
+
+        pipeTo."test pipes list into a function" = {
+          expr = (lit.map lib.pathType).pipeTo (lib.length) ./tree/x;
+          expected = 1;
+        };
+
+        import-tree."test does not break if given a path to a file instead of a directory." = {
+          expr = lit.leafs ./tree/x/y.nix;
+          expected = [ ./tree/x/y.nix ];
+        };
+
+        import-tree."test returns a module with a single imported nested module having leafs" = {
+          expr =
+            let
+              oneElement = arr: if lib.length arr == 1 then lib.elemAt arr 0 else throw "Expected one element";
+              module = it ./tree/x;
+              inner = (oneElement module.imports) { inherit lib; };
+            in
+            oneElement inner.imports;
+          expected = ./tree/x/y.nix;
+        };
+
+        import-tree."test evaluates returned module as part of module-eval" = {
+          expr =
+            let
+              res = lib.modules.evalModules { modules = [ (it ./tree/modules) ]; };
+            in
+            res.config.hello;
+          expected = "world";
+        };
+
+        import-tree."test can itself be used as a module" = {
+          expr =
+            let
+              res = lib.modules.evalModules { modules = [ (it.addPath ./tree/modules) ]; };
+            in
+            res.config.hello;
+          expected = "world";
+        };
+
+        import-tree."test take as arg anything path convertible" = {
+          expr = lit.leafs [
+            {
+              outPath = ./tree/modules/hello-world;
+            }
+          ];
+          expected = [ ./tree/modules/hello-world/mod.nix ];
+        };
+
+        import-tree."test passes non-paths without string conversion" = {
+          expr =
+            let
+              mod = it [
+                {
+                  options.hello = lib.mkOption {
+                    default = "world";
+                    type = lib.types.str;
+                  };
+                }
+              ];
+              res = lib.modules.evalModules { modules = [ mod ]; };
+            in
+            res.config.hello;
+          expected = "world";
+        };
+
+        import-tree."test can take other import-trees as if they were paths" = {
+          expr = (lit.filter (lib.hasInfix "mod")).leafs [
+            (it.addPath ./tree/modules/hello-option)
+            ./tree/modules/hello-world
+          ];
+          expected = [
+            ./tree/modules/hello-option/mod.nix
+            ./tree/modules/hello-world/mod.nix
+          ];
+        };
+      };
+
+    }
+  );
+}
+</file>
+
+<file path="default.nix">
+let
+  perform =
+    {
+      lib ? null,
+      pipef ? null,
+      initf ? null,
+      filterf,
+      mapf,
+      paths,
+      ...
+    }:
+    path:
+    let
+      result =
+        if pipef == null then
+          { imports = [ module ]; }
+        else if lib == null then
+          throw "You need to call withLib before trying to read the tree."
+        else
+          pipef (leafs lib path);
+
+      # module exists so we delay access to lib til we are part of the module system.
+      module =
+        { lib, ... }:
+        {
+          imports = leafs lib path;
+        };
+
+      leafs =
+        lib: root:
+        let
+          treeFiles = t: (t.withLib lib).files;
+          listFilesRecursive =
+            x:
+            if isImportTree x then
+              treeFiles x
+            else if hasOutPath x then
+              listFilesRecursive x.outPath
+            else if isDirectory x then
+              lib.filesystem.listFilesRecursive x
+            else
+              [ x ];
+          nixFilter = andNot (lib.hasInfix "/_") (lib.hasSuffix ".nix");
+          initialFilter = if initf != null then initf else nixFilter;
+          pathFilter = compose (and filterf initialFilter) toString;
+          otherFilter = and filterf (if initf != null then initf else (_: true));
+          filter = x: if isPathLike x then pathFilter x else otherFilter x;
+        in
+        lib.pipe
+          [ paths root ]
+          [
+            (lib.lists.flatten)
+            (map listFilesRecursive)
+            (lib.lists.flatten)
+            (builtins.filter filter)
+            (map mapf)
+          ];
+
+    in
+    result;
+
+  compose =
+    g: f: x:
+    g (f x);
+
+  # Applies the second filter first, to allow partial application when building the configuration.
+  and =
+    g: f: x:
+    f x && g x;
+
+  andNot = g: and (x: !(g x));
+
+  matchesRegex = re: p: builtins.match re p != null;
+
+  mapAttr =
+    attrs: k: f:
+    attrs // { ${k} = f attrs.${k}; };
+
+  isDirectory = and (x: builtins.readFileType x == "directory") isPathLike;
+
+  isPathLike = x: builtins.isPath x || builtins.isString x || hasOutPath x;
+
+  hasOutPath = and (x: x ? outPath) builtins.isAttrs;
+
+  isImportTree = and (x: x ? __config.__functor) builtins.isAttrs;
+
+  inModuleEval = and (x: x ? options) builtins.isAttrs;
+
+  functor = self: arg: perform self.__config (if inModuleEval arg then [ ] else arg);
+
+  callable =
+    let
+      __config = {
+        # Accumulated configuration
+        api = { };
+        mapf = (i: i);
+        filterf = _: true;
+        paths = [ ];
+
+        __functor =
+          self: f:
+          let
+            __config = (f self);
+            boundAPI = builtins.mapAttrs (_: g: g (self f)) __config.api;
+            accAttr = attrName: acc: self (c: mapAttr (f c) attrName acc);
+            mergeAttrs = attrs: self (c: (f c) // attrs);
+          in
+          boundAPI
+          // {
+            inherit __config;
+            __functor = functor;
+
+            # Configuration updates (accumulating)
+            filter = filterf: accAttr "filterf" (and filterf);
+            filterNot = filterf: accAttr "filterf" (andNot filterf);
+            match = regex: accAttr "filterf" (and (matchesRegex regex));
+            matchNot = regex: accAttr "filterf" (andNot (matchesRegex regex));
+            map = mapf: accAttr "mapf" (compose mapf);
+            addPath = path: accAttr "paths" (p: p ++ [ path ]);
+            addAPI = api: accAttr "api" (a: a // api);
+
+            # Configuration updates (non-accumulating)
+            withLib = lib: mergeAttrs { inherit lib; };
+            initFilter = initf: mergeAttrs { inherit initf; };
+            pipeTo = pipef: mergeAttrs { inherit pipef; };
+            leafs = mergeAttrs { pipef = (i: i); };
+
+            # Applies empty (for already path-configured trees)
+            result = (self f) [ ];
+
+            # Return a list of all filtered files.
+            files = (self f).leafs.result;
+
+            # returns the original empty state
+            new = callable;
+          };
+      };
+    in
+    __config (c: c);
+
+in
+callable
+</file>
+
+<file path="flake.nix">
+{
+  outputs = _: import ./.;
+}
+</file>
+
+<file path="LICENSE">
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+</file>
+
+<file path="README.md">
+# 🌲🌴 import-tree 🎄🌳
+
+> Recursively import [Nix modules](https://nix.dev/tutorials/module-system/) from a directory, with a simple, extensible API.
+
+## Quick Start (flake-parts)
+
+Import all nix files inside `./modules` in your flake:
+
+```nix
+{
+  inputs.import-tree.url = "github:vic/import-tree";
+  inputs.flake-parts.url = "github:hercules-ci/flake-parts";
+
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; }
+   (inputs.import-tree ./modules);
+}
+```
+
+> By default, paths having `/_` are ignored.
+
+## Features
+
+🌳 Works with NixOS, nix-darwin, home-manager, flake-parts, NixVim, etc.\
+🌲 Callable as a deps-free Flake or nix lib.\
+🌴 Sensible defaults and configurable behaviour.\
+🌵 API for listing custom file types with filters and transformations.\
+🎄 Extensible: add your own API methods to tailor import-tree objects.\
+🌿 Useful on [Dendritic Pattern](https://github.com/mightyiam/dendritic) setups.\
+🌱 [Growing](https://github.com/search?q=language%3ANix+import-tree&type=code) [community](https://vic.github.io/dendrix/Dendrix-Trees.html) [adoption](https://github.com/vic/flake-file)
+
+## Other Usage (outside module evaluation)
+
+Get a list of nix files programmatically:
+
+```nix
+(import-tree.withLib pkgs.lib).leafs ./modules
+```
+
+<details>
+<summary>Advanced Usage, API, and Rationale</summary>
+
+### Ignored files
+
+By default, paths having a component that begins with an underscore (`/_`) are ignored. This can be changed by using `.initFilter` API.
+
+### API usage
+
+The following goes recursively through `./modules` and imports all `.nix` files.
+
+```nix
+{config, ...} {
+  imports = [  (import-tree ./modules)  ];
+}
+```
+
+For more advanced usage, `import-tree` can be configured via its extensible API.
+
+______________________________________________________________________
+
+#### Obtaining the API
+
+When used as a flake, the flake outputs attrset is the primary callable. Otherwise, importing the `default.nix` at the root of this repository will evaluate into the same attrset. This callable attrset is referred to as `import-tree` in this documentation.
+
+#### `import-tree`
+
+Takes a single argument: path or deeply nested list of path. Returns a module that imports the discovered files. For example, given the following file tree:
+
+```
+default.nix
+modules/
+  a.nix
+  subdir/
+    b.nix
+```
+
+The following
+
+```nix
+{lib, config, ...} {
+  imports = [ (import-tree ./modules) ];
+}
+```
+
+Is similar to
+
+```nix
+{lib, config, ...} {
+  imports = [
+    {
+      imports = [
+        ./modules/a.nix
+        ./modules/subdir/b.nix
+      ];
+    }
+  ];
+}
+```
+
+If given a deeply nested list of paths the list will be flattened and results concatenated. The following is valid usage:
+
+```nix
+{lib, config, ...} {
+  imports = [ (import-tree [./a [./b]]) ];
+}
+```
+
+Other import-tree objects can also be given as arguments (or in lists) as if they were paths.
+
+As a special case, when the single argument given to an `import-tree` object is an attribute-set containing an `options` attribute, the `import-tree` object assumes it is being evaluated as a module. This way, a pre-configured `import-tree` object can also be used directly in a list of module imports.
+
+#### Configurable behavior
+
+`import-tree` objects with custom behavior can be obtained using a builder pattern. For example:
+
+```nix
+lib.pipe import-tree [
+  (i: i.map lib.traceVal)
+  (i: i.filter (lib.hasInfix ".mod."))
+  (i: i ./modules)
+]
+```
+
+Or, in a simpler but less readable way:
+
+```nix
+((import-tree.map lib.traceVal).filter (lib.hasInfix ".mod.")) ./modules
+```
+
+##### 🌲 `import-tree.filter` and `import-tree.filterNot`
+
+`filter` takes a predicate function `path -> bool`. Only files with suffix `.nix` are candidates.
+
+```nix
+import-tree.filter (lib.hasInfix ".mod.") ./some-dir
+```
+
+Multiple filters can be combined, results must match all of them.
+
+##### 🌳 `import-tree.match` and `import-tree.matchNot`
+
+`match` takes a regular expression. The regex should match the full path for the path to be selected. Matching is done with `builtins.match`.
+
+```nix
+import-tree.match ".*/[a-z]+@(foo|bar)\.nix" ./some-dir
+```
+
+Multiple match filters can be added, results must match all of them.
+
+##### 🌴 `import-tree.map`
+
+`map` can be used to transform each path by providing a function.
+
+```nix
+# generate a custom module from path
+import-tree.map (path: { imports = [ path ]; })
+```
+
+Outside modules evaluation, you can transform paths into something else:
+
+```nix
+lib.pipe import-tree [
+  (i: i.map builtins.readFile)
+  (i: i.withLib lib)
+  (i: i.leafs ./dir)
+]
+# => list of contents of all files.
+```
+
+##### 🌵 `import-tree.addPath`
+
+`addPath` can be used to prepend paths to be filtered as a setup for import-tree.
+
+```nix
+(import-tree.addPath ./vendor) ./modules
+import-tree [./vendor ./modules]
+```
+
+##### 🎄 `import-tree.addAPI`
+
+`addAPI` extends the current import-tree object with new methods.
+
+```nix
+import-tree.addAPI {
+  maximal = self: self.addPath ./modules;
+  feature = self: infix: self.maximal.filter (lib.hasInfix infix);
+  minimal = self: self.feature "minimal";
+}
+```
+
+##### 🌿 `import-tree.withLib`
+
+`withLib` is required prior to invocation of any of `.leafs` or `.pipeTo` when not used as part of a nix modules evaluation.
+
+```nix
+import-tree.withLib pkgs.lib
+```
+
+##### 🌱 `import-tree.pipeTo`
+
+`pipeTo` takes a function that will receive the list of paths.
+
+```nix
+import-tree.pipeTo lib.id # equivalent to  `.leafs`
+```
+
+##### 🍃 `import-tree.leafs`
+
+`leafs` takes no arguments, it is equivalent to calling `import-tree.pipeTo lib.id`.
+
+```nix
+import-tree.leafs
+```
+
+##### 🌲 `import-tree.new`
+
+Returns a fresh import-tree with empty state.
+
+##### 🌳 `import-tree.initFilter`
+
+*Replaces* the initial filter which defaults to: Include files with `.nix` suffix and not having `/_` infix.
+
+```nix
+import-tree.initFilter (p: lib.hasSuffix ".nix" p && !lib.hasInfix "/ignored/" p)
+import-tree.initFilter (lib.hasSuffix ".md")
+```
+
+##### 🌴 `import-tree.files`
+
+A shorthand for `import-tree.leafs.result`. Returns a list of matching files.
+
+```nix
+lib.pipe import-tree [
+  (i: i.initFilter (lib.hasSuffix ".js"))
+  (i: i.addPath ./out)
+  (i: i.withLib lib)
+  (i: i.files)
+]
+```
+
+##### 🌵 `import-tree.result`
+
+Exactly the same as calling the import-tree object with an empty list `[ ]`.
+
+```nix
+(import-tree.addPath ./modules).result
+(import-tree.addPath ./modules) [ ]
+```
+
+______________________________________________________________________
+
+## Why
+
+Importing a tree of nix modules has some advantages:
+
+### Dendritic Pattern: each file is a flake-parts module
+
+[That pattern](https://github.com/mightyiam/dendritic) was the original inspiration for this library.
+See [@mightyiam's post](https://discourse.nixos.org/t/pattern-each-file-is-a-flake-parts-module/61271),
+[@drupol's blog post](https://not-a-number.io/2025/refactoring-my-infrastructure-as-code-configurations/) and
+[@vic's reply](https://discourse.nixos.org/t/how-do-you-structure-your-nixos-configs/65851/8)
+to learn about the Dendritic pattern advantages.
+
+### Sharing pre-configured subtrees of modules
+
+Since the import-tree API is _extensible_ and lets you add paths or
+filters at configuration time, configuration-library authors can
+provide custom import-tree instances with an API suited for their
+particular idioms.
+
+@vic is using this on [Dendrix](https://github.com/vic/dendrix) for [community conventions](https://github.com/vic/dendrix/blob/main/dev/modules/community/_pipeline.nix) on tagging files.
+
+This would allow us to have community-driven *sets* of configurations,
+much like those popular for editors: spacemacs/lazy-vim distributions.
+
+Imagine an editor distribution exposing the following flake output:
+
+```nix
+# editor-distro's flakeModule
+{inputs, lib, ...}:
+let 
+  flake.lib.modules-tree = lib.pipe inputs.import-tree [
+    (i: i.addPath ./modules)
+    (i: i.addAPI { inherit on off exclusive; })
+    (i: i.addAPI { ruby = self: self.on "ruby"; })
+    (i: i.addAPI { python = self: self.on "python"; })
+    (i: i.addAPI { old-school = self: self.off "copilot"; })
+    (i: i.addAPI { vim-btw = self: self.exclusive "vim" "emacs"; })
+  ];
+
+  on = self: flag: self.filter (lib.hasInfix "+${flag}");
+  off = self: flag: self.filterNot (lib.hasInfix "+${flag}");
+  exclusive = self: onFlag: offFlag: lib.pipe self [
+    (self: on self onFlag)
+    (self: off self offFlag)
+  ];
+in
+{
+  inherit flake;
+}
+```
+
+Users of such distribution can do:
+
+```nix
+# consumer flakeModule
+{inputs, lib, ...}: let
+  ed-tree = inputs.editor-distro.lib.modules-tree;
+in {
+  imports = [
+    (ed-tree.vim-btw.old-school.on "rust")
+  ];
+}
+```
+
+______________________________________________________________________
+
+## Testing
+
+`import-tree` uses [`checkmate`](https://github.com/vic/checkmate) for testing.
+
+The test suite can be found in [`checkmate.nix`](checkmate.nix). To run it locally:
+
+```sh
+nix flake check path:checkmate --override-input target path:.
+```
+
+Run the following to format files:
+
+```sh
+nix run github:vic/checkmate#fmt
+```
+
+</details>
+</file>
+
+</files>

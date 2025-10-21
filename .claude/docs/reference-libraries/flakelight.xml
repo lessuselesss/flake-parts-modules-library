@@ -1,0 +1,4130 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    pr.yml
+    update.yml
+builtinModules/
+  apps.nix
+  autoInputs.nix
+  builtinFormatters.nix
+  builtinOverlay.nix
+  bundlers.nix
+  checks.nix
+  core.nix
+  devShells.nix
+  editorconfig.nix
+  flakelightModules.nix
+  formatter.nix
+  functor.nix
+  homeConfigurations.nix
+  homeModules.nix
+  legacyPackages.nix
+  lib.nix
+  moduleArgs.nix
+  nixDir.nix
+  nixosConfigurations.nix
+  nixosModules.nix
+  overlays.nix
+  packages.nix
+  propagationModule.nix
+  templates.nix
+misc/
+  lock2inputs.nix
+  nameMockedPkgs.nix
+nix/
+  flakelightModules/
+    extendFlakelight.nix
+templates/
+  basic/
+    .envrc
+    flake.nix
+  default.nix
+tests/
+  editorconfig/
+    .editorconfig
+  empty/
+    .keep
+  default.nix
+.editorconfig
+.envrc
+.gitignore
+API_GUIDE.md
+default.nix
+flake.lock
+flake.nix
+LICENSE
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/pr.yml">
+name: PR checks
+
+on:
+  pull_request:
+
+jobs:
+  run-checks:
+    name: Run checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@master
+      - run: nix flake check --all-systems
+  run-tests:
+    name: Run tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@master
+      - run: nix eval --json .#tests
+</file>
+
+<file path=".github/workflows/update.yml">
+name: Update flake inputs
+
+on:
+  schedule:
+    - cron: "0 12 ? * MON"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-inputs:
+    name: Update inputs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@master
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - run: nix flake update --commit-lock-file
+      - run: nix flake check --all-systems
+      - run: nix eval --json .#tests
+      - run: git push
+</file>
+
+<file path="builtinModules/apps.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, genSystems, ... }:
+let
+  inherit (builtins) match storeDir;
+  inherit (lib) defaultFunctor fix isFunction last mapAttrs mergeDefinitions
+    mkIf mkMerge mkOption mkOptionType;
+  inherit (lib.types) coercedTo enum lazyAttrsOf
+    optionDescriptionPhrase pathInStore str submoduleWith;
+  inherit (flakelight.types) nullable optFunctionTo stringLike;
+
+  isStorePath = s: match "${storeDir}/[^.][^ \n]*" s != null;
+
+  app = submoduleWith {
+    modules = [{
+      options = {
+        type = mkOption { type = enum [ "app" ]; default = "app"; };
+        program = mkOption { type = pathInStore // { check = isStorePath; }; };
+        meta.description = mkOption { type = nullable str; default = null; };
+      };
+    }];
+  };
+
+  mkApp = name: pkgs: s:
+    let s' = "${s}"; in {
+      program =
+        if isStorePath s' then s'
+        else "${pkgs.writeShellScript "app-${name}" s'}";
+    };
+
+  parameterize = value: fn: fix fn value;
+
+  appType = parameterize app (self': app: (mkOptionType rec {
+    name = "appType";
+    description =
+      let
+        targetDesc = optionDescriptionPhrase
+          (class: class == "noun" || class == "composite")
+          (coercedTo stringLike (abort "") app);
+      in
+      "${targetDesc} or function that evaluates to it";
+    descriptionClass = "composite";
+    check = x: isFunction x || app.check x || stringLike.check x;
+    merge = loc: defs: pkgs:
+      let
+        targetType = coercedTo stringLike (mkApp (last loc) pkgs) app;
+      in
+      (mergeDefinitions loc targetType (map
+        (fn: {
+          inherit (fn) file;
+          value = if isFunction fn.value then fn.value pkgs else fn.value;
+        })
+        defs)).mergedValue;
+    inherit (app) getSubOptions getSubModules;
+    substSubModules = m: self' (app.substSubModules m);
+    functor = (defaultFunctor name) // { wrapped = app; };
+    nestedTypes.coercedType = stringLike;
+    nestedTypes.finalType = app;
+  }));
+
+  cleanApp = app:
+    if app.meta.description == null then {
+      inherit (app) type program;
+    } else app;
+in
+{
+  options = {
+    app = mkOption {
+      type = nullable appType;
+      default = null;
+    };
+
+    apps = mkOption {
+      type = nullable (optFunctionTo (lazyAttrsOf appType));
+      default = null;
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.app != null) {
+      apps.default = config.app;
+    })
+
+    (mkIf (config.apps != null) {
+      outputs.apps = genSystems (pkgs:
+        mapAttrs (_: v: cleanApp (v pkgs)) (config.apps pkgs));
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/autoInputs.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ lib, src, ... }:
+let
+  inherit (builtins) mapAttrs pathExists;
+  inherit (lib) mkOverride;
+  lock2inputs = import ../misc/lock2inputs.nix { inherit lib; };
+  lockFound = pathExists (src + "/flake.lock");
+  autoInputs = if lockFound then lock2inputs src else { };
+in
+{ config.inputs = mapAttrs (_: mkOverride 950) autoInputs; }
+</file>
+
+<file path="builtinModules/builtinFormatters.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, ... }:
+let
+  inherit (lib) mkDefault mkEnableOption mkIf;
+in
+{
+  options.flakelight.builtinFormatters =
+    mkEnableOption "default formatters" //
+    { default = config.formatter == null; };
+
+  config = mkIf config.flakelight.builtinFormatters {
+    formatters = pkgs:
+      let
+        nixpkgs-fmt = "${pkgs.nixpkgs-fmt}/bin/nixpkgs-fmt";
+        # prefer-file would be better but does not work with prose-wrap
+        prettier = "${pkgs.nodePackages.prettier}/bin/prettier --write"
+          + " --cache-location=.prettiercache"
+          + " --config-precedence file-override --prose-wrap always";
+      in
+      {
+        "*.nix" = mkDefault nixpkgs-fmt;
+        "*.md" = mkDefault prettier;
+        "*.json" = mkDefault prettier;
+        "*.yaml" = mkDefault prettier;
+        "*.yml" = mkDefault prettier;
+      };
+  };
+}
+</file>
+
+<file path="builtinModules/builtinOverlay.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, src, lib, inputs, outputs, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) isList mkOption mkOrder mapAttrs optionalAttrs;
+  inherit (lib.types) listOf oneOf str;
+  inherit (builtins) pathExists;
+  inherit (flakelight) selectAttr;
+  inherit (flakelight.types) nullable;
+in
+{
+  options = {
+    description = mkOption {
+      type = nullable str;
+      default =
+        if pathExists (src + /flake.nix)
+        then (import (src + /flake.nix)).description or null
+        else null;
+    };
+
+    license = mkOption {
+      type = nullable (oneOf [ str (listOf str) ]);
+      default = null;
+    };
+  };
+
+  config.withOverlays = mkOrder 10 (final: prev:
+    let inherit (prev.stdenv.hostPlatform) system; in {
+      inherit system moduleArgs src inputs outputs flakelight;
+      inputs' = mapAttrs (_: selectAttr system) inputs;
+      outputs' = selectAttr system outputs;
+
+      defaultMeta = {
+        platforms = config.systems;
+      } // optionalAttrs (config.description != null) {
+        inherit (config) description;
+      } // optionalAttrs (config.license != null) {
+        license =
+          let
+            getLicense = license: final.lib.licenses.${license} or
+              (final.lib.meta.getLicenseFromSpdxId license);
+          in
+          if isList config.license then map getLicense config.license
+          else getLicense config.license;
+      };
+    });
+}
+</file>
+
+<file path="builtinModules/bundlers.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, genSystems, ... }:
+let
+  inherit (lib) isFunction mapAttrs mkMerge mkOption mkIf;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (flakelight.types) function nullable optFunctionTo;
+
+  wrapBundler = pkgs: bundler: drv:
+    if isFunction (bundler (pkgs // drv))
+    then bundler pkgs drv
+    else bundler drv;
+in
+{
+  options = {
+    bundler = mkOption {
+      type = nullable function;
+      default = null;
+    };
+
+    bundlers = mkOption {
+      type = nullable (optFunctionTo (lazyAttrsOf function));
+      default = null;
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.bundler != null) {
+      bundlers.default = config.bundler;
+    })
+
+    (mkIf (config.bundlers != null) {
+      outputs.bundlers = genSystems (pkgs:
+        mapAttrs (_: wrapBundler pkgs) (config.bundlers pkgs));
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/checks.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, src, lib, flakelight, genSystems, ... }:
+let
+  inherit (lib) isFunction last mapAttrs mergeDefinitions mkIf mkOption
+    mkOptionType;
+  inherit (lib.types) lazyAttrsOf optionDescriptionPhrase;
+  inherit (flakelight.types) coercedTo' drv nullable optFunctionTo stringLike;
+
+  mkCheck = name: pkgs: cmd:
+    pkgs.runCommand "check-${name}"
+      { allowSubstitutes = false; }
+      ''
+        cp --no-preserve=mode -r ${src} src
+        cd src
+        ${cmd}
+        touch $out
+      '';
+
+  checkType = mkOptionType {
+    name = "checkType";
+    description =
+      let
+        targetDesc = optionDescriptionPhrase
+          (class: class == "noun" || class == "composite")
+          (coercedTo' stringLike (abort "") drv);
+      in
+      "${targetDesc} or function that evaluates to it";
+    descriptionClass = "composite";
+    check = x: isFunction x || drv.check x || stringLike.check x;
+    merge = loc: defs: pkgs:
+      let
+        targetType = coercedTo' stringLike (mkCheck (last loc) pkgs) drv;
+      in
+      (mergeDefinitions loc targetType (map
+        (fn: {
+          inherit (fn) file;
+          value = if isFunction fn.value then fn.value pkgs else fn.value;
+        })
+        defs)).mergedValue;
+  };
+in
+{
+  options.checks = mkOption {
+    type = nullable (optFunctionTo (lazyAttrsOf checkType));
+    default = null;
+  };
+
+  config.outputs = mkIf (config.checks != null) {
+    checks = genSystems (pkgs: mapAttrs (_: v: v pkgs) (config.checks pkgs));
+  };
+}
+</file>
+
+<file path="builtinModules/core.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, inputs, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (builtins) all attrNames head isAttrs length;
+  inherit (lib) foldAttrs functionArgs genAttrs getFiles getValues isFunction
+    mapAttrs mergeAttrs mkOption mkOptionType showFiles showOption
+    subtractLists;
+  inherit (lib.types) coercedTo functionTo lazyAttrsOf listOf nonEmptyStr raw
+    uniq;
+  inherit (flakelight.types) function optCallWith overlay;
+
+  outputs = mkOptionType {
+    name = "outputs";
+    description = "output values";
+    descriptionClass = "noun";
+    merge = loc: defs:
+      if (length defs) == 1 then (head defs).value
+      else if all isAttrs (getValues defs) then
+        (lazyAttrsOf outputs).merge loc defs
+      else
+        throw ("The option `${showOption loc}' has conflicting definitions" +
+          " in ${showFiles (getFiles defs)}");
+  };
+
+  pkgsFor = genAttrs config.systems (system: import inputs.nixpkgs {
+    inherit system;
+    inherit (config.nixpkgs) config;
+    overlays = config.withOverlays ++ [ config.packageOverlay ];
+  });
+
+  genSystems = f: genAttrs config.systems (system: f pkgsFor.${system});
+
+  funcToOverlayList = f:
+    let
+      fArgs = attrNames (functionArgs f);
+      mArgs = attrNames moduleArgs;
+      fApplied = f moduleArgs;
+      isOverlay = (subtractLists mArgs fArgs != [ ])
+        || isFunction fApplied;
+    in
+    if isOverlay then [ f ] else fApplied;
+
+  withOverlaysType = coercedTo function funcToOverlayList (listOf overlay);
+in
+{
+  options = {
+    inputs = mkOption {
+      type = lazyAttrsOf raw;
+    };
+
+    systems = mkOption {
+      type = uniq (listOf nonEmptyStr);
+      default = [ "x86_64-linux" "aarch64-linux" ];
+    };
+
+    outputs = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf outputs);
+      default = { };
+    };
+
+    perSystem = mkOption {
+      type = functionTo (lazyAttrsOf outputs);
+      default = _: { };
+    };
+
+    nixpkgs.config = mkOption {
+      type = lazyAttrsOf raw;
+      default = { };
+    };
+
+    withOverlays = mkOption {
+      type = withOverlaysType;
+      default = [ ];
+    };
+  };
+
+  config = {
+    _module.args = {
+      inherit (config) inputs outputs;
+      inherit pkgsFor genSystems;
+    };
+
+    outputs = foldAttrs mergeAttrs { } (map
+      (system: mapAttrs
+        (_: v: { ${system} = v; })
+        (config.perSystem pkgsFor.${system}))
+      config.systems);
+  };
+}
+</file>
+
+<file path="builtinModules/devShells.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, genSystems, moduleArgs, ... }:
+let
+  inherit (lib) functionArgs mapAttrs mkIf mkMerge mkOption;
+  inherit (lib.types) coercedTo lazyAttrsOf lines listOf
+    package str submoduleWith;
+  inherit (flakelight.types) function nullable optCallWith optFunctionTo;
+
+  devShellModule.options = {
+    inputsFrom = mkOption {
+      type = optFunctionTo (listOf package);
+      default = [ ];
+    };
+
+    packages = mkOption {
+      type = optFunctionTo (listOf package);
+      default = [ ];
+    };
+
+    shellHook = mkOption {
+      type = optFunctionTo lines;
+      default = "";
+    };
+
+    hardeningDisable = mkOption {
+      type = listOf str;
+      default = [ ];
+    };
+
+    env = mkOption {
+      type = optFunctionTo (lazyAttrsOf str);
+      default = { };
+    };
+
+    stdenv = mkOption {
+      type = optFunctionTo package;
+      default = pkgs: pkgs.stdenv;
+    };
+
+    overrideShell = mkOption {
+      type = nullable package;
+      internal = true;
+      default = null;
+    };
+  };
+
+  wrapFn = fn: pkgs:
+    let val = pkgs.callPackage fn { }; in
+    if (functionArgs fn == { }) || !(package.check val)
+    then fn pkgs
+    else val;
+
+  packageOverride = p: { overrideShell = p; };
+
+  devShellType = coercedTo function wrapFn
+    (optFunctionTo (coercedTo package packageOverride
+      (submoduleWith { modules = [ devShellModule ]; })));
+
+  genDevShell = pkgs: cfg:
+    if cfg.overrideShell != null then cfg.overrideShell
+    else
+      let cfg' = mapAttrs (_: v: v pkgs) cfg; in
+      pkgs.mkShell.override { inherit (cfg') stdenv; }
+        (cfg'.env // {
+          inherit (cfg') inputsFrom packages shellHook;
+          inherit (cfg) hardeningDisable;
+        });
+in
+{
+  options = {
+    devShell = mkOption {
+      default = null;
+      type = nullable devShellType;
+    };
+
+    devShells = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf devShellType);
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.devShell != null) {
+      devShells.default = config.devShell;
+    })
+
+    (mkIf (config.devShells != { }) {
+      outputs.devShells = genSystems (pkgs:
+        mapAttrs (_: v: genDevShell pkgs (v pkgs)) config.devShells);
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/editorconfig.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, src, ... }:
+let
+  inherit (lib) mkEnableOption mkIf optionalString pathExists;
+in
+{
+  options.flakelight.editorconfig =
+    mkEnableOption "editorconfig check" // { default = true; };
+
+  config.checks = mkIf
+    (config.flakelight.editorconfig && (pathExists (src + /.editorconfig)))
+    {
+      # By default, high false-positive flags are disabled.
+      editorconfig = { editorconfig-checker, ... }:
+        "${editorconfig-checker}/bin/editorconfig-checker"
+        + optionalString (!pathExists (src + /.ecrc))
+          " -disable-indent-size -disable-max-line-length";
+    };
+}
+</file>
+
+<file path="builtinModules/flakelightModules.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) mkOption mkIf mkMerge;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (flakelight.types) module nullable optCallWith;
+in
+{
+  options = {
+    flakelightModule = mkOption {
+      type = nullable module;
+      default = null;
+    };
+
+    flakelightModules = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf module);
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.flakelightModule != null) {
+      flakelightModules.default = config.flakelightModule;
+    })
+
+    (mkIf (config.flakelightModules != { }) {
+      outputs = { inherit (config) flakelightModules; };
+    })
+
+    { nixDirPathAttrs = [ "flakelightModules" ]; }
+  ];
+}
+</file>
+
+<file path="builtinModules/formatter.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, src, lib, flakelight, genSystems, ... }:
+let
+  inherit (builtins) all hasContext;
+  inherit (lib) mkDefault mkMerge mkOption mkIf mapAttrsToList;
+  inherit (lib.types) functionTo lazyAttrsOf package str;
+  inherit (flakelight.types) nullable optFunctionTo;
+in
+{
+  options = {
+    formatter = mkOption {
+      type = nullable (functionTo package);
+      default = null;
+    };
+    formatters = mkOption {
+      type = nullable (optFunctionTo (lazyAttrsOf str));
+      default = null;
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.formatter != null) {
+      outputs.formatter = genSystems config.formatter;
+    })
+
+    (mkIf (config.formatters != null) {
+      outputs.formatter = mkDefault (genSystems
+        ({ pkgs, lib, fd, coreutils, ... }:
+          let
+            inherit (lib) attrValues makeBinPath;
+            formatters = config.formatters pkgs;
+            fullContext = all hasContext (attrValues formatters);
+            packages =
+              if config.devShell == null then [ ]
+              else (config.devShell pkgs).packages pkgs;
+            caseArms = toString (mapAttrsToList
+              (n: v: "\n      ${n}) ${v} \"$f\" & ;;")
+              formatters);
+          in
+          pkgs.writeShellScriptBin "formatter" ''
+            PATH=${if fullContext then "" else makeBinPath packages}
+            if [ $# -eq 0 ]; then
+              flakedir=.
+              while [ "$(${coreutils}/bin/realpath "$flakedir")" != / ]; do
+                if [ -e "$flakedir/flake.nix" ]; then
+                  exec "$0" "$flakedir"
+                fi
+                flakedir="$flakedir/.."
+              done
+              echo Failed to find flake root! >&2
+              exit 1
+            fi
+            for f in "$@"; do
+              if [ -d "$f" ]; then
+                ${fd}/bin/fd "$f" -Htf -x "$0" &
+              else
+                case "$(${coreutils}/bin/basename "$f")" in${caseArms}
+                esac
+              fi
+            done &>/dev/null
+            wait
+          ''));
+    })
+
+    (mkIf ((config.formatters != null) || (config.formatter != null)) {
+      checks.formatting = { lib, outputs', diffutils, ... }: ''
+        ${lib.getExe outputs'.formatter} .
+        ${diffutils}/bin/diff -qr ${src} . |\
+          sed 's/Files .* and \(.*\) differ/File \1 not formatted/g'
+      '';
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/functor.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, ... }:
+let
+  inherit (lib) mkOption mkIf;
+  inherit (lib.types) functionTo raw uniq;
+  inherit (flakelight.types) nullable;
+in
+{
+  options.functor = mkOption {
+    type = nullable (uniq (functionTo (functionTo raw)));
+    default = null;
+  };
+
+  config.outputs = mkIf (config.functor != null) (_: {
+    __functor = config.functor;
+  });
+}
+</file>
+
+<file path="builtinModules/homeConfigurations.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, inputs, flakelight, moduleArgs, ... }:
+let
+  inherit (builtins) head mapAttrs match;
+  inherit (lib) foldl mapAttrsToList mkOption mkIf recursiveUpdate;
+  inherit (lib.types) attrs lazyAttrsOf;
+  inherit (flakelight) selectAttr;
+  inherit (flakelight.types) optCallWith;
+
+  isHome = x: x ? activationPackage;
+
+  mkHome = name: cfg: inputs.home-manager.lib.homeManagerConfiguration (
+    (removeAttrs cfg [ "system" ]) // {
+      extraSpecialArgs = {
+        inherit inputs;
+        inputs' = mapAttrs (_: selectAttr cfg.system) inputs;
+      } // cfg.extraSpecialArgs or { };
+      modules = [
+        ({ lib, ... }: {
+          home.username = lib.mkDefault (head (match "([^@]*)(@.*)?" name));
+        })
+        config.propagationModule
+      ] ++ cfg.modules or [ ];
+      pkgs = inputs.nixpkgs.legacyPackages.${cfg.system};
+    }
+  );
+
+  configs = mapAttrs
+    (name: cfg: if isHome cfg then cfg else mkHome name cfg)
+    config.homeConfigurations;
+in
+{
+  options.homeConfigurations = mkOption {
+    type = optCallWith moduleArgs (lazyAttrsOf (optCallWith moduleArgs attrs));
+    default = { };
+  };
+
+  config = {
+    outputs = mkIf (config.homeConfigurations != { }) {
+      homeConfigurations = configs;
+      checks = foldl recursiveUpdate { } (mapAttrsToList
+        (n: v: {
+          ${v.config.nixpkgs.system}."home-${n}" = v.activationPackage;
+        })
+        configs);
+    };
+    nixDirAliases.homeConfigurations = [ "home" ];
+  };
+}
+</file>
+
+<file path="builtinModules/homeModules.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) mkOption mkIf mkMerge;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (flakelight.types) module nullable optCallWith;
+in
+{
+  options = {
+    homeModule = mkOption {
+      type = nullable module;
+      default = null;
+    };
+
+    homeModules = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf module);
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.homeModule != null) {
+      homeModules.default = config.homeModule;
+    })
+
+    (mkIf (config.homeModules != { }) {
+      outputs = { inherit (config) homeModules; };
+    })
+
+    { nixDirPathAttrs = [ "homeModules" ]; }
+  ];
+}
+</file>
+
+<file path="builtinModules/legacyPackages.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, genSystems, ... }:
+let
+  inherit (lib) mkIf mkOption;
+  inherit (lib.types) functionTo pkgs;
+  inherit (flakelight.types) nullable;
+in
+{
+  options.legacyPackages = mkOption {
+    type = nullable (functionTo pkgs);
+    default = null;
+  };
+
+  config.outputs = mkIf (config.legacyPackages != null) {
+    legacyPackages = genSystems config.legacyPackages;
+  };
+}
+</file>
+
+<file path="builtinModules/lib.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) mkOption mkIf;
+  inherit (lib.types) attrsOf raw;
+  inherit (flakelight.types) optCallWith;
+in
+{
+  options.lib = mkOption {
+    type = optCallWith moduleArgs (attrsOf raw);
+    default = { };
+  };
+
+  config.outputs = mkIf (config.lib != { }) {
+    inherit (config) lib;
+  };
+}
+</file>
+
+<file path="builtinModules/moduleArgs.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, ... }@args:
+{
+  _module.args.moduleArgs = args // config._module.args;
+}
+</file>
+
+<file path="builtinModules/nixDir.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, options, src, lib, flakelight, ... }:
+let
+  inherit (builtins) attrNames elem;
+  inherit (lib) attrValues concatMap genAttrs mkMerge mkOption pathExists
+    subtractLists;
+  inherit (lib.types) attrsOf listOf str;
+  inherit (flakelight) importDir importDirPaths;
+  inherit (flakelight.types) nullable path;
+
+  inherit (config) nixDir;
+
+  importName = asPaths: type: name:
+    if pathExists (nixDir + "/${name}.nix")
+    then [ (import (nixDir + "/${name}.nix")) ]
+    else if pathExists (nixDir + "/${name}/default.nix")
+    then [ (import (nixDir + "/${name}")) ]
+    else if pathExists (nixDir + "/${name}")
+    then
+      let
+        asAttrs = (if asPaths then importDirPaths else importDir)
+          (nixDir + "/${name}");
+        asList = attrValues asAttrs;
+      in
+      if type.check asAttrs then [ asAttrs ]
+      else if type.check asList then [ asList ]
+      else [ asAttrs ]
+    else [ ];
+in
+{
+  options = {
+    nixDir = mkOption {
+      type = nullable path;
+      default = src + /nix;
+    };
+
+    nixDirAliases = mkOption {
+      type = attrsOf (listOf str);
+      default = { };
+    };
+
+    nixDirPathAttrs = mkOption {
+      type = listOf str;
+      default = [ ];
+    };
+  };
+
+  config = genAttrs (subtractLists [ "_module" "nixDir" ] (attrNames options))
+    (name: mkMerge (if nixDir == null then [ ] else
+    let
+      opt = options.${name};
+      internal = opt.internal or false;
+      names =
+        if internal then [ ] else
+        if name == "nixDirAliases" then [ name ]
+        else ([ name ] ++ config.nixDirAliases.${name} or [ ]);
+      asPaths = !(elem name [ "nixDirPathAttrs" "nixDirAliases" ])
+        && (elem name config.nixDirPathAttrs);
+    in
+    concatMap (importName asPaths opt.type) names));
+}
+</file>
+
+<file path="builtinModules/nixosConfigurations.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, inputs, flakelight, moduleArgs, ... }:
+let
+  inherit (builtins) mapAttrs;
+  inherit (lib) foldl mapAttrsToList mkIf mkOption recursiveUpdate;
+  inherit (lib.types) attrs lazyAttrsOf;
+  inherit (flakelight) selectAttr;
+  inherit (flakelight.types) optCallWith;
+
+  # Avoid checking if toplevel is a derivation as it causes the nixos modules
+  # to be evaluated.
+  isNixos = x: x ? config.system.build.toplevel;
+
+  mkNixos = hostname: cfg: inputs.nixpkgs.lib.nixosSystem (cfg // {
+    specialArgs = {
+      inherit inputs hostname;
+      inputs' = mapAttrs (_: selectAttr cfg.system) inputs;
+    } // cfg.specialArgs or { };
+    modules = [ config.propagationModule ] ++ cfg.modules or [ ];
+  });
+
+  configs = mapAttrs
+    (hostname: cfg: if isNixos cfg then cfg else mkNixos hostname cfg)
+    config.nixosConfigurations;
+in
+{
+  options.nixosConfigurations = mkOption {
+    type = optCallWith moduleArgs (lazyAttrsOf (optCallWith moduleArgs attrs));
+    default = { };
+  };
+
+  config = {
+    outputs = mkIf (config.nixosConfigurations != { }) {
+      nixosConfigurations = configs;
+      checks = foldl recursiveUpdate { } (mapAttrsToList
+        (n: v: {
+          # Wrapping the drv is needed as computing its name is expensive
+          # If not wrapped, it slows down `nix flake show` significantly
+          ${v.config.nixpkgs.system}."nixos-${n}" = v.pkgs.runCommand
+            "check-nixos-${n}"
+            { } "echo ${v.config.system.build.toplevel} > $out";
+        })
+        configs);
+    };
+    nixDirAliases.nixosConfigurations = [ "nixos" ];
+  };
+}
+</file>
+
+<file path="builtinModules/nixosModules.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) mkOption mkIf mkMerge;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (flakelight.types) module nullable optCallWith;
+in
+{
+  options = {
+    nixosModule = mkOption {
+      type = nullable module;
+      default = null;
+    };
+
+    nixosModules = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf module);
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.nixosModule != null) {
+      nixosModules.default = config.nixosModule;
+    })
+
+    (mkIf (config.nixosModules != { }) {
+      outputs = { inherit (config) nixosModules; };
+    })
+
+    { nixDirPathAttrs = [ "nixosModules" ]; }
+  ];
+}
+</file>
+
+<file path="builtinModules/overlays.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (lib) mkMerge mkOption mkIf;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (flakelight.types) nullable optCallWith overlay;
+in
+{
+  options = {
+    overlay = mkOption {
+      type = nullable overlay;
+      default = null;
+    };
+
+    overlays = mkOption {
+      type = optCallWith moduleArgs (lazyAttrsOf overlay);
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.overlay != null) {
+      overlays.default = config.overlay;
+    })
+
+    (mkIf (config.overlays != { }) {
+      outputs = { inherit (config) overlays; };
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/packages.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, inputs, flakelight, genSystems, moduleArgs, ... }:
+let
+  inherit (builtins) hasAttr parseDrvName tryEval;
+  inherit (lib) findFirst functionArgs mapAttrs' mapAttrs mkIf mkMerge mkOption
+    nameValuePair optionalAttrs optionals;
+  inherit (lib.types) lazyAttrsOf str uniq;
+  inherit (flakelight.types) nullable optFunctionTo overlay packageDef;
+
+  genPkg = final: prev: name: pkg:
+    let
+      args = functionArgs pkg;
+      noArgs = args == { };
+      pkg' = if noArgs then { pkgs }: pkg pkgs else pkg;
+      dependsOnSelf = hasAttr name (functionArgs pkg);
+      dependsOnPkgs = noArgs || (args ? pkgs);
+      selfOverride = {
+        ${name} = prev.${name} or
+          (throw "${name} depends on ${name}, but no existing ${name}.");
+      };
+      overrides = optionalAttrs dependsOnSelf selfOverride
+        // optionalAttrs dependsOnPkgs { pkgs = final.pkgs // selfOverride; };
+    in
+    final.callPackage pkg' overrides;
+  genPkgs = final: prev: pkgs:
+    mapAttrs (name: genPkg final prev name) pkgs;
+
+  getPkgDefs = pkgs: config.packages (moduleArgs // { inherit (pkgs) system; });
+in
+{
+  options = {
+    package = mkOption {
+      type = nullable packageDef;
+      default = null;
+    };
+
+    packages = mkOption {
+      type = nullable (optFunctionTo (lazyAttrsOf packageDef));
+      default = null;
+    };
+
+    pname = mkOption {
+      type = nullable str;
+      default = null;
+    };
+
+    packageOverlay = mkOption {
+      internal = true;
+      type = uniq overlay;
+      default = _: _: { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.package != null) {
+      packages.default = config.package;
+    })
+
+    (mkIf (config.packages != null) {
+      packageOverlay = final: prev:
+        let
+          pkgDefs = getPkgDefs prev;
+          getName = pkg: pkg.pname or (parseDrvName pkg.name).name;
+          mockPkgs = import ../misc/nameMockedPkgs.nix prev;
+
+          defaultPkgName = findFirst (x: (tryEval x).success)
+            (throw ("Could not determine the name of the default package; " +
+              "please set the `pname` flakelight option to the intended name."))
+            [
+              (assert config.pname != null; config.pname)
+              (getName (mockPkgs.callPackage pkgDefs.default { }))
+              (getName (import inputs.nixpkgs {
+                inherit (prev.stdenv.hostPlatform) system;
+                inherit (config.nixpkgs) config;
+                overlays = config.withOverlays ++
+                  [ (final: prev: genPkgs final prev pkgDefs) ];
+              }).default)
+            ];
+        in
+        (optionalAttrs (pkgDefs ? default) rec {
+          default = genPkg final prev defaultPkgName pkgDefs.default;
+          ${defaultPkgName} = default;
+        }) // genPkgs final prev (removeAttrs pkgDefs [ "default" ]);
+
+      overlay = final: prev: removeAttrs
+        (config.packageOverlay (final.appendOverlays config.withOverlays) prev)
+        [ "default" ];
+
+      outputs = rec {
+        packages = genSystems (pkgs:
+          mapAttrs (k: _: pkgs.${k}) (getPkgDefs pkgs));
+
+        checks = mapAttrs
+          (_: mapAttrs' (n: nameValuePair ("packages-" + n)))
+          packages;
+      };
+
+      devShell.inputsFrom = pkgs:
+        optionals ((getPkgDefs pkgs) ? default) [ pkgs.default ];
+    })
+  ];
+}
+</file>
+
+<file path="builtinModules/propagationModule.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+# This provides a module that can be added to module systems nested inside of
+# flakelight, for example NixOS or home-manager configurations.
+
+{ lib, config, flakelight, moduleArgs, inputs, outputs, ... }:
+let
+  inherit (lib) mapAttrs mkOption optional optionalAttrs;
+  inherit (flakelight) selectAttr;
+  inherit (flakelight.types) module;
+  flakeConfig = config;
+in
+{
+  options.propagationModule = mkOption { type = module; internal = true; };
+
+  config.propagationModule =
+    { lib, pkgs, options, config, ... }:
+    let inherit (pkgs.stdenv.hostPlatform) system; in {
+      config = (optionalAttrs (options ? nixpkgs) {
+        nixpkgs = (optionalAttrs (options ? nixpkgs.overlays) {
+          # Forward overlays to NixOS/home-manager configurations
+          overlays = lib.mkOrder 10
+            (flakeConfig.withOverlays ++ [ flakeConfig.packageOverlay ]);
+        })
+        // (optionalAttrs (options ? nixpkgs.config) {
+          # Forward nixpkgs.config to NixOS/home-manager configurations
+          inherit (flakeConfig.nixpkgs) config;
+        });
+      })
+      // (optionalAttrs (options ? home-manager.sharedModules) {
+        # Propagate module to home-manager when using its nixos module
+        home-manager.sharedModules =
+          optional (! config.home-manager.useGlobalPkgs)
+            flakeConfig.propagationModule;
+      })
+      // {
+        # Give access to flakelight module args under `flake` arg.
+        # Also include inputs'/outputs' which depend on `pkgs`.
+        _module.args.flake = {
+          inputs' = mapAttrs (_: selectAttr system) inputs;
+          outputs' = selectAttr system outputs;
+        } // moduleArgs;
+      };
+    };
+}
+</file>
+
+<file path="builtinModules/templates.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{ config, lib, flakelight, moduleArgs, ... }:
+let
+  inherit (builtins) isPath isString;
+  inherit (lib) mkOption mkOptionType mkIf mkMerge;
+  inherit (lib.types) lazyAttrsOf;
+  inherit (lib.options) mergeEqualOption;
+  inherit (flakelight.types) nullable optCallWith;
+
+  template = mkOptionType {
+    name = "template";
+    description = "template definition";
+    descriptionClass = "noun";
+    check = x: (x ? path) && (isPath x.path) &&
+      (x ? description) && (isString x.description) &&
+      ((! x ? welcomeText) || (isString x.welcomeText));
+    merge = mergeEqualOption;
+  };
+in
+{
+  options = {
+    template = mkOption {
+      type = nullable (optCallWith moduleArgs template);
+      default = null;
+    };
+
+    templates = mkOption {
+      type = optCallWith moduleArgs
+        (lazyAttrsOf (optCallWith moduleArgs template));
+      default = { };
+    };
+  };
+
+  config = mkMerge [
+    (mkIf (config.template != null) {
+      templates.default = config.template;
+    })
+
+    (mkIf (config.templates != { }) {
+      outputs = { inherit (config) templates; };
+    })
+  ];
+}
+</file>
+
+<file path="misc/lock2inputs.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+# Get a flakes inputs
+{ lib, ... }:
+src:
+let
+  inherit (builtins) fromJSON head isString mapAttrs readFile tail;
+  inherit (lib) fix;
+
+  json = fromJSON (readFile (src + "/flake.lock"));
+  inherit (json) nodes;
+  rootNode = nodes.${json.root};
+
+  getInputName = base: ref:
+    let next = getInputName json.root nodes.${base}.inputs.${head ref}; in
+    if isString ref then ref
+    else if ref == [ ] then base
+    else getInputName next (tail ref);
+
+  getInput = ref: resolved.${getInputName json.root ref};
+
+  fetchNode = node: fetchTree (node.info or { } //
+    removeAttrs node.locked [ "dir" ]);
+
+  resolveFlakeNode = node: fix (self:
+    let
+      sourceInfo = fetchNode node;
+      outPath = sourceInfo +
+        (if node.locked ? dir then "/${node.locked.dir}" else "");
+      inputs = (mapAttrs (_: getInput) (node.inputs or { })) //
+        { inherit self; };
+      outputs = (import (outPath + "/flake.nix")).outputs inputs;
+    in
+    outputs // sourceInfo // {
+      _type = "flake";
+      inherit outPath inputs outputs sourceInfo;
+    });
+
+  resolveNode = node:
+    if node.flake or true then resolveFlakeNode node else fetchNode node;
+
+  resolved = mapAttrs (_: resolveNode) nodes;
+in
+mapAttrs (_: getInput) rootNode.inputs
+</file>
+
+<file path="misc/nameMockedPkgs.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+# This is a fake pkgs set to enable efficiently extracting a derivation's name
+
+real:
+let
+  inherit (real) lib;
+
+  callPackageWith = autoArgs: fn: args:
+    let
+      f = if lib.isFunction fn then fn else import fn;
+      fargs = lib.functionArgs f;
+      mock = lib.mapAttrs (_: _: throw "") (lib.filterAttrs (_: v: !v) fargs);
+    in
+    assert fargs != { };
+    f (mock // builtins.intersectAttrs fargs autoArgs // args);
+
+  mockStdenv = builtins.mapAttrs (_: _: throw "") real.stdenv // {
+    mkDerivation = args:
+      if lib.isFunction args then lib.fix args else args;
+  };
+in
+lib.fix (self: {
+  lib = lib // { inherit callPackageWith; };
+
+  callPackage = callPackageWith self;
+
+  stdenv = mockStdenv;
+  stdenvNoCC = mockStdenv;
+  stdenv_32bit = mockStdenv;
+  stdenvNoLibs = mockStdenv;
+  libcxxStdenv = mockStdenv;
+  gccStdenv = mockStdenv;
+  gccStdenvNoLibs = mockStdenv;
+  gccMultiStdenv = mockStdenv;
+  clangStdenv = mockStdenv;
+  clangStdenvNoLibs = mockStdenv;
+  clangMultiStdenv = mockStdenv;
+  ccacheStdenv = mockStdenv;
+
+  runCommandWith = args: _: args;
+  runCommand = name: _: _: { inherit name; };
+  runCommandLocal = name: _: _: { inherit name; };
+  runCommandCC = name: _: _: { inherit name; };
+  writeTextFile = args: args;
+  writeText = name: _: { inherit name; };
+  writeTextDir = path: _: { name = builtins.baseNameOf path; };
+  writeScript = name: _: { inherit name; };
+  writeScriptBin = name: _: { inherit name; };
+  writeShellScript = name: _: { inherit name; };
+  writeShellScriptBin = name: _: { inherit name; };
+  writeShellApplication = args: args;
+  writeCBin = pname: _: { inherit pname; };
+  concatTextFile = args: args;
+  concatText = name: _: { inherit name; };
+  concatScript = name: _: { inherit name; };
+  symlinkJoin = args: args;
+  linkFarm = name: _: { inherit name; };
+  linkFarmFromDrvs = name: _: { inherit name; };
+})
+</file>
+
+<file path="nix/flakelightModules/extendFlakelight.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+# A Flakelight module for Flakelight module flakes
+
+{ flakelight, outputs, ... }: {
+  # Export a mkFlake function equivalent to flakelight's but with the flake's
+  # default flakelightModule built in.
+  lib.mkFlake = flakelight.mkFlake.extend [ outputs.flakelightModules.default ];
+  # Make the flake callable, which executes its mkFlake.
+  functor = self: self.lib.mkFlake;
+}
+</file>
+
+<file path="templates/basic/.envrc">
+use flake
+</file>
+
+<file path="templates/basic/flake.nix">
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flakelight.url = "github:nix-community/flakelight";
+  };
+  outputs = { flakelight, ... }@inputs:
+    flakelight ./. {
+      inherit inputs;
+      devShell.packages = pkgs: with pkgs; [ hello ];
+    };
+}
+</file>
+
+<file path="templates/default.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+rec {
+  default = basic;
+  basic = { path = ./basic; description = "Minimal Flakelight flake."; };
+}
+</file>
+
+<file path="tests/default.nix">
+{ self, nixpkgs, ... }:
+let
+  flakelight = self;
+  test = flake: test: assert test flake; true;
+  inherit (nixpkgs) lib;
+in
+{
+  call-flakelight = test
+    (flakelight ./empty { outputs.test = true; })
+    (f: f.test);
+
+  explicit-mkFlake = test
+    (flakelight.lib.mkFlake ./empty { outputs.test = true; })
+    (f: f.test);
+
+  module-with-args = test
+    (flakelight ./empty ({ lib, config, ... }: { outputs.test = true; }))
+    (f: f.test);
+
+  src-arg = test
+    (flakelight ./test-path ({ src, ... }: {
+      outputs = { inherit src; };
+    }))
+    (f: f.src == ./test-path);
+
+  lib-arg = test
+    (flakelight ./empty ({ lib, ... }: {
+      outputs = { inherit lib; };
+    }))
+    (f: f.lib ? fix);
+
+  config-arg = test
+    (flakelight ./empty ({ config, ... }: {
+      lib = { a = true; };
+      outputs = { inherit config; };
+    }))
+    (f: f.config.lib.a);
+
+  options-arg = test
+    (flakelight ./empty ({ options, ... }: {
+      outputs = { inherit options; };
+    }))
+    (f: f.options ? package && f.options ? overlays);
+
+  flakelight-arg = test
+    (flakelight ./empty ({ flakelight, ... }: {
+      outputs = { inherit flakelight; };
+    }))
+    (f: f.flakelight ? mkFlake);
+
+  inputs-arg = test
+    (flakelight ./empty ({ inputs, ... }: {
+      inputs.test = true;
+      outputs = { inherit inputs; };
+    }))
+    (f: f.inputs.test);
+
+  overridden-nixpkgs = test
+    (flakelight ./empty ({ inputs, ... }: {
+      inputs.nixpkgs = nixpkgs // { testValue = true; };
+      outputs = { inherit inputs; };
+    }))
+    (f: f.inputs.nixpkgs.testValue);
+
+  outputs-arg = test
+    (flakelight ./empty ({ outputs, ... }: {
+      lib.test = true;
+      outputs.test = outputs.lib.test;
+    }))
+    (f: f.test);
+
+  moduleArgs = test
+    (flakelight ./empty ({ moduleArgs, ... }: {
+      outputs = { inherit moduleArgs; };
+    }))
+    (f: f.moduleArgs ? config
+      && f.moduleArgs ? options
+      && f.moduleArgs ? src
+      && f.moduleArgs ? lib
+      && f.moduleArgs ? flakelight
+      && f.moduleArgs ? inputs
+      && f.moduleArgs ? outputs
+      && f.moduleArgs ? pkgsFor
+      && f.moduleArgs ? specialArgs
+      && f.moduleArgs ? modulesPath
+      && f.moduleArgs ? moduleArgs
+    );
+
+  moduleArgs-add = test
+    (flakelight ./empty {
+      _module.args.test-val = true;
+      outputs = { test-val, ... }: {
+        test = test-val;
+      };
+    })
+    (f: f.test);
+
+  extra-pkgs-vals = test
+    (flakelight ./empty {
+      package =
+        { src
+        , inputs
+        , outputs
+        , flakelight
+        , inputs'
+        , outputs'
+        , defaultMeta
+        , writeText
+        }:
+        writeText "test" "";
+    })
+    (f: f.packages.x86_64-linux.default.name == "test");
+
+  inputs' = test
+    (flakelight ./empty {
+      systems = [ "x86_64-linux" ];
+      inputs.a.attr.x86_64-linux = true;
+      perSystem = { inputs', ... }: { test = inputs'.a.attr && true; };
+    })
+    (f: f.test.x86_64-linux);
+
+  outputs' = test
+    (flakelight ./empty {
+      systems = [ "x86_64-linux" ];
+      outputs.attr.x86_64-linux = true;
+      perSystem = { outputs', ... }: { test = outputs'.attr && true; };
+    })
+    (f: f.test.x86_64-linux);
+
+  systems = test
+    (flakelight ./empty {
+      systems = [ "i686-linux" "armv7l-linux" ];
+      perSystem = _: { test = true; };
+    })
+    (f: (builtins.attrNames f.test) == [ "armv7l-linux" "i686-linux" ]);
+
+  all-flakes-systems = test
+    (flakelight ./empty ({ lib, ... }: {
+      systems = lib.systems.flakeExposed;
+      perSystem = _: { test = true; };
+    }))
+    (f: builtins.deepSeq f.test f.test.x86_64-linux);
+
+  all-linux-systems = test
+    (flakelight ./empty ({ lib, ... }: {
+      systems = lib.intersectLists
+        lib.systems.doubles.linux
+        lib.systems.flakeExposed;
+      perSystem = _: { test = true; };
+    }))
+    (f: builtins.deepSeq f.test f.test.x86_64-linux);
+
+  outputs = test
+    (flakelight ./empty {
+      outputs.example.test = true;
+    })
+    (f: f.example.test);
+
+  outputs-handled-attr = test
+    (flakelight ./empty {
+      outputs.overlays.test = final: prev: { testVal = true; };
+    })
+    (f: (nixpkgs.legacyPackages.x86_64-linux.extend f.overlays.test).testVal);
+
+  perSystem = test
+    (flakelight ./empty {
+      perSystem = _: { test = true; };
+    })
+    (f: (builtins.attrNames f.test) == [ "aarch64-linux" "x86_64-linux" ]);
+
+  withOverlays = test
+    (flakelight ./empty {
+      withOverlays = final: prev: { testValue = "true"; };
+      package = { writeText, testValue }: writeText "test" "${testValue}";
+    })
+    (f: import f.packages.x86_64-linux.default);
+
+  withOverlays-multiple = test
+    (flakelight ./empty {
+      withOverlays = [
+        (final: prev: { testValue = "tr"; })
+        (final: prev: { testValue2 = "ue"; })
+      ];
+      package = { writeText, testValue, testValue2 }:
+        writeText "test" "${testValue}${testValue2}";
+    })
+    (f: import f.packages.x86_64-linux.default);
+
+  withOverlays-module-args = test
+    (flakelight ./empty {
+      withOverlays = { inputs, ... }:
+        [ (final: prev: { testValue = "true"; }) ];
+      package = { writeText, testValue }: writeText "test" "${testValue}";
+    })
+    (f: import f.packages.x86_64-linux.default);
+
+  package-no-named-args = test
+    (flakelight ./empty {
+      package = pkgs: pkgs.hello;
+    })
+    (f: f.packages.aarch64-linux.default.pname == "hello");
+
+  package-prevent-recursion = test
+    (flakelight ./empty {
+      package = { hello }: hello;
+    })
+    (f: f.packages.aarch64-linux.default.pname == "hello");
+
+  package = test
+    (flakelight ./empty {
+      package = { stdenv }:
+        stdenv.mkDerivation {
+          pname = "pkg1";
+          version = "0.0.1";
+          src = ./empty;
+          installPhase = "echo true > $out";
+        };
+    })
+    (f: (import f.packages.x86_64-linux.default)
+      && (f ? packages.aarch64-linux.default)
+      && ((nixpkgs.legacyPackages.x86_64-linux.extend f.overlays.default) ? pkg1)
+      && (f ? checks.x86_64-linux.packages-default)
+      && (f ? checks.aarch64-linux.packages-default));
+
+  packages = test
+    (flakelight ./empty {
+      packages = {
+        default = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./empty;
+            installPhase = "echo true > $out";
+          };
+        pkg2 = { stdenv, pkg1, pkg3 }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./empty;
+            nativeBuildInputs = [ pkg1 pkg3 ];
+            installPhase = "echo true > $out";
+          };
+        pkg3 = { stdenv }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./empty;
+            installPhase = "echo true > $out";
+          };
+      };
+    })
+    (f:
+      (import f.packages.x86_64-linux.default)
+      && (import f.packages.x86_64-linux.pkg2)
+      && (import f.packages.x86_64-linux.pkg3)
+      && (
+        let
+          pkgs' = nixpkgs.legacyPackages.x86_64-linux.extend f.overlays.default;
+        in
+        (pkgs' ? pkg1) && (pkgs' ? pkg2) && (pkgs' ? pkg3)
+      )
+      && (f ? checks.x86_64-linux.packages-default)
+      && (f ? checks.x86_64-linux.packages-pkg2)
+      && (f ? checks.x86_64-linux.packages-pkg3)
+    );
+
+  package-overlay-no-default = test
+    (flakelight ./empty {
+      package = { stdenv }:
+        stdenv.mkDerivation {
+          name = "pkg1";
+          src = ./empty;
+          installPhase = "echo true > $out";
+        };
+    })
+    (f: !((nixpkgs.legacyPackages.x86_64-linux.extend f.overlays.default)
+      ? default));
+
+  packages-refer-default-as-default = test
+    (flakelight ./empty {
+      packages = {
+        default = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./empty;
+            installPhase = "echo true > $out";
+          };
+        pkg2 = { stdenv, default }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./empty;
+            installPhase = "cat ${default} > $out";
+          };
+      };
+    })
+    (f: (import f.packages.x86_64-linux.pkg2));
+
+  packages-refer-default-as-name = test
+    (flakelight ./empty {
+      packages = {
+        default = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./empty;
+            installPhase = "echo true > $out";
+          };
+        pkg2 = { stdenv, pkg1 }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./empty;
+            installPhase = "cat ${pkg1} > $out";
+          };
+      };
+    })
+    (f: (import f.packages.x86_64-linux.pkg2));
+
+  packages-fn-has-system = test
+    (flakelight ./empty {
+      packages = { system, ... }: (if system == "x86_64-linux" then {
+        default = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./empty;
+            installPhase = "echo true > $out";
+          };
+      } else { });
+    })
+    (f: (import f.packages.x86_64-linux.default)
+      && !(f.packages.aarch64-linux ? default));
+
+  legacyPackages-set-pkgs = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      legacyPackages = pkgs: pkgs;
+    })
+    (f: f.legacyPackages.x86_64-linux.hello
+      == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  legacyPackages-set-nixpkgs = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      legacyPackages = pkgs: nixpkgs.legacyPackages.${pkgs.system};
+    })
+    (f: f.legacyPackages.x86_64-linux.hello
+      == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  devShell = test
+    (flakelight ./empty {
+      devShell = {
+        inputsFrom = pkgs: [ pkgs.emacs ];
+        packages = pkgs: [ pkgs.coreutils ];
+        shellHook = ''
+          echo Welcome to example shell!
+        '';
+        env.TEST_VAR = "test value";
+        stdenv = pkgs: pkgs.clangStdenv;
+        hardeningDisable = [ "all" ];
+      };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-empty = test
+    (flakelight ./empty {
+      disabledModules = [ "builtinFormatters.nix" ];
+      devShell = { };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkgDef = test
+    (flakelight ./empty {
+      devShell = { mkShell }: mkShell { };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkgDef-empty = test
+    (flakelight ./empty {
+      disabledModules = [ "builtinFormatters.nix" ];
+      devShell = { mkShell }: mkShell { };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkgs-arg = test
+    (flakelight ./empty {
+      devShell = pkgs: {
+        inputsFrom = [ pkgs.emacs ];
+        packages = [ pkgs.coreutils ];
+        shellHook = ''
+          echo Welcome to example shell!
+        '';
+        env.TEST_VAR = "test value";
+        stdenv = pkgs.clangStdenv;
+      };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkgs-arg-set = test
+    (flakelight ./empty {
+      devShell = { emacs, coreutils, clangStdenv, ... }: {
+        inputsFrom = [ emacs ];
+        packages = [ coreutils ];
+        shellHook = ''
+          echo Welcome to example shell!
+        '';
+        env.TEST_VAR = "test value";
+        stdenv = clangStdenv;
+      };
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkg = test
+    (flakelight ./empty ({ inputs, ... }: {
+      systems = [ "x86_64-linux" ];
+      devShell = inputs.nixpkgs.legacyPackages.x86_64-linux.hello;
+    }))
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShell-pkg-fn = test
+    (flakelight ./empty {
+      devShell = pkgs: pkgs.hello;
+    })
+    (f: lib.isDerivation f.devShells.x86_64-linux.default);
+
+  devShells = test
+    (flakelight ./empty {
+      devShell.inputsFrom = pkgs: [ pkgs.emacs ];
+      devShells = {
+        shell1 = { mkShell }: mkShell { };
+        shell2 = { packages = pkgs: [ pkgs.emacs ]; };
+        shell3 = pkgs: { packages = [ pkgs.emacs ]; };
+        shell4 = { emacs, ... }: { packages = [ emacs ]; };
+      };
+    })
+    (f: (lib.isDerivation f.devShells.x86_64-linux.default)
+      && (lib.isDerivation f.devShells.x86_64-linux.shell1)
+      && (lib.isDerivation f.devShells.x86_64-linux.shell2)
+      && (lib.isDerivation f.devShells.x86_64-linux.shell3)
+      && (lib.isDerivation f.devShells.x86_64-linux.shell4));
+
+  devShells-override = test
+    (flakelight ./empty {
+      devShells.default = { mkShell }: mkShell { };
+    })
+    (f: f ? devShells.x86_64-linux.default);
+
+  devShells-import = test
+    (flakelight ./empty ({ config, ... }: {
+      devShell.inputsFrom = pkgs: [ pkgs.emacs ];
+      devShells.shell1 = pkgs: { imports = [ (config.devShell pkgs) ]; };
+    }))
+    (f: (lib.isDerivation f.devShells.x86_64-linux.default)
+      && (lib.isDerivation f.devShells.x86_64-linux.shell1));
+
+  overlay = test
+    (flakelight ./empty {
+      overlay = final: prev: { testValue = "hello"; };
+    })
+    (f:
+      (lib.fix (self: f.overlays.default self { })) ==
+      { testValue = "hello"; }
+    );
+
+  overlays = test
+    (flakelight ./empty {
+      overlay = final: prev: { testValue = "hello"; };
+      overlays.cool = final: prev: { testValue = "cool"; };
+    })
+    (f:
+      ((lib.fix (self: f.overlays.default self { })) ==
+      { testValue = "hello"; })
+      && ((lib.fix (self: f.overlays.cool self { })) ==
+      { testValue = "cool"; }));
+
+  overlay-merge = test
+    (flakelight ./empty {
+      imports = [
+        { overlay = final: prev: { testValue = "hello"; }; }
+        { overlay = final: prev: { testValue2 = "hello2"; }; }
+      ];
+    })
+    (f: ((lib.fix (self: f.overlays.default self { })) ==
+      { testValue = "hello"; testValue2 = "hello2"; }));
+
+  overlays-merge = test
+    (flakelight ./empty {
+      imports = [
+        { overlays.test = final: prev: { testValue = "hello"; }; }
+        { overlays.test = final: prev: { testValue2 = "hello2"; }; }
+      ];
+    })
+    (f: ((lib.fix (self: f.overlays.test self { })) ==
+      { testValue = "hello"; testValue2 = "hello2"; }));
+
+  checks = test
+    (flakelight ./empty {
+      checks = {
+        test-fail = pkgs: "exit 1";
+        test-success = pkgs: pkgs.hello;
+      };
+    })
+    (f: (f ? checks.x86_64-linux.test-fail)
+      && (lib.isDerivation f.checks.x86_64-linux.test-success)
+      && (f ? checks.x86_64-linux.test-success)
+      && (lib.isDerivation f.checks.x86_64-linux.test-success));
+
+  app = test
+    (flakelight ./empty {
+      app = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+      };
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    }));
+
+  app-fn = test
+    (flakelight ./empty {
+      app = pkgs: {
+        type = "app";
+        program = "${pkgs.hello}/bin/hello";
+      };
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    }));
+
+  app-string = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      app = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    }));
+
+  app-string-fn = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      app = pkgs: "${pkgs.hello}/bin/hello";
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    }));
+
+  app-no-type = test
+    (flakelight ./empty {
+      app = {
+        program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+      };
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+    }));
+
+  app-description = test
+    (flakelight ./empty {
+      app = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+        meta.description = "say hello";
+      };
+    })
+    (f: (f.apps.x86_64-linux.default == {
+      type = "app";
+      program = "${nixpkgs.legacyPackages.x86_64-linux.hello}/bin/hello";
+      meta.description = "say hello";
+    }));
+
+  apps = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      apps = {
+        emacs = pkgs: "${pkgs.emacs}/bin/emacs";
+        bash = pkgs: { type = "app"; program = "${pkgs.bash}/bin/bash"; };
+      };
+    })
+    (f: f.apps.x86_64-linux == {
+      emacs = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.emacs}/bin/emacs";
+      };
+      bash = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.bash}/bin/bash";
+      };
+    });
+
+  apps-fn = test
+    (flakelight ./empty {
+      inputs = { inherit nixpkgs; };
+      apps = { emacs, bash, ... }: {
+        emacs = "${emacs}/bin/emacs";
+        bash = { type = "app"; program = "${bash}/bin/bash"; };
+      };
+    })
+    (f: f.apps.x86_64-linux == {
+      emacs = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.emacs}/bin/emacs";
+      };
+      bash = {
+        type = "app";
+        program = "${nixpkgs.legacyPackages.x86_64-linux.bash}/bin/bash";
+      };
+    });
+
+  template = test
+    (flakelight ./empty {
+      template = {
+        path = ./test;
+        description = "test template";
+      };
+    })
+    (f: f.templates.default == {
+      path = ./test;
+      description = "test template";
+    });
+
+  templates = test
+    (flakelight ./empty {
+      templates.test-template = {
+        path = ./test;
+        description = "test template";
+      };
+    })
+    (f: f.templates.test-template == {
+      path = ./test;
+      description = "test template";
+    });
+
+  templates-welcomeText = test
+    (flakelight ./empty {
+      templates.test-template = {
+        path = ./test;
+        description = "test template";
+        welcomeText = "hi";
+      };
+    })
+    (f: f.templates.test-template == {
+      path = ./test;
+      description = "test template";
+      welcomeText = "hi";
+    });
+
+  formatter = test
+    (flakelight ./empty {
+      formatter = pkgs: pkgs.hello;
+    })
+    (f: lib.isDerivation f.formatter.x86_64-linux);
+
+  formatters = test
+    (flakelight ./empty {
+      devShell.packages = pkgs: [ pkgs.rustfmt ];
+      formatters = {
+        "*.rs" = "rustfmt";
+      };
+    })
+    (f: lib.isDerivation f.formatter.x86_64-linux);
+
+  formatters-fn = test
+    (flakelight ./empty {
+      formatters = { rustfmt, ... }: {
+        "*.rs" = "${rustfmt}";
+      };
+    })
+    (f: lib.isDerivation f.formatter.x86_64-linux);
+
+  formatters-no-devshell = test
+    (flakelight ./empty {
+      devShell = lib.mkForce null;
+      formatters = { rustfmt, ... }: {
+        "*.rs" = "${rustfmt}";
+      };
+    })
+    (f: lib.isDerivation f.formatter.x86_64-linux);
+
+  formatters-disable = test
+    (flakelight ./empty {
+      flakelight.builtinFormatters = false;
+    })
+    (f: ! f ? formatter.x86_64-linux);
+
+  formatters-disable-only-builtin = test
+    (flakelight ./empty {
+      flakelight.builtinFormatters = false;
+      formatters = { rustfmt, ... }: {
+        "*.rs" = "rustfmt";
+      };
+    })
+    (f: f ? formatter.x86_64-linux);
+
+  bundler = test
+    (flakelight ./empty {
+      bundler = x: x;
+    })
+    (f: (f.bundlers.x86_64-linux.default
+      nixpkgs.legacyPackages.x86_64-linux.hello)
+    == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  bundler-fn = test
+    (flakelight ./empty {
+      bundler = pkgs: x: pkgs.hello;
+    })
+    (f: (f.bundlers.x86_64-linux.default
+      nixpkgs.legacyPackages.x86_64-linux.emacs)
+    == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  bundlers = test
+    (flakelight ./empty {
+      bundlers = {
+        hello = x: x;
+      };
+    })
+    (f: (f.bundlers.x86_64-linux.hello
+      nixpkgs.legacyPackages.x86_64-linux.hello)
+    == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  bundlers-fn = test
+    (flakelight ./empty {
+      bundlers = { hello, ... }: {
+        hello = x: hello;
+      };
+    })
+    (f: (f.bundlers.x86_64-linux.hello
+      nixpkgs.legacyPackages.x86_64-linux.emacs)
+    == nixpkgs.legacyPackages.x86_64-linux.hello);
+
+  nixosConfigurations = test
+    (flakelight ./empty ({ lib, ... }: {
+      nixosConfigurations.test = {
+        system = "x86_64-linux";
+        modules = [{ system.stateVersion = "24.05"; }];
+      };
+    }))
+    (f: f ? nixosConfigurations.test.config.system.build.toplevel);
+
+  nixosConfigurationsManual = test
+    (flakelight ./empty ({ lib, ... }: {
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [{ system.stateVersion = "24.05"; }];
+      };
+    }))
+    (f: f ? nixosConfigurations.test.config.system.build.toplevel);
+
+  nixosConfigurationsManualWithProp = test
+    (flakelight ./empty ({ lib, config, ... }: {
+      nixosConfigurations.test = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          config.propagationModule
+          ({ flake, ... }: {
+            system.stateVersion = "24.05";
+            environment.variables = {
+              TEST1 = flake.inputs.nixpkgs.legacyPackages.x86_64-linux.hello;
+              TEST2 = flake.inputs'.nixpkgs.legacyPackages.hello;
+            };
+          })
+        ];
+      };
+    }))
+    (f: (f ? nixosConfigurations.test.config.system.build.toplevel)
+      && (f.nixosConfigurations.test.config.environment.variables.TEST1 ==
+      f.nixosConfigurations.test.config.environment.variables.TEST2));
+
+  nixosModule = test
+    (flakelight ./empty {
+      nixosModule = _: { };
+    })
+    (f: f ? nixosModules.default);
+
+  nixosModules = test
+    (flakelight ./empty {
+      nixosModules.test = _: { };
+    })
+    (f: f ? nixosModules.test);
+
+  homeModule = test
+    (flakelight ./empty {
+      homeModule = _: { };
+    })
+    (f: f ? homeModules.default);
+
+  homeModules = test
+    (flakelight ./empty {
+      homeModules.test = _: { };
+    })
+    (f: f ? homeModules.test);
+
+  flakelightModule = test
+    (flakelight ./empty {
+      flakelightModule = _: { };
+    })
+    (f: f ? flakelightModules.default);
+
+  flakelightModules = test
+    (flakelight ./empty {
+      flakelightModules.test = _: { };
+    })
+    (f: f ? flakelightModules.test);
+
+  lib = test
+    (flakelight ./empty {
+      lib.addFive = x: x + 5;
+    })
+    (f: f.lib.addFive 4 == 9);
+
+  functor = test
+    (flakelight ./empty {
+      outputs.testvalue = 5;
+      functor = self: x: x + self.testvalue;
+    })
+    (f: f 4 == 9);
+
+  meta = test
+    (flakelight ./empty {
+      description = "aaa";
+      license = "AGPL-3.0-only";
+      packages.test = { writeTextFile, defaultMeta }:
+        writeTextFile {
+          name = "test";
+          text = "";
+          meta = defaultMeta;
+        };
+    })
+    (f: (f.packages.x86_64-linux.test.meta.description == "aaa")
+      && (f.packages.x86_64-linux.test.meta.license.spdxId
+      == "AGPL-3.0-only"));
+
+  meta-license-attrname = test
+    (flakelight ./empty {
+      license = "agpl3Only";
+      packages.test = { writeTextFile, defaultMeta }:
+        writeTextFile {
+          name = "test";
+          text = "";
+          meta = defaultMeta;
+        };
+    })
+    (f: f.packages.x86_64-linux.test.meta.license.spdxId == "AGPL-3.0-only");
+
+  meta-licenses = test
+    (flakelight ./empty {
+      license = [ "agpl3Only" "AGPL-3.0-or-later" ];
+      packages.test = { writeTextFile, defaultMeta }:
+        writeTextFile {
+          name = "test";
+          text = "";
+          meta = defaultMeta;
+        };
+    })
+    (f: builtins.isList f.packages.x86_64-linux.test.meta.license);
+
+  editorconfig = test
+    (flakelight ./editorconfig { })
+    (f: f ? checks.x86_64-linux.editorconfig);
+
+  editorconfig-disabled = test
+    (flakelight ./editorconfig {
+      flakelight.editorconfig = false;
+    })
+    (f: ! f ? checks.x86_64-linux.editorconfig);
+
+  modulesPath = test
+    (flakelight ./empty {
+      disabledModules = [ "functor.nix" "nixDir.nix" ];
+      functor = _: _: true;
+    })
+    (f: !(builtins.tryEval f).success);
+
+  empty-flake = test
+    (flakelight ./empty {
+      disabledModules = [ "builtinFormatters.nix" ];
+    })
+    (f: f == { });
+
+  default-nixpkgs = test
+    (flakelight ./empty ({ inputs, ... }: {
+      outputs = { inherit inputs; };
+    }))
+    (f: f.inputs ? nixpkgs.lib);
+
+  extend-mkFlake =
+    let
+      extended = flakelight.lib.mkFlake.extend [{ outputs.test = true; }];
+    in
+    test
+      (extended ./empty { })
+      (f: f.test);
+
+  extend-mkFlake-nested =
+    let
+      extended = flakelight.lib.mkFlake.extend [{ outputs.test = true; }];
+      extended2 = extended.extend [{ outputs.test2 = true; }];
+      extended3 = extended2.extend [{ outputs.test3 = true; }];
+    in
+    test
+      (extended3 ./empty { })
+      (f: f.test && f.test2 && f.test3);
+}
+</file>
+
+<file path=".editorconfig">
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+max_line_length = 80
+
+[{*.nix,flake.lock,*.yml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+indent_size = 2
+
+[COMMIT_EDITMSG]
+max_line_length = 72
+</file>
+
+<file path=".envrc">
+use flake
+</file>
+
+<file path=".gitignore">
+/.direnv
+result
+</file>
+
+<file path="API_GUIDE.md">
+# API Guide
+
+## lib
+
+This section covers important functions available in Flakelight's lib attribute.
+
+### mkFlake
+
+The outputs of a flake using Flakelight are created using the `mkFlake`
+function. When called directly, Flakelight invokes `mkFlake`, as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      # Your flake configuration here
+    };
+}
+```
+
+To call `mkFlake` explicitly, you can do:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight.lib.mkFlake ./. {
+      # Your flake configuration here
+    };
+}
+```
+
+`mkFlake` takes two parameters: the path to the flake's source and a Flakelight
+module.
+
+If you need access to module args, you can write it as bellow:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, config, ... }: {
+      # Your flake configuration here
+    });
+}
+```
+
+## Module arguments
+
+The following module arguments are available:
+
+- `src`: The flake's source directory
+- `lib`: nixpkgs lib attribute
+- `config`: configured option values
+- `options`: available options
+- `flakelight`: flakelight lib attribute
+- `inputs`: value of inputs option
+- `outputs`: resulting output (i.e. final flake attributes)
+- `pkgsFor`: attrset mapping systems to the pkgs set for that system
+- `moduleArgs`: All of the available arguments (passed to auto-loaded files)
+
+## Additional pkgs values
+
+Functions that take the package set as an argument, such as package definitions
+or `perSystem` values, have several additional values available in the package
+set.
+
+The `src`, `flakelight`, `inputs`, `outputs`, and `moduleArgs` attributes are
+the same as the above module arguments.
+
+`inputs'` and `outputs'` are transformed versions of `inputs` and `outputs` with
+system preselected. I.e., `inputs.emacs-overlay.packages.x86_64-linux.default`
+can be accessed as `inputs'.emacs-overlay.packages.default`.
+
+`defaultMeta` is a derivation meta attribute set generated from options. Modules
+setting `packages.default` should use this to allow meta attributes to be
+configured.
+
+## Module options
+
+This section covers the options available to modules.
+
+### inputs
+
+```
+Type: AttrsOf FlakeInput
+```
+
+The `inputs` option is an attrset of the flake inputs used by flakelight
+modules. These inputs get passed as the `inputs` module argument, and are used
+for `inputs` and `inputs'` in the package set.
+
+Default values are automatically initialized from your flake inputs by reading
+your `flake.lock`. Note that this does not include the `self` argument; for
+using `self`, use `inherit inputs` or otherwise define inputs. The default
+values also are not affected by nix command flags like `--override-input`, so
+inputs should be passed to enable full CLI functionality.
+
+Flakelight will add a recent `nixpkgs` input if your flake does not have one.
+Other flakelight modules may provide default inputs for their dependencies.
+
+To use a different nixpkgs from the built-in default (passing all inputs):
+
+```nix
+{
+  inputs = {
+    flakelight.url = "github:nix-community/flakelight";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  };
+  outputs = { flakelight, ... }@inputs:
+    flakelight ./. {
+      inherit inputs;
+    };
+}
+```
+
+Or to just pass just the nixpkgs input:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flakelight.url = "github:nix-community/flakelight";
+  };
+  outputs = { flakelight, nixpkgs, ... }:
+    flakelight ./. {
+      inputs.nixpkgs = nixpkgs;
+    };
+}
+```
+
+### systems
+
+```
+Type: [SystemStr]
+```
+
+The `systems` option sets which systems per-system outputs should be created
+for.
+
+If not set, the default is `x86_64-linux` and `aarch64-linux`.
+
+To also support `i686-linux` and `armv7l-linux`, you would configure `systems`
+as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      systems = [ "x86_64-linux" "aarch64-linux" "i686-linux" "armv7l-linux" ];
+    };
+}
+```
+
+To support all systems supported by flakes, set `systems` as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, ... }: {
+      systems = lib.systems.flakeExposed;
+    });
+}
+```
+
+To support all Linux systems supported by flakes, set `systems` as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, ... }: {
+      systems = lib.intersectLists
+        lib.systems.doubles.linux
+        lib.systems.flakeExposed;
+    });
+}
+```
+
+### nixDir
+
+```
+Type: Path | null
+```
+
+The `nixDir` option is `./nix` by default and sets which directory to use to
+automatically load nix files to configure flake options from.
+
+For a given option, the following is checked in order:
+
+- If `${nixDir}/option.nix` exists, the value is the file imported.
+- Else if `${nixDir}/option` is a directory with a `default.nix`, the value is
+  the directory imported.
+- Else if `${nixDir}/option` is a directory, and option accepts an attrset, the
+  value in an attrset with an attr for each importable item in the directory,
+  for which the values are the corresponding items imported. An importable item
+  is a file ending with `.nix` or a directory containing a `default.nix`. This
+  is the same as the flakelight `importDir` function.
+- Else if `${nixDir}/option` is a directory, and option accepts an list, it
+  results in a list, the elements of which are the values of the attrset from
+  the prior branch.
+
+To enable using a directory for an attrset that includes a `default` attribute,
+attr names can be escaped with an underscore. For example,
+`${nixDir}/nix/packages/_default.nix` will be loaded as `packages.default`.
+
+Aliases for options can be set with the `nixDirAliases` option. For example, by
+default `nixDirAliases.nixosConfigurations = [ "nixos" ];` is set which means
+"nixos" can be used instead of "nixosConfigurations" for loading the files as
+described above.
+
+All options except for `nixDir` and `_module` can be configured this way.
+
+To apply transformations on the output of an autoloaded directory, you can use
+`option/default.nix` and load the directory with `flakelight.importDir`.
+
+If you add a new config type that should be loaded as paths instead of imported,
+such as configs for Nix modules, add them to the `nixDirPathAttrs` option. This
+is already set for built-in module options. When options whose names are in
+`nixDirPathAttrs` are loaded as a directory, `flakelight.importDirPaths` is used
+instead of `flakelight.importDir`.
+
+You may set `nixDir` to null to not load from any directory.
+
+### outputs
+
+```
+Type: AttrSet | (ModuleArgs -> AttrSet)
+```
+
+The `outputs` option allows you to directly configure flake outputs. This should
+be used for porting or for configuring output attrs not otherwise supported by
+Flakelight.
+
+The option value may be an attrset or a function that takes `moduleArgs` and
+returns and attrset.
+
+To add a `example.test` output to your flake you could do the following:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      outputs = {
+        example.test = "hello";
+      };
+    };
+}
+```
+
+With the above, `nix eval .#example.test` will output "hello".
+
+This can be used to configure any output, for example directly setting an
+overlay (though this can be configured with the `overlays` option):
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      outputs.overlays.clang = final: prev: { stdenv = final.clangStdenv; };
+    };
+}
+```
+
+### perSystem
+
+```
+Type: Pkgs -> AttrSet
+```
+
+The `perSystem` option allows you to directly configure per-system flake
+outputs, and gives you access to packages. This should be used for porting or
+for configuring output attrs not otherwise supported by Flakelight.
+
+To add `example.${system}.test` outputs to your flake, you could do the
+following:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      perSystem = pkgs: {
+        example.test = pkgs.writeShellScript "test" "echo hello";
+      };
+    };
+}
+```
+
+The above, with default systems, will generate `example.x86_64-linux.test` and
+`example.aarch64-linux.test` attributes.
+
+### nixpkgs.config
+
+```
+Type: AttrSet
+```
+
+This allows you to pass configuration options to the Nixpkgs instance used for
+building packages and calling perSystem.
+
+For example, to allow building broken or unsupported packages, you can set the
+option as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      nixpkgs.config = { allowBroken = true; allowUnsupportedSystem = true; };
+    };
+}
+```
+
+### withOverlays
+
+```
+Type: [Overlay] | Overlay | (ModuleArgs -> [Overlay])
+```
+
+This allows you to apply overlays to the Nixpkgs instance used for building
+packages and calling perSystem.
+
+It can be set to either a list of overlays or a single overlay.
+
+For example, to apply the Emacs overlay and change the Zig version, you can set
+the option as follows:
+
+```nix
+{
+  inputs = {
+    flakelight.url = "github:nix-community/flakelight";
+    emacs-overlay.url = "github:nix-community/emacs-overlay";
+  };
+  outputs = { flakelight, emacs-overlay, ... }:
+    flakelight ./. {
+      withOverlays = [
+        emacs-overlay.overlays.default
+        (final: prev: { zig = final.zig_0_9; })
+      ];
+    };
+}
+```
+
+You can use the values from the overlays with other options:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      withOverlays = final: prev: { testValue = "hi"; };
+
+      package = { writeShellScript, testValue }:
+        writeShellScript "test" "echo ${testValue}";
+    };
+}
+```
+
+### packages
+
+```
+Types:
+  package: PackageDef
+  packages: (AttrsOf PackageDef) | (ModuleArgs -> (AttrsOf PackageDef))
+  pname: Str
+```
+
+The `package` and `packages` options allow you to add packages. These are
+exported in the `packages.${system}` outputs, are included in
+`overlays.default`, and have build checks in `checks.${system}`.
+
+`package` can be set to a package definition, and will set `packages.default`.
+
+`packages` can be set to attrs of package definitions. If it is a function, it
+will additionally get a `system` arg in addition to module args, to allow
+conditionally including package definitions depending on the system.
+
+By default, the `packages.default` package's name (its attribute name in the
+package set and overlay) is automatically determined from the derivation's
+`pname`. In order to use a different attribute name from the package pname, to
+set it in cases where it cannot be automatically determined, or to speed up
+uncached evaluation, the flakelight `pname` option can be set.
+
+To set the default package, you can set the options as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      package = { stdenv }:
+        stdenv.mkDerivation {
+          pname = "pkg1";
+          version = "0.0.1";
+          src = ./.;
+          installPhase = "make DESTDIR=$out install";
+        };
+    };
+}
+```
+
+The above will export `packages.${system}.default` attributes, add `pkg1` to
+`overlays.default`, and export `checks.${system}.packages-default`.
+
+You can also instead just directly set `packages.default`.
+
+To set multiple packages, you can set the options as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      packages = {
+        default = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./.;
+            installPhase = "make DESTDIR=$out install";
+          };
+        pkg2 = { stdenv, pkg1, pkg3 }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./pkg2;
+            nativeBuildInputs = [ pkg1 pkg3 ];
+            installPhase = "make DESTDIR=$out install";
+          };
+        pkg3 = { stdenv }:
+          stdenv.mkDerivation {
+            name = "hello-world";
+            src = ./pkg3;
+            installPhase = "make DESTDIR=$out install";
+          };
+      };
+    };
+}
+```
+
+The above will export `packages.${system}.default`, `packages.${system}.pkg2`,
+`packages.${system}.pkg3` attributes, add `pkg1`, `pkg2`, and `pkg3` to
+`overlays.default`, and export corresponding build checks.
+
+To use the first example, but manually specify the package name:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      pname = "pkgs-attribute-name";
+      package = { stdenv }:
+        stdenv.mkDerivation {
+          pname = "package-name";
+          version = "0.0.1";
+          src = ./.;
+          installPhase = "make DESTDIR=$out install";
+        };
+    };
+}
+```
+
+To add a package only for certain systems, you can take `system` as an arg as
+follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      packages = { system, ... }: if (system == "x86_64-linux") then {
+        pkg1 = { stdenv }:
+          stdenv.mkDerivation {
+            name = "pkg1";
+            src = ./.;
+            installPhase = "make DESTDIR=$out install";
+          };
+      } else { };
+    };
+}
+```
+
+### devShell
+
+```
+Type:
+  devShell: Cfg | (Pkgs -> Cfg) | PackageDef | Derivation | (Pkgs -> Derivation)
+  Cfg.packages: [Derivation] | (Pkgs -> [Derivation])
+  Cfg.inputsFrom: [Derivation] | (Pkgs -> [Derivation])
+  Cfg.shellHook: Str | (Pkgs -> Str)
+  Cfg.env: (AttrsOf Str) | (Pkgs -> (AttrsOf Str))
+  Cfg.stdenv: Stdenv | (Pkgs -> Stdenv)
+```
+
+The devshell options allow you to configure `devShells.${system}.default`. It is
+split up into options in order to enable multiple modules to contribute to its
+configuration.
+
+`devShell` can alternatively be set to a package definition or derivation, which
+is then used as the default shell, overriding other options.
+
+`devShell` can also be set to a function that takes the package set and returns
+an attrSet of the devShell configuration options or a derivation.
+
+The options available are as follows:
+
+`devShell.packages` is a list of packages to add to the shell. It can optionally
+be a function taking the package set and returning such a list.
+
+`devShell.inputsFrom` is a list of packages whose deps should be in the shell.
+It can optionally be a function taking the package set and returning such a
+list.
+
+`devShell.shellHook` is a string that provides bash code to run in shell
+initialization. It can optionally be a function taking the package set and
+returning such a string.
+
+`devShell.hardeningDisable` is a list of hardening options to disable. Setting
+it to `["all"]` disables all Nix hardening.
+
+`devShell.env` is for setting environment variables in the shell. It is an
+attribute set mapping variables to values. It can optionally be a function
+taking the package set and returning such an attribute set.
+
+`devShell.stdenv` is the stdenv package used for the shell. It can optionally be
+a function takeing the package set and returning the stdenv to use.
+
+For example, these can be configured as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShell = pkgs: {
+        # Include build deps of emacs
+        inputsFrom = [ pkgs.emacs ];
+        # Add coreutils to the shell
+        packages = [ pkgs.coreutils ];
+        # Add shell hook. Can be a function if you need packages
+        shellHook = ''
+          echo Welcome to example shell!
+        '';
+        # Set an environment var. `env` can be an be a function
+        env.TEST_VAR = "test value";
+        stdenv = pkgs.clangStdenv;
+      };
+    };
+}
+```
+
+The above exports `devShells.${system}.default` outputs.
+
+To add the build inputs of one of your packages, you can do as follows:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      package = { stdenv }:
+        stdenv.mkDerivation {
+          pname = "pkg1";
+          version = "0.0.1";
+          src = ./.;
+          installPhase = "make DESTDIR=$out install";
+        };
+      devShell = {
+        inputsFrom = pkgs: [ pkgs.pkg1 ];
+      };
+    };
+}
+```
+
+To override the devShell, you can use a package definition as such:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShell = { mkShell, hello }: mkShell {
+        packages = [ hello ];
+      };
+    };
+}
+```
+
+### devShells
+
+```
+Type:
+  devShells: (AttrsOf (PackageDef | Cfg | (Pkgs -> Cfg)) |
+             (ModuleArgs -> (AttrsOf (PackageDef | Cfg | (Pkgs -> Cfg))))
+  Cfg.packages: [Derivation] | (Pkgs -> [Derivation])
+  Cfg.inputsFrom: [Derivation] | (Pkgs -> [Derivation])
+  Cfg.shellHook: Str | (Pkgs -> Str)
+  Cfg.env: (AttrsOf Str) | (Pkgs -> (AttrsOf Str))
+  Cfg.stdenv: Stdenv | (Pkgs -> Stdenv)
+```
+
+The `devShells` option allows you to set additional `devShell` outputs. The
+values each shell can be set to are the same as described above for the
+`devShell` option.
+
+For example, using the configuration options:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShells.testing = {
+        packages = pkgs: [ pkgs.coreutils ];
+        env.TEST_VAR = "in testing shell";
+      };
+    };
+}
+```
+
+For example, using a package definition:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShells.testing = { mkShell, coreutils }:
+        mkShell {
+          packages = [ coreutils ];
+          env.TEST_VAR = "in testing shell";
+        };
+    };
+}
+```
+
+The above flakes export `devShells.${system}.testing` outputs.
+
+### overlays
+
+```
+Types:
+  overlay: Overlay
+  overlays: (AttrsOf Overlay) | (ModuleArgs -> (AttrsOf Overlay)
+```
+
+The `overlay` and `overlays` options allow you to configure `overlays` outputs.
+
+Multiple provided overlays for an output are merged.
+
+The `overlay` option adds the overlay to `overlays.default`.
+
+The `overlays` option allows you to add overlays to `overlays` outputs.
+
+For example, to add an overlay to `overlays.default`, do the following:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      overlay = final: prev: { testValue = "hello"; };
+    };
+}
+```
+
+The above results in `overlays.default` output containing testValue.
+
+To configure other overlays:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      overlays.cool = final: prev: { testValue = "cool"; };
+    };
+}
+```
+
+The above results in a `overlays.cool` output.
+
+### checks
+
+```
+Types:
+  checks: (AttrsOf Check) | (Pkgs -> (AttrsOf Check))
+  Check: Str | (Pkgs -> Str) | Derivation | (Pkgs -> Derivation)
+```
+
+The `checks` option allows you to add checks for `checks.${system}` attributes.
+
+It can be set to an attribute set of checks, which can be functions,
+derivations, or strings.
+
+If a check is a derivation, it will be used as is.
+
+If a check is a string, it will be included in a bash script that runs it in a
+copy of the source directory, and succeeds if the no command in the string
+errored.
+
+If a check is a function, it will be passed packages, and should return one of
+the above.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      checks = {
+        # Check that succeeds if the source contains the string "hi"
+        hi = { rg, ... }: "${rg}/bin/rg hi";
+        # Check that emacs builds
+        emacs = pkgs: pkgs.emacs;
+      };
+    };
+}
+```
+
+### apps
+
+```
+Types:
+  app: App'
+  apps: (AttrsOf App') | (Pkgs -> (AttrsOf App'))
+  App': Str | (Pkgs -> Str) | App | (Pkgs -> App)
+```
+
+The `app` and `apps` options allow you to set `apps.${system}` outputs.
+
+`apps` is an attribute set of apps or a function that takes packages and returns
+an attribute set of apps. If the app value is a function, it is passed packages.
+If the app value or function result is a string, it is converted to an app.
+
+`app` sets `apps.default`.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      apps = {
+        emacs = pkgs: "${pkgs.emacs}/bin/emacs";
+        bash = pkgs: { type = "app"; program = "${pkgs.bash}/bin/bash"; };
+      };
+    };
+}
+```
+
+Alternatively, the above can be written as:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      apps = { emacs, bash, ... }: {
+        emacs = "${emacs}/bin/emacs";
+        bash = { type = "app"; program = "${bash}/bin/bash"; };
+      };
+    };
+}
+```
+
+### templates
+
+```
+Types:
+  template: Template | (ModuleArgs -> Template)
+  templates: (AttrsOf (Template | (ModuleArgs -> Template))) |
+             (ModuleArgs -> (AttrsOf (Template | (ModuleArgs -> Template))))
+```
+
+The `template` and `templates` options allow you to set `templates` outputs.
+
+`templates` is an attribute set to template values.
+
+`template` sets `templates.default`.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      templates.test-template = {
+        path = ./test;
+        description = "test template";
+      };
+    };
+}
+```
+
+### legacyPackages
+
+```
+Type: Pkgs -> Pkgs
+```
+
+The `legacyPackages` option allows you to configure the flake's `legacyPackages`
+output. It can be set to a function that takes the package set and returns the
+package set to be used as the corresponding system's legacyPackages output.
+
+For example:
+
+```nix
+{
+  inputs = {
+    flakelight.url = "github:nix-community/flakelight";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  };
+  outputs = { flakelight, nixpkgs, ... }:
+    flakelight ./. {
+      legacyPackages = pkgs: nixpkgs.legacyPackages.${pkgs.system};
+    };
+}
+```
+
+To export the package set used for calling package definitions and other options
+that take functions passed the package set, you can do the following:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      legacyPackages = pkgs: pkgs;
+    };
+}
+```
+
+### formatter
+
+```
+Type: Pkgs -> Derivation
+```
+
+The `formatter` option allows you to set `formatter.${system}` outputs. It can
+be set to a function that takes packages and returns the package to use. This
+overrides the `formatters` functionality described below though, so for
+configuring formatters for a file type, you likely want to use `formatters`
+instead.
+
+For example, to use a custom formatting command:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      formatter = pkgs: pkgs.writeShellScriptBin "format-script" ''
+        # Perform formatting (`nix fmt` calls the script with `.` as arg)
+      '';
+    };
+}
+```
+
+### formatters
+
+```
+Type: (AttrsOf Str) | (Pkgs -> (AttrsOf Str))
+```
+
+The `formatters` option allows you to configure formatting tools that will be
+used by `nix fmt`. If formatters are set, Flakelight will export
+`formatter.${system}` outputs which apply all the configured formatters.
+
+By default, `nix` files are formatted with `nixpkgs-fmt` and `md`, `json`, and
+`yml` files are formatted with `prettier`.
+
+To disable default formatters, set the `flakelight.builtinFormatters` option to
+false.
+
+You can set `formatters` to an attribute set, for which the keys are a file name
+pattern and the value is the corresponding formatting command. `formatters` can
+optionally be a function that takes packages and returns the above.
+
+Formatting tools should be added to `devShell.packages`; this enables easier use
+as described below, as well as allowing flake users to use the tools directly
+when in the devShell.
+
+Formatters can be set to a plain string like `"zig fmt"` or a full path like
+`"${pkgs.zig}/bin/zig fmt"`. Formatters set as plain strings have access to all
+packages in `devShell.packages`.
+
+If building the formatter is slow due to building devShell packages, use full
+paths for the formatters; the devShell packages are only included if a
+formatting option is set to a plain string.
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShell.packages = pkgs: [ pkgs.rustfmt pkgs.zig ];
+      formatters = {
+        "*.rs" = "rustfmt";
+        "*.zig" = "zig fmt";
+      };
+    };
+}
+```
+
+### bundlers
+
+```
+Types:
+  bundler: Bundler | (Pkgs -> Bundler)
+  bundlers: (AttrsOf (Bundler | (Pkgs -> Bundler))) |
+            (ModuleArgs -> (AttrsOf (Bundler | (Pkgs -> Bundler))))
+```
+
+The `bundler` and `bundlers` options allow you to set `bundlers.${system}`
+outputs.
+
+Each bundler value can be either a bundler function or a function that takes the
+package set and returns a bundler function.
+
+`bundlers` is an attribute set of bundler values or a function that takes
+packages and returns an attribute set of bundler values.
+
+`bundler` sets `bundlers.default`.
+
+For example, a bundler that returns the passed package:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      bundler = x: x;
+    };
+}
+```
+
+As another example, a bundler that always returns `hello`:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      bundlers = { hello, ... }: {
+        hello = x: hello;
+      };
+    };
+}
+```
+
+To write the above using autoloads, can use the following:
+
+```nix
+# nix/bundlers/hello.nix
+{ hello, ... }: x: hello;
+```
+
+### nixosConfigurations
+
+```
+Type: (AttrsOf (NixOSArgs | NixOSConfig |
+        (ModuleArgs -> (NixOSArgs | NixOSConfig)))) |
+      (ModuleArgs -> (AttrsOf (NixOSArgs | NixOSConfig |
+                       (ModuleArgs -> (NixOSArgs | NixOSConfig)))))
+```
+
+The `nixosConfigurations` attribute lets you set outputs for NixOS systems and
+home-manager users.
+
+It should be set to an attribute set. Each value should be a set of
+`nixpkgs.lib.nixosSystem` args, the result of calling `nixpkgs.lib.nixosSystem`,
+or a function that takes `moduleArgs` and returns one of the prior.
+
+When using a set of `nixpkgs.lib.nixosSystem` args, NixOS modules will have
+access to a `flake` module arg equivalent to `moduleArgs` plus `inputs'` and
+`outputs'`. Flakelight's pkgs attributes, `withOverlays`, and `packages` will
+also be available in the NixOS instance's pkgs, and Flakelight's
+`nixpkgs.config` will apply to it as well.
+
+When using the result of calling `nixpkgs.lib.nixosSystem`, the
+`config.propagationModule` value can be used as a NixOS module to gain the above
+benefits.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, config, ... }: {
+      nixosConfigurations.test-system = {
+        system = "x86_64-linux";
+        modules = [{ system.stateVersion = "24.05"; }];
+      };
+    });
+}
+```
+
+### homeConfigurations
+
+```
+Type: (AttrsOf (HomeArgs | HomeConfig |
+        (ModuleArgs -> (HomeArgs | HomeConfig)))) |
+      (ModuleArgs -> (AttrsOf (HomeArgs | HomeConfig |
+                       (ModuleArgs -> (HomeArgs | HomeConfig)))))
+```
+
+The `homeConfigurations` attribute lets you set outputs for NixOS systems and
+home-manager users.
+
+It should be set to an attribute set. Each value should be a set of
+`home-manager.lib.homeManagerConfiguration` args, the result of calling
+`home-manager.lib.homeManagerConfiguration`, or a function that takes
+`moduleArgs` and returns one of the prior.
+
+When using a set of `homeManagerConfiguration` args, it is required to include
+`system` (`pkgs` does not need to be included), and `inputs.home-manager` must
+be set. home-manager modules will have access to a `flake` module arg equivalent
+to `moduleArgs` plus `inputs'` and `outputs'`. Flakelight's pkgs attributes,
+`withOverlays`, and `packages` will also be available in the home-manager
+instance's pkgs.
+
+When using the result of calling `homeManagerConfiguration`, the
+`config.propagationModule` value can be used as a home-manager module to gain
+the above benefits.
+
+For example:
+
+```nix
+{
+  inputs = {
+    flakelight.url = "github:nix-community/flakelight";
+    home-manger.url = "github:nix-community/home-manager";
+  };
+  outputs = { flakelight, home-manager, ... }@inputs:
+    flakelight ./. ({ config, ... }: {
+      inherit inputs;
+      homeConfigurations.username = {
+        system = "x86_64-linux";
+        modules = [{ home.stateVersion = "24.05"; }];
+      };
+    });
+}
+```
+
+### nixosModules, homeModules, and flakelightModules
+
+```
+Types:
+  nixosModule: Module
+  nixosModules: (AttrsOf Module) | (ModuleArgs -> (AttrsOf Module))
+  homeModule: Module
+  homeModules: (AttrsOf Module) | (ModuleArgs -> (AttrsOf Module))
+  flakelightModule: Module
+  flakelightModules: (AttrsOf Module) | (ModuleArgs -> (AttrsOf Module))
+```
+
+The `nixosModules`, `homeModules`, and `flakelightModules` options allow you to
+configure the corresponding outputs.
+
+The `nixosModule`, `homeModule`, and `flakelightModule` options set the
+`default` attribute of the corresponding above option.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, ... }: {
+      nixosModule = { system, lib, pkgs, ... }: {
+        # nixos module configuration
+      };
+    });
+}
+```
+
+These can be paths, which is preferred as it results in better debug output:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. ({ lib, ... }: {
+      nixosModule = ./module.nix;
+      homeModules = {
+        default = ./home.nix;
+        emacs = ./emacs.nix;
+      }
+    });
+}
+```
+
+### lib
+
+```
+Type: AttrSet | (ModuleArgs -> AttrSet)
+```
+
+The `lib` option allows you to configure the flake's `lib` output.
+
+For example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      lib = {
+        addFive = x: x + 5;
+        addFour = x: x + 4;
+      };
+    };
+}
+```
+
+### functor
+
+```
+Type: Outputs -> Any -> Any
+```
+
+The `functor` option allows you to make your flake callable.
+
+If it is set to a function, that function will be set as the `__functor`
+attribute of your flake outputs.
+
+Flakelight uses it so that calling your `flakelight` input calls
+`flakelight.lib.mkFlake`.
+
+As an example:
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      outputs.testvalue = 5;
+      functor = self: x: x + self.testvalue;
+    }
+}
+```
+
+With the above flake, another flake that has imports it with the name `addFive`
+would be able to call `addFive 4` to get 9.
+
+### meta
+
+```
+Types:
+  description: Str
+  license: Str | [Str]
+```
+
+The following options are available for configuring the meta attributes of the
+default package for supported modules (such as flakelight-rust or
+flakelight-zig) or for use in your own packages through the `defaultMeta` pkgs
+value.
+
+`description` allows setting the package description. By default it uses the
+flake description, if found.
+
+`license` lets you set the license or license. It may be a single string or list
+of strings. These strings may be Spdx license identifiers or Nixpkgs license
+attribute names.
+
+### flakelight
+
+```
+Types:
+  flakelight.editorconfig: Bool
+  flakelight.builtinFormatters: Bool
+```
+
+This option has options for configuring Flakelight's defaults.
+
+`flakelight.editorconfig` can be set to false to disable the editorconfig check
+that is added if editorconfig configuration is detected.
+
+`flakelight.builtinFormatters` can be set to false to disable the default
+formatting configuration.
+</file>
+
+<file path="default.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+inputs:
+let
+  inherit (inputs) nixpkgs;
+  inherit (builtins) isAttrs isPath readDir;
+  inherit (nixpkgs.lib) all attrNames composeManyExtensions evalModules filter
+    fix genAttrs getValues hasSuffix isDerivation isFunction isStringLike
+    mapAttrs mapAttrsToList mkDefault mkOptionType pathExists pipe removePrefix
+    removeSuffix singleton;
+  inherit (nixpkgs.lib.types) coercedTo defaultFunctor functionTo listOf
+    optionDescriptionPhrase;
+  inherit (nixpkgs.lib.options) mergeEqualOption mergeOneOption;
+
+  builtinModules = mapAttrsToList (k: _: ./builtinModules + ("/" + k))
+    (readDir ./builtinModules);
+
+  mkFlake = {
+    __functor = self: src: root: (evalModules {
+      specialArgs.modulesPath = ./builtinModules;
+      modules = builtinModules ++ self.extraModules ++ [
+        { inputs.nixpkgs = mkDefault nixpkgs; }
+        { inputs.flakelight = mkDefault inputs.self; }
+        { _module.args = { inherit src flakelight; }; }
+        root
+      ];
+    }).config.outputs;
+
+    # mkFlake.extend takes a list of flakelight modules, and returns an mkFlake
+    # that automatically includes those modules.
+    extend = (fix (extend': mkFlake': modules: fix (self: mkFlake' // {
+      extraModules = mkFlake'.extraModules ++ modules;
+      extend = extend' self;
+    }))) mkFlake;
+    extraModules = [ ];
+  };
+
+  flakelight = {
+    inherit importDir importDirPaths mkFlake selectAttr types;
+  };
+
+  types = rec {
+    overlay = mkOptionType {
+      name = "overlay";
+      description = "nixpkgs overlay";
+      descriptionClass = "noun";
+      check = isFunction;
+      merge = _: defs: composeManyExtensions (getValues defs);
+    };
+
+    packageDef = mkOptionType {
+      name = "packageDef";
+      description = "package definition";
+      descriptionClass = "noun";
+      check = isFunction;
+      merge = mergeOneOption;
+    };
+
+    path = mkOptionType {
+      name = "path";
+      description = "path";
+      descriptionClass = "noun";
+      check = isPath;
+      merge = mergeEqualOption;
+    };
+
+    function = mkOptionType {
+      name = "function";
+      description = "function";
+      descriptionClass = "noun";
+      check = isFunction;
+      merge = mergeOneOption;
+    };
+
+    drv = mkOptionType {
+      name = "drv";
+      description = "derivation";
+      descriptionClass = "noun";
+      check = isDerivation;
+      merge = mergeOneOption;
+    };
+
+    stringLike = mkOptionType {
+      name = "stringLike";
+      description = "string-convertible value";
+      descriptionClass = "noun";
+      check = isStringLike;
+      merge = mergeEqualOption;
+    };
+
+    module = mkOptionType {
+      name = "module";
+      description = "module";
+      descriptionClass = "noun";
+      check = x: isPath x || isFunction x || isAttrs x;
+      merge = _: defs: { imports = getValues defs; };
+    };
+
+    fileset = mkOptionType {
+      name = "fileset";
+      description = "fileset";
+      descriptionClass = "noun";
+      check = x: isPath x || x._type or null == "fileset";
+    };
+
+    optListOf = elemType: coercedTo elemType singleton (listOf elemType);
+
+    coercedTo' = coercedType: coerceFunc: finalType:
+      (coercedTo coercedType coerceFunc finalType) // {
+        merge = loc: defs:
+          let
+            coerceVal = val:
+              if finalType.check val then val
+              else coerceFunc val;
+          in
+          finalType.merge loc
+            (map (def: def // { value = coerceVal def.value; }) defs);
+      };
+
+    optFunctionTo = elemType:
+      let
+        nonFunction = mkOptionType {
+          name = "nonFunction";
+          description = "non-function";
+          descriptionClass = "noun";
+          check = x: ! isFunction x && elemType.check x;
+          merge = mergeOneOption;
+        };
+      in
+      coercedTo nonFunction (x: _: x)
+        (functionTo elemType);
+
+    optCallWith = args: elemType: coercedTo function (x: x args) elemType;
+
+    nullable = elemType: mkOptionType {
+      name = "nullable";
+      description = "nullable ${optionDescriptionPhrase
+        (class: class == "noun" || class == "composite") elemType}";
+      descriptionClass = "noun";
+      check = x: x == null || elemType.check x;
+      merge = loc: defs:
+        if all (def: def.value == null) defs then null
+        else elemType.merge loc (filter (def: def.value != null) defs);
+      emptyValue.value = null;
+      inherit (elemType) getSubOptions getSubModules;
+      substSubModules = m: nullable (elemType.substSubModules m);
+      functor = (defaultFunctor "nullable") // {
+        type = nullable;
+        wrapped = elemType;
+      };
+      nestedTypes = { inherit elemType; };
+    };
+  };
+
+  importDir = path: mapAttrs (_: import) (importDirPaths path);
+
+  importDirPaths = path: genAttrs
+    (pipe (readDir path) [
+      attrNames
+      (filter (s: s != "default.nix"))
+      (filter (s: (hasSuffix ".nix" s)
+        || pathExists (path + "/${s}/default.nix")))
+      (map (removeSuffix ".nix"))
+      (map (removePrefix "_"))
+    ])
+    (p: path +
+      (if pathExists (path + "/_${p}.nix") then "/_${p}.nix"
+      else if pathExists (path + "/${p}.nix") then "/${p}.nix"
+      else "/${p}"));
+
+  selectAttr = attr: mapAttrs (_: v: v.${attr} or { });
+in
+flakelight
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1760878510,
+        "narHash": "sha256-K5Osef2qexezUfs0alLvZ7nQFTGS9DL2oTVsIXsqLgs=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5e2a59a5b1a82f89f2c7e598302a9cacebb72a67",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+# flakelight -- Framework for simplifying flake setup
+# Copyright (C) 2023 Archit Gupta <archit@accelbread.com>
+# SPDX-License-Identifier: MIT
+
+{
+  description =
+    "A modular Nix flake framework for simplifying flake definitions";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+  outputs = inputs:
+    let lib = import ./. inputs; in
+    lib.mkFlake ./. {
+      inherit lib;
+      functor = _: lib.mkFlake;
+      templates = import ./templates;
+      checks.statix = pkgs: "${pkgs.statix}/bin/statix check";
+      outputs.tests = import ./tests inputs;
+    };
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (C) 2023 Archit Gupta
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the “Software”), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+</file>
+
+<file path="README.md">
+# Flakelight
+
+A modular Nix flake framework for simplifying flake definitions.
+
+Flakelight supports all types of flakes; projects, shells, NixOS configurations,
+config monorepos, etc.
+
+## Goals
+
+- Minimize boilerplate needed for flakes
+- Support straightforward configuration of all vanilla flake attributes
+- Allow sharing common configuration using modules
+- What can be done automatically, should be
+- Provide good defaults, but let them be changed/disabled
+
+## Features
+
+- Handles generating per-system attributes
+- Extensible using the module system
+- Given package definitions, generates package and overlay outputs
+- Automatically import attributes from nix files in a directory (default
+  `./nix`)
+- Builds formatter outputs that can format multiple file types
+- Provides outputs/perSystem options for easy migration
+
+## Documentation
+
+See the [API docs](./API_GUIDE.md) for available options and example usage.
+
+## Additional modules
+
+Modules can be used to share common configuration and simplify flakes further.
+For example, a programming language module can atomatically use that language's
+metadata and common tooling to set flakelight options.
+
+The following third-party modules are also available:
+
+- [flakelight-rust][] for Rust projects
+- [flakelight-zig][] for Zig projects
+- [flakelight-elisp][] for flakes providing Emacs lisp package(s)
+- [flakelight-darwin][] for nix-darwin configs
+- [flakelight-haskell][] for Haskell projects
+
+[flakelight-rust]: https://github.com/accelbread/flakelight-rust
+[flakelight-zig]: https://github.com/accelbread/flakelight-zig
+[flakelight-elisp]: https://github.com/accelbread/flakelight-elisp
+[flakelight-darwin]: https://github.com/cmacrae/flakelight-darwin
+[flakelight-haskell]: https://github.com/hezhenxing/flakelight-haskell
+
+## Contact
+
+Feel free to ask for help or other questions in the issues/discussions, or reach
+out on Matrix at [#flakelight:nixos.org][matrix-flakelight].
+
+[matrix-flakelight]: https://matrix.to/#/#flakelight:nixos.org
+
+## Examples
+
+### Shell
+
+The following is an example flake.nix for a devshell, using the passed in
+nixpkgs. It outputs `devShell.${system}.default` attributes for each configured
+system. `systems` can be set to change configured systems from the default.
+
+```nix
+{
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      devShell.packages = pkgs: [ pkgs.hello pkgs.coreutils ];
+    };
+}
+```
+
+With this flake, calling `nix develop` will make `hello` and `coreutils`
+available.
+
+To use a different nixpkgs, you can instead use:
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flakelight.url = "github:nix-community/flakelight";
+  };
+  outputs = { flakelight, ... }@inputs:
+    flakelight ./. {
+      inherit inputs;
+      devShell.packages = pkgs: [ pkgs.hello pkgs.coreutils ];
+    };
+}
+```
+
+### Rust package
+
+The following is an example flake for a Rust project using `flakelight-rust`,
+invoked by using `flakelight-rust`'s wrapper. Package metadata is taken from the
+project's `Cargo.toml`.
+
+```nix
+{
+  inputs.flakelight-rust.url = "github:accelbread/flakelight-rust";
+  outputs = { flakelight-rust, ... }: flakelight-rust ./. { };
+}
+```
+
+The above flake exports the following:
+
+- Per-system attributes for default systems (`x86_64-linux` and `aarch64-linux`)
+- `packages.${system}.default` attributes for each system
+- `overlays.default` providing an overlay with the package (built with the
+  applied pkg set's dependencies)
+- `devShells.${system}.default` that provides `rust-analyzer`, `cargo`,
+  `clippy`, `rustc`, and `rustfmt` as well as sets `RUST_SRC_PATH`
+- `checks.${system}.${check}` attributes for build, test, clippy, and formatting
+  checks
+- `formatter.${system}` with additional support for formatting Rust files
+
+Equivalently, you can just import the `flakelight-rust` module as follows:
+
+```nix
+{
+  inputs = {
+    flakelight.url = "github:nix-community/flakelight";
+    flakelight-rust.url = "github:accelbread/flakelight-rust";
+  };
+  outputs = { flakelight, flakelight-rust, ... }: flakelight ./. {
+    imports = [ flakelight-rust.flakelightModules.default ];
+  };
+}
+```
+
+See [flakelight-rust.nix][flakelight-rust] to see how you could configure it
+without the module.
+
+[flakelight-rust]:
+  https://github.com/accelbread/flakelight-rust/blob/master/flakelight-rust.nix
+
+### C application
+
+The following example flake is for a C project with a simple `make` setup.
+
+```nix
+{
+  description = "My C application.";
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      license = "AGPL-3.0-or-later";
+
+      package = { stdenv, defaultMeta }:
+        stdenv.mkDerivation {
+          name = "hello-world";
+          src = ./.;
+          installPhase = ''
+            runHook preInstall
+            make DESTDIR=$out install
+            runHook postInstall
+          '';
+          meta = defaultMeta;
+        };
+
+      devShell.packages = pkgs: with pkgs; [ clang-tools coreutils ];
+
+      formatters = {
+        "*.h" = "clang-format -i";
+        "*.c" = "clang-format -i";
+      }
+    };
+}
+```
+
+This flake exports the following:
+
+- Per-system attributes for default systems (`x86_64-linux` and `aarch64-linux`)
+- `packages.${system}.default` attributes for each system, with license and
+  description set
+- `overlays.default` providing an overlay with the package (built with the
+  applied pkg set's dependencies)
+- `devShells.${system}.default` that provides `clang-tools` and `coreutils`
+- `checks.${system}.${check}` attributes for build and formatting checks.
+- `formatter.${system}` with additional support for formatting `c` and `h` files
+  with `clang-format`
+
+### C application using autoloads
+
+The above example can instead use the autoload directory feature for the package
+like the following. Most attributes can be autoloaded.
+
+`./flake.nix`:
+
+```nix
+{
+  description = "My C application.";
+  inputs.flakelight.url = "github:nix-community/flakelight";
+  outputs = { flakelight, ... }:
+    flakelight ./. {
+      license = "AGPL-3.0-or-later";
+
+      devShell.packages = pkgs: with pkgs; [ clang-tools coreutils ];
+
+      formatters = {
+        "*.h" = "clang-format -i";
+        "*.c" = "clang-format -i";
+      }
+    };
+}
+```
+
+`./nix/package.nix`:
+
+```nix
+{ stdenv, defaultMeta }:
+stdenv.mkDerivation {
+  name = "hello-world";
+  src = ./.;
+  installPhase = ''
+    runHook preInstall
+    make DESTDIR=$out install
+    runHook postInstall
+  '';
+  meta = defaultMeta;
+}
+```
+
+## Related Resources
+
+- [Comparison to flake-parts](https://discourse.nixos.org/t/flakelight-a-new-modular-flake-framework/32395/3)
+</file>
+
+</files>

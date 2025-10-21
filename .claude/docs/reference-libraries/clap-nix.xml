@@ -1,0 +1,1408 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    test.yml
+  FUNDING.yml
+lib/
+  default.nix
+test/
+  000-parse-empty-argv-with-empty-lsc-test.nix
+  010-a-long-option-takes-next-argument-as-value-test.nix
+  020-a-long-option-followed-by-another-long-option-is-considered-a-true-flag-test.nix
+  030-a-long-option-followed-by-short-option-is-considered-a-true-flag-test.nix
+  040-last-short-option-in-combo-takes-the-argument-value-test.nix
+  050-short-option-followed-by-long-one-is-considered-boolean-test.nix
+  050-short-option-taking-boolean-ignores-next-arg-test.nix
+  060-non-options-are-collected-in-rest-test.nix
+  070-long-option-as-last-argument-is-treated-as-boolean-test.nix
+  070-long-option-taking-boolean-ignores-next-arg-test.nix
+  080-short-option-as-last-argument-is-treated-as-boolean-test.nix
+  090-unknown-option-is-just-rest-test.nix
+  100-everything-after-double-slash-is-just-ignored-test.nix
+  110-naming-a-subcommand-parses-options-for-it-test.nix
+  120-once-a-subcommand-is-found-parent-options-are-unknown-test.nix
+  130-optsSet-returns-a-single-set-with-all-values-test.nix
+  140-opts-returns-a-merged-config-using-evalModules-test.nix
+  150-can-take-an-option-of-default-enabled-command-test.nix
+  160-can-take-an-option-of-default-enabled-subcommand-test.nix
+  170-argv-is-a-list-of-positional-arguments-test.nix
+  180-documentation-is-generated-from-lsc-test.nix
+  check.nix
+  default.nix
+  opts.nix
+.gitignore
+default.nix
+flake.lock
+flake.nix
+LICENSE
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/test.yml">
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2.3.4
+    - uses: cachix/install-nix-action@v13
+      with:
+        install_url: https://nixos-nix-install-tests.cachix.org/serve/i6laym9jw3wg9mw6ncyrk6gjx4l34vvx/install
+        install_options: '--tarball-url-prefix https://nixos-nix-install-tests.cachix.org/serve'
+        extra_nix_config: |
+          experimental-features = nix-command flakes
+          access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+    - run: nix flake check -L --show-trace
+</file>
+
+<file path=".github/FUNDING.yml">
+# These are supported funding model platforms
+
+github: # Replace with up to 4 GitHub Sponsors-enabled usernames e.g., [user1, user2]
+patreon: # Replace with a single Patreon username
+open_collective: # Replace with a single Open Collective username
+ko_fi: oeiuwq # Replace with a single Ko-fi username
+tidelift: # Replace with a single Tidelift platform-name/package-name e.g., npm/babel
+community_bridge: # Replace with a single Community Bridge project-name e.g., cloud-foundry
+liberapay: # Replace with a single Liberapay username
+issuehunt: # Replace with a single IssueHunt username
+lfx_crowdfunding: # Replace with a single LFX Crowdfunding project-name e.g., cloud-foundry
+polar: # Replace with a single Polar username
+buy_me_a_coffee: # Replace with a single Buy Me a Coffee username
+thanks_dev: # Replace with a single thanks.dev username
+custom: # Replace with up to 4 custom sponsorship URLs e.g., ['link1', 'link2']
+</file>
+
+<file path="lib/default.nix">
+{ lib }:
+let
+  prettyOneLine = lib.generators.toPretty { multiline = false; };
+  ensureOption = n: v:
+    let
+      typeOfV = builtins.typeOf v;
+      type = lib.types.${typeOfV} or lib.types.any;
+    in if lib.isOption v then
+      v
+    else
+      lib.mkOption {
+        description = n;
+        type = lib.types.${typeOfV};
+        default = v;
+        defaultText = prettyOneLine v;
+      };
+
+  hasPrefix = p: s: builtins.isString s && lib.hasPrefix p s;
+
+  isDash = hasPrefix "-";
+
+  getLong = prefix: s: long:
+    let
+      str = lib.removePrefix prefix s;
+      path = lib.splitString "." str;
+      opt = lib.attrByPath [ str ] (lib.attrByPath path null long) long;
+    in if !hasPrefix prefix s then
+      null
+    else if opt == null then
+      null
+    else {
+      inherit str opt;
+      path = [ "long" ] ++ path;
+    };
+
+  getShort = s: short:
+    let
+      str = builtins.substring 1 1 s;
+      rem = builtins.substring 2 (builtins.stringLength s) s;
+      opt = lib.attrByPath [ str ] null short;
+    in if !hasPrefix "-" s || hasPrefix "--" s then
+      null
+    else if opt == null then
+      null
+    else {
+      inherit str opt;
+      rem = if builtins.stringLength rem == 0 then [ ] else [ "-${rem}" ];
+      path = [ "short" str ];
+    };
+
+  getArg = s: argv: seen:
+    let
+      argvLen = lib.length argv;
+      seenLen = lib.length (lib.filter (lib.hasAttr "argv") seen);
+    in if argvLen == 0 || seenLen >= argvLen then
+      null
+    else if !(builtins.elemAt argv seenLen).check s then
+      null
+    else {
+      path = [ "argv" ];
+    };
+
+  longAt = fst: slac: getLong "--" fst (slac.long or { });
+  longNoAt = fst: slac: getLong "--no-" fst (slac.long or { });
+  shortAt = fst: slac: getShort fst (slac.short or { });
+  argAt = fst: slac: seen: getArg fst (slac.argv or [ ]) seen;
+  commandAt = fst: slac:
+    if lib.isString fst then
+      lib.attrByPath [ "command" fst ] null slac
+    else
+      null;
+
+  fstAt = fst: slac: seen: rec {
+    long = longAt fst slac;
+    longNo = longNoAt fst slac;
+    short = shortAt fst slac;
+    command = commandAt fst slac;
+    arg = argAt fst slac seen;
+    isDefined =
+      lib.length (lib.filter (_: _ != null) [ long longNo short command arg ])
+      > 0;
+  };
+
+  isEnabled = slac: (slac.enabled or slac.enabled.default or false) == true;
+
+  findDefinedAtEnabled = acc: fst: slac: seen:
+    if (fstAt fst slac seen).isDefined then
+      acc
+    else
+      lib.concatMap (cmd:
+        if !isEnabled slac.command.${cmd} then
+          [ ]
+        else
+          findDefinedAtEnabled (acc ++ [ "command" cmd ]) fst
+          slac.command.${cmd} seen) (lib.attrNames (slac.command or { }));
+
+  argvAcc = acc:
+    let
+      parted = lib.partition (lib.hasAttr "argv") acc;
+      values = map (_: _.argv) parted.right;
+      argv = if lib.length values > 0 then [{ argv = values; }] else [ ];
+    in argv ++ parted.wrong;
+
+  accOpt = slac: rest: acc: argv:
+    let
+
+      len = lib.length argv;
+      isEmpty = len < 1;
+      hasSnd = len > 1;
+      fst = lib.elemAt argv 0;
+      snd = lib.elemAt argv 1;
+
+      fstHere = fstAt fst slac acc;
+      fstEnabledPath = findDefinedAtEnabled [ ] fst slac [ ];
+
+      accAt = at: val: acc ++ [ (lib.setAttrByPath at.path val) ];
+
+    in if isEmpty then {
+      inherit rest;
+      acc = argvAcc acc;
+    }
+
+    else if fst == "--" then {
+      acc = argvAcc acc;
+      rest = rest ++ argv;
+    }
+
+    else if fstHere.command != null then
+      let sub = accOpt fstHere.command [ ] [ ] (lib.tail argv);
+      in {
+        rest = rest ++ sub.rest;
+        acc = (argvAcc acc)
+          ++ [ (lib.setAttrByPath [ "command" fst "enabled" ] true) ]
+          ++ map (lib.setAttrByPath [ "command" fst ]) sub.acc;
+      }
+
+    else if !fstHere.isDefined && lib.length fstEnabledPath > 0 then
+      let
+        cmd = lib.attrByPath fstEnabledPath { } slac;
+        sub = accOpt cmd [ ] [ ] argv;
+        enabledPath = fstEnabledPath ++ [ "enabled" ];
+      in {
+        rest = rest ++ sub.rest;
+        acc = (argvAcc acc) ++ [ (lib.setAttrByPath enabledPath true) ]
+          ++ map (lib.setAttrByPath fstEnabledPath) sub.acc;
+      }
+
+    else if fstHere.arg != null then
+      accOpt slac rest (accAt fstHere.arg fst) (lib.tail argv)
+
+    else if !lib.isString fst || !isDash fst then
+      accOpt slac (rest ++ [ fst ]) acc (lib.tail argv)
+
+    else if fstHere.longNo != null then
+      accOpt slac rest (accAt fstHere.longNo false) (lib.tail argv)
+
+    else if fstHere.long != null && (lib.length argv == 1 || isDash snd
+      || fstHere.long.opt.type.check true) then
+      accOpt slac rest (accAt fstHere.long true) (lib.tail argv)
+
+    else if fstHere.long != null then
+      accOpt slac rest (accAt fstHere.long snd) (lib.drop 2 argv)
+
+    else if fstHere.short != null && (lib.length argv == 1 || isDash snd
+      || fstHere.short.opt.type.check true || builtins.length fstHere.short.rem
+      > 0) then
+      accOpt slac rest (accAt fstHere.short true)
+      (fstHere.short.rem ++ lib.tail argv)
+
+    else if fstHere.short != null then
+      accOpt slac rest (accAt fstHere.short snd)
+      (fstHere.short.rem ++ lib.drop 2 argv)
+
+    else
+      accOpt slac (rest ++ [ fst ]) acc (lib.tail argv);
+
+  slacOptions = config: cmdPath: slac:
+    let
+      isCmdEnabled = lib.length cmdPath == 0
+        || lib.attrByPath (cmdPath ++ [ "enabled" ]) false config;
+
+      subOpt = at: fn:
+        lib.optionalAttrs (lib.hasAttr at slac) {
+          ${at} = lib.mkOption {
+            description = "clap-internal";
+            default = { };
+            type = lib.types.submodule (args:
+              lib.optionalAttrs isCmdEnabled {
+                options = lib.mapAttrs fn slac.${at};
+              });
+          };
+        };
+
+      longOpt = subOpt "long" ensureOption;
+      shortOpt = subOpt "short" ensureOption;
+      commandOpt = subOpt "command" (n: v:
+        {
+          enabled = if v ? enabled then
+            ensureOption n v.enabled
+          else
+            lib.mkEnableOption n // { description = "clap-internal"; };
+        } // slacOptions config (cmdPath ++ [ "command" n ]) v);
+
+      argvOpt = lib.optionalAttrs (slac ? argv) {
+        argv = lib.mkOption {
+          description = "positional arguments";
+          default = [ ];
+          type = lib.types.listOf (lib.types.oneOf slac.argv);
+        };
+      };
+
+    in longOpt // shortOpt // commandOpt // argvOpt;
+
+  optsDeclarations = slac:
+    ({ config, ... }: {
+      _file = "command line options definition";
+      options = slacOptions config [ ] slac;
+    });
+
+  clapParse = slac: argv:
+    let
+      result = accOpt slac [ ] [ ] argv;
+      optsAcc = result.acc;
+      optsSet = lib.foldl lib.recursiveUpdate { } optsAcc;
+      optsMod = let
+        declarations = optsDeclarations slac;
+        prettyArgv = prettyOneLine argv;
+        definitions =
+          (map (v: v // { _file = "command line arguments: ${prettyArgv}"; })
+            optsAcc);
+      in { imports = [ declarations ] ++ definitions; };
+      opts = (lib.evalModules { modules = [ optsMod ]; }).config;
+    in {
+      inherit (result) rest;
+      inherit optsAcc optsSet optsMod opts;
+    };
+
+  clapDoc = slac:
+    let
+      flatten = { atPath ? [ ] }:
+        lib.pipe (optsDeclarations slac) [
+          (module: lib.evalModules { modules = [ module ]; })
+          (_: _.options)
+          (lib.optionAttrSetToDocList)
+          (lib.filter (opt: opt.visible && !opt.internal))
+          (lib.filter (opt: (opt.description or "") != "clap-internal"))
+          (lib.filter (opt: atPath == lib.take (lib.length atPath) opt.loc))
+        ];
+    in { inherit flatten; };
+
+in slac:
+let
+  functor = f: lib.setFunctionArgs f (lib.functionArgs f);
+  clap = functor (clapParse slac);
+  docs = clapDoc slac;
+in clap // { inherit docs; }
+</file>
+
+<file path="test/000-parse-empty-argv-with-empty-lsc-test.nix">
+{ lib, ... }: {
+  name = "parse empty argv with empty slac";
+  argv = [ ];
+  slac = { };
+  expected = {
+    seen = [ ];
+    rest = [ ];
+  };
+}
+</file>
+
+<file path="test/010-a-long-option-takes-next-argument-as-value-test.nix">
+{ lib, opts, ... }:
+
+{
+  name = "a long option takes next argument as value";
+  argv = [ "--foo" 42 ];
+  slac = { long.foo = opts.int; };
+  expected = {
+    rest = [ ];
+    seen = [{ long.foo = 42; }];
+  };
+}
+</file>
+
+<file path="test/020-a-long-option-followed-by-another-long-option-is-considered-a-true-flag-test.nix">
+{ opts, lib, pkgs, ... }:
+
+{
+  name =
+    "a long option followed by another long option is considered a true flag";
+  argv = [ "--foo" "--bar" 42 ];
+  slac = {
+    long.foo = opts.int;
+    long.bar = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { long.foo = true; } { long.bar = 42; } ];
+  };
+}
+</file>
+
+<file path="test/030-a-long-option-followed-by-short-option-is-considered-a-true-flag-test.nix">
+{ opts, lib, pkgs, ... }:
+
+{
+  name = "a long option followed by a short option is considered a true flag";
+  argv = [ "--foo" "-b" 42 ];
+  slac = {
+    long.foo = opts.int;
+    short.b = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { long.foo = true; } { short.b = 42; } ];
+  };
+}
+</file>
+
+<file path="test/040-last-short-option-in-combo-takes-the-argument-value-test.nix">
+{ opts, lib, pkgs, ... }:
+
+{
+  name = "last short option in combo takes the argument value";
+  argv = [ "-abc" 42 ];
+  slac = {
+    short.a = opts.int;
+    short.b = opts.int;
+    short.c = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { short.a = true; } { short.b = true; } { short.c = 42; } ];
+  };
+}
+</file>
+
+<file path="test/050-short-option-followed-by-long-one-is-considered-boolean-test.nix">
+{ opts, lib, ... }:
+
+{
+  name = "short option followed by long one is considered boolean";
+  argv = [ "-a" "--foo" 42 ];
+  slac = {
+    short.a = opts.int;
+    long.foo = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { short.a = true; } { long.foo = 42; } ];
+  };
+}
+</file>
+
+<file path="test/050-short-option-taking-boolean-ignores-next-arg-test.nix">
+{ opts, lib, ... }:
+
+{
+  name = "short option taking boolean ignores next arg";
+  argv = [ "-a" "foo" 42 ];
+  slac = { short.a = opts.bool; };
+  expected = {
+    rest = [ "foo" 42 ];
+    seen = [{ short.a = true; }];
+  };
+}
+</file>
+
+<file path="test/060-non-options-are-collected-in-rest-test.nix">
+{ ... }:
+
+{
+  name = "non options are collected in rest";
+  argv = [ "hello" 42 true ];
+  slac = { };
+  expected = {
+    rest = [ "hello" 42 true ];
+    seen = [ ];
+  };
+}
+</file>
+
+<file path="test/070-long-option-as-last-argument-is-treated-as-boolean-test.nix">
+{ opts, ... }:
+
+{
+  name = "long option as last argument is treated as boolean";
+  argv = [ "-a" "--foo" ];
+  slac = {
+    short.a = opts.int;
+    long.foo = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { short.a = true; } { long.foo = true; } ];
+  };
+}
+</file>
+
+<file path="test/070-long-option-taking-boolean-ignores-next-arg-test.nix">
+{ opts, lib, ... }:
+
+{
+  name = "long option taking boolean ignores next arg";
+  argv = [ "--foo" "a" 42 ];
+  slac = { long.foo = opts.bool; };
+  expected = {
+    rest = [ "a" 42 ];
+    seen = [{ long.foo = true; }];
+  };
+}
+</file>
+
+<file path="test/080-short-option-as-last-argument-is-treated-as-boolean-test.nix">
+{ opts, ... }: {
+  name = "short option as last argument is treated as boolean";
+  argv = [ "--foo" "-a" ];
+  slac = {
+    short.a = opts.int;
+    long.foo = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [ { long.foo = true; } { short.a = true; } ];
+  };
+}
+</file>
+
+<file path="test/090-unknown-option-is-just-rest-test.nix">
+{ opts, ... }:
+
+{
+  name = "unknown option is just rest";
+  argv = [ "-a" "--foo" 42 ];
+  slac = { short.a = opts.int; };
+  expected = {
+    rest = [ "--foo" 42 ];
+    seen = [{ short.a = true; }];
+  };
+}
+</file>
+
+<file path="test/100-everything-after-double-slash-is-just-ignored-test.nix">
+{ opts, ... }:
+
+{
+  name = "everything after double slash is just ignored";
+  argv = [ "--" "-a" "--foo" 42 ];
+  slac = { short.a = opts.int; };
+  expected = {
+    rest = [ "--" "-a" "--foo" 42 ];
+    seen = [ ];
+  };
+}
+</file>
+
+<file path="test/110-naming-a-subcommand-parses-options-for-it-test.nix">
+{ opts, ... }:
+
+{
+  name = "naming a subcommand parses options for it";
+  argv = [ "--foo" 42 "bar" "--baz" 23 ];
+  slac = {
+    long.foo = opts.int;
+    command.bar.long.baz = opts.int;
+  };
+  expected = {
+    rest = [ ];
+    seen = [
+      { long.foo = 42; }
+      { command.bar.enabled = true; }
+      { command.bar.long.baz = 23; }
+    ];
+  };
+}
+</file>
+
+<file path="test/120-once-a-subcommand-is-found-parent-options-are-unknown-test.nix">
+{ opts, ... }:
+
+{
+  name = "once a subcommand is found parent options are unknown";
+  argv = [ "--foo" 42 "bar" "--foo" 23 ];
+  slac = {
+    long.foo = opts.int;
+    command.bar.long.baz = opts.int;
+  };
+  expected = {
+    rest = [ "--foo" 23 ];
+    seen = [ { long.foo = 42; } { command.bar.enabled = true; } ];
+  };
+}
+</file>
+
+<file path="test/130-optsSet-returns-a-single-set-with-all-values-test.nix">
+{ opts, ... }:
+
+{
+  name = "optsSet returns a single set with all values";
+  argv = [ "--foo" 42 "bar" "--foo" 23 "--baz" 99 ];
+  at = (_: _.optsSet);
+  slac = {
+    long.foo = opts.int;
+    command.bar.long.baz = opts.int;
+  };
+  expected = {
+    rest = [ "--foo" 23 ];
+    seen = {
+      long.foo = 42;
+      command.bar.enabled = true;
+      command.bar.long.baz = 99;
+    };
+  };
+}
+</file>
+
+<file path="test/140-opts-returns-a-merged-config-using-evalModules-test.nix">
+{ opts, ... }:
+
+{
+  name = "opts returns a merged config using evalModules";
+  argv = [ "--foo" 42 "bar" "--moo" 23 "--baz" 99 ];
+  at = (_: _.opts);
+  slac = {
+    long.foo = opts.int;
+    command.bar.long.baz = opts.int;
+    command.bat.long.man = opts.int;
+  };
+  expected = {
+    rest = [ "--moo" 23 ];
+    seen = {
+      long.foo = 42;
+      command.bar.enabled = true;
+      command.bar.long.baz = 99;
+
+      command.bat.enabled = false;
+      command.bat.long = { };
+    };
+  };
+}
+</file>
+
+<file path="test/150-can-take-an-option-of-default-enabled-command-test.nix">
+{ opts, ... }:
+
+{
+  name = "can take an option of default-enabled command";
+  argv = [ "--foo" 42 "--moo" 23 "--baz" 99 ];
+  at = (_: _.opts);
+  slac = {
+    long.foo = opts.int;
+    command.bar.enabled = true;
+    command.bar.long.baz = opts.int;
+
+    command.bat.long.man = opts.int;
+  };
+  expected = {
+    rest = [ "--moo" 23 ];
+    seen = {
+      long.foo = 42;
+      command.bar.long.baz = 99;
+      command.bar.enabled = true;
+
+      command.bat.enabled = false;
+      command.bat.long = { };
+    };
+  };
+}
+</file>
+
+<file path="test/160-can-take-an-option-of-default-enabled-subcommand-test.nix">
+{ opts, ... }:
+
+{
+  name = "can take an option of default-enabled subcommand";
+  argv = [ "--foo" 42 "bar" "--moo" 23 "--man" 99 ];
+  at = (_: _.opts);
+  slac = {
+    long.foo = opts.int;
+    command.bar.long.baz = opts.zero;
+
+    command.bar.command.bat.enabled = true;
+    command.bar.command.bat.long.man = opts.int;
+  };
+  expected = {
+    rest = [ "--moo" 23 ];
+    seen = {
+      long.foo = 42;
+      command.bar.enabled = true;
+      command.bar.long.baz = 0;
+
+      command.bar.command.bat.enabled = true;
+      command.bar.command.bat.long.man = 99;
+    };
+  };
+}
+</file>
+
+<file path="test/170-argv-is-a-list-of-positional-arguments-test.nix">
+{ opts, typs, lib, ... }:
+
+{
+  name = "argv is a list of positional arguments";
+  argv = [ "--foo" "A" "-b" "y" "B" "C" "D" ];
+  at = (_: _.opts);
+  slac = {
+    short.b = opts.val "y";
+    argv = [ (typs.val "A") ];
+
+    command.bar.enabled = true;
+    command.bar.argv = [ (typs.val "B") (typs.val "C") ];
+  };
+  expected = {
+    rest = [ "--foo" "D" ];
+    seen = {
+      short.b = "y";
+      argv = [ "A" ];
+      command.bar.enabled = true;
+      command.bar.argv = [ "B" "C" ];
+    };
+  };
+}
+</file>
+
+<file path="test/180-documentation-is-generated-from-lsc-test.nix">
+{ opts, typs, lib, ... }:
+
+{
+  skip = "WIP";
+  name = "documentation is generated from slac";
+  fn = cli: argv: cli.docs;
+  at = (_: _.flatten { });
+  slac = {
+    long.foo = lib.mkEnableOption "Foo";
+    short.f = lib.mkOption {
+      description = "file to read";
+      type = lib.types.path;
+    };
+    command.moo.enabled = true;
+    command.moo.short.b = lib.mkOption {
+      description = "Bar";
+      default = "bar";
+      type = lib.types.str;
+    };
+  };
+  expected = [ ];
+}
+</file>
+
+<file path="test/check.nix">
+{ lib, pkgs, clap, ... }:
+{ name, slac, expected, argv ? [ ], fn ? (cli: argv: cli argv), skip ? null
+, at ? (_: _.optsAcc), ... }:
+let
+  sname = lib.strings.sanitizeDerivationName name;
+  cli = clap slac;
+  actual = lib.pipe argv [
+    (fn cli)
+    (result:
+      if result ? rest then {
+        inherit (result) rest;
+        seen = at result;
+      } else
+        at result)
+  ];
+  same = actual == expected;
+  msg = label: msg:
+    pkgs.stdenvNoCC.mkDerivation {
+      name = sname;
+      phases = [ label ];
+      ${label} = ''
+        echo "${msg}"
+        touch $out
+      '';
+    };
+in if lib.isString skip then
+  msg "skip" skip
+else if same then
+  msg "ok" name
+else
+  pkgs.stdenvNoCC.mkDerivation {
+    name = sname;
+    phases = [ "fail" ];
+    passAsFile = [ "prettyArgv" "prettyActual" "prettyExpected" ];
+    prettyArgv = lib.generators.toPretty { multiline = false; } argv;
+    prettyActual = lib.generators.toPretty { } actual;
+    prettyExpected = lib.generators.toPretty { } expected;
+    fail = ''
+      echo -n "with argv: "
+      cat $prettyArgvPath
+      echo
+      echo -e "diff -y EXPECTED ACTUAL"
+      ${pkgs.diffutils}/bin/diff -u100 $prettyExpectedPath $prettyActualPath | ${pkgs.gitAndTools.delta}/bin/delta --no-gitconfig --side-by-side --keep-plus-minus-markers
+      false
+    '';
+  }
+</file>
+
+<file path="test/default.nix">
+{ pkgs ? import <nixpkgs> { }, lib ? pkgs.lib
+, clap ? import ./../lib/default.nix { inherit lib; }, ... }:
+let
+
+  check = pkgs.callPackage ./check.nix { inherit clap; };
+  inherit (pkgs.callPackage ./opts.nix { }) opts typs;
+
+  checkNixfmt = builtins.trace pkgs.system
+    (if pkgs.system == "aarch64-darwin" then
+      [ ] # TODO: wait for nixfmt on darwin m1.
+    else
+      [
+        (pkgs.stdenvNoCC.mkDerivation {
+          name = "check-nixfmt";
+          phases = [ "nixfmt" ];
+          nixfmt = ''
+            find ${
+              ./..
+            } -type f -iname "*.nix" -print0 | xargs -0 ${pkgs.nixfmt}/bin/nixfmt -c && touch $out
+          '';
+        })
+      ]);
+
+  testFiles = lib.filter (lib.hasSuffix "-test.nix")
+    (lib.filesystem.listFilesRecursive ./.);
+
+  checkFiles =
+    map (f: check (import f { inherit lib pkgs clap opts typs; })) testFiles;
+
+  checks = checkNixfmt ++ checkFiles;
+
+in checks
+</file>
+
+<file path="test/opts.nix">
+{ lib, ... }:
+# Some predefined mkOption types for tests.
+rec {
+  # A type that only validates if given the exact same value as x
+  typs = { val = x: lib.types.addCheck lib.types.anything (y: y == x); };
+
+  opts = {
+    bool = lib.mkOption { type = lib.types.bool; };
+
+    int = lib.mkOption { type = lib.types.int; };
+    zero = lib.mkOption {
+      type = lib.types.int;
+      default = 0;
+    };
+
+    val = x: lib.mkOption { type = typs.val x; };
+
+    defaultTrue = lib.mkOption {
+      default = true;
+      type = lib.types.bool;
+    };
+    defaultFalse = lib.mkOption {
+      default = false;
+      type = lib.types.bool;
+    };
+
+    str = lib.mkOption { type = lib.types.str; };
+  };
+
+}
+</file>
+
+<file path=".gitignore">
+.envrc
+result*
+tmp*
+</file>
+
+<file path="default.nix">
+{ pkgs, ... }: pkgs.callPackage ./lib { }
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "flake-utils": {
+      "locked": {
+        "lastModified": 1623875721,
+        "narHash": "sha256-A8BU7bjS5GirpAUv4QA+QnJ4CceLHkcXdRp4xITDB0s=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "f7e004a55b120c02ecb6219596820fcd32ca8772",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1627814220,
+        "narHash": "sha256-P+MDgdZw2CBk9X1ZZaUgHgN+32pTfLFf3XVIBOXirI4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ab5b6828af26215bf2646c31961da5d3749591ef",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-utils.url = "github:numtide/flake-utils";
+    flake-utils.inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  outputs = { self, nixpkgs, flake-utils, ... }@inputs:
+    let
+      allSystems = flake-utils.lib.defaultSystems ++ [ "aarch64-darwin" ];
+      perSystem = (system:
+        let
+          pkgs = import nixpkgs {
+            system =
+              # aarch64-darwin is here just so that vic can run this on his setup.
+              # however, since nixpkgs requires haskell we fallback to x86 while
+              # it's available.
+              if system == "aarch64-darwin" then "x86_64-darwin" else system;
+          };
+
+          clap = pkgs.callPackage ./lib { };
+
+          tests = pkgs.callPackage ./test { inherit clap; };
+
+          checks = pkgs.lib.foldl (a: b: a // b) { }
+            (map (t: { ${t.name} = t; }) tests);
+
+        in { inherit clap checks; });
+    in flake-utils.lib.eachSystem allSystems perSystem;
+}
+</file>
+
+<file path="LICENSE">
+Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+</file>
+
+<file path="README.md">
+# clap.nix - Command Line Argument Processing in Nix.
+
+This library provides a `clap` Nix function for parsing command line arguments into a Nix attribute set.
+
+[![Test](https://github.com/vic/clap-nix/actions/workflows/test.yml/badge.svg)](https://github.com/vic/clap-nix/actions/workflows/test.yml)
+
+#### Features
+
+- The [implementation](lib/default.nix) and [tests](test) are pure Nix.
+
+- Familiar `--long` and `-s`hort option styles.
+
+- Boolean long options can be negated with `--no-` surprises.
+
+- Short options can be collapsed. `-abc` equals `-a -b -c`.
+
+- Option values can be any Nix data type, not only strings.
+
+- Nested trees of commands as popularized by tools like `git`.
+
+- A path of subcommands can be enabled by default.
+  (eg, you can make `foo help` be executed when `foo` receives no more arguments)
+
+- Options are specified by virtue of Nix `lib.mkOption` and `lib.types`. 
+  Meaning your options can provide defaults, value 
+  coercions, aggregation or a composition of different types.
+
+- Leverages the power of `lib.evalModules` so you can define
+  option aliases (eg, `-h` and `--help` having the same value)
+  or define your own config by providing custom Nix modules and
+  use `lib.mkIf` and friends.
+  
+- Supports typed positional arguments on each command.
+
+- Distributed as a flake or legacy library.
+
+- Made with <3 by [oeiuwq](https://twitter.com/oeiuwq).
+
+
+### The slac tree made of `{ short ? {}, long ? {}, argv ? [], command ? {}, ...}` 
+
+An `slac` tree describes the structure of the command line interface
+that will be parsed using the `clap` Nix function:
+
+
+``` nix
+{
+  # an optional attribute set of one letter options
+  short = {
+    f = lib.mkOption {
+      description = "file";
+      type = lib.types.path;
+    };
+  };
+
+  # an optional attribute set of long options
+  long = {
+    help = lib.mkEnableOption "help";
+  };
+  
+  # an optional list of positional typed arguments
+  argv = [
+    lib.types.int
+    (lib.types.separatedString ":")
+  ];
+  
+  # an optional attribute set of sub-commands and their `slac` tree.
+  command = {
+    show = {
+      long = {
+        pretty = lib.mkEnableOption "pretty print";
+      };
+      # ... other nested `short`, `command` or `argv`
+    };
+  };
+}
+```
+
+
+### Calling the `clap` function.
+
+Once you have your `slac` tree definition, you are ready to invoke `clap` with some
+command line arguments.
+
+``` nix
+{ clap, ... }:
+let
+  slac = {...}; # the attribute set from the snippet above.
+
+  ####
+  # The important thing on this snipped is how to invoke the `clap` function:
+  # 
+  # The firsr argument is the `slac` tree structure that defines the CLI design.
+  # Second argument is a list of Nix values (not just strings) representing 
+  # the user entered command line arguments.
+  cli = clap slac [ "--help" ];
+in
+  # More on `clap` return value in the following section.
+  if cli.opts.long.help then
+    # somehow help the user.
+  else
+    # actually do the thing.
+```
+
+
+### The `clap` return value.
+
+The following is an annotated attribute set with the values returned to you by `clap`:
+
+``` nix
+{
+  # A list of all arguments not processed by `clap`
+  # Unknown options and unused values will be aggregated in this list.
+  # Also, if `clap` finds the string `--` in the command line arguments,
+  # it will stop further processing, so `--` and it's following arguments
+  # will be in `rest` untouched.
+  rest = [ "--" "skipped-values" ];
+  
+  
+  # Typically you'd want to inspect the `opts` attribute in order to
+  # know what options the user assigned values to. 
+  # Notice that it basically follows the same structure a `slac` has. 
+  #
+  # Note: Accessing `opts` will make sure that all options correspond to
+  # their defined type, by virtue of using `lib.evalModules` -more on this later-,
+  # and of course Nix will throw an error if some option has incorrect value type.
+  opts = {
+    # here you'll find `long` and `short` options assigned to their values.
+    long = { help = false; };             # from `--no-help`
+    short = { f = /home/vic/some-file; }; # from `-f /home/vic/some-file`
+    
+    argv = [ 42 "foo:bar" ]; # from positional arguments matching types
+    
+    # commands also map to their resolved values.
+    command = {
+      show = {
+        enabled = true;  # meaning the user specified the `show` command.
+        long = {
+          pretty = true; # from `show --pretty` 
+        };
+      };
+    };
+
+  }; # end opts
+  
+  
+  ##-# That's it. The attributes bellow are lower level representations of the
+  # `opts` set. But could be useful anyways to you:
+  
+  optsSet = {}; # Another slac-like set. *BUT* this one is not type-checked at all.
+
+  optsMod = {}; # A Nix Module that contains all the options declarations and definitions.
+                #
+                # This one is useful if you want to mix with your own modules using `lib.evalModules`
+                # for example, for creating option aliases or merging with other conditions.
+                #
+                # Actually `opts = (lib.evalModules { modules = [ optsMod ]; }).config`.
+                
+  optsAcc = []; # A list of attribute sets that enable options and subcommands as they are seen.
+                # This is the lowest level output, optsSet and optsMod are a by-product of it
+                # and it is used directly mostly in tests bellow number 100 to assert the order
+                # in which options are read from the command line.
+  
+}
+```
+
+
+### Examples
+
+##### Enabling a default subcommand
+
+  Enabling a default command means that the user does not have to explicitly name the subcommand yet they
+  can specify the subcommand's options directly. [see test](test/150-can-take-an-option-of-default-enabled-command-test.nix)
+
+  To enable a default command you can set it's `command.foo.enabled` attribute to either a `true` boolean
+  or an option with default value of `true`.
+  
+ ``` nix
+{lib, ...}:
+let 
+  # an option that takes integers, not relevant to this example;
+  intOption = mkOption { type = lib.types.int; };
+in
+{
+  short.a = intOption;
+  
+  # auto-enable this command by default, so that the user can directly use `-b` without naming `foo`
+  command.foo.enabled = true;
+  command.foo.short.b = intOption;
+
+  # bar is not auto-enabled, user must explicitly the name `bar` command before setting `-c`.
+  command.bar.short.c = intOption;
+  
+  # since foo is enabled, and its baz subcommand is also enabled, the user could simply provide `-d` directly.
+  command.foo.command.baz.enabled = true;
+  command.foo.command.baz.short.d = intOption;
+} 
+ ```
+
+ 
+##### Other examples as tests.
+
+Some other examples can be found in the [test](test/) directory.
+
+### Developing
+
+This repo checks for `nixfmt` on all `.nix` files.
+Tests can be run using `nix flake check -L --show-trace`. 
+Adding more test by adding a 10th step consecutive `-test.nix` file inside the `test/` directory.
+
+
+### Wait, but why?
+
+I know... Nix is a *configuration language* not a _general purpose_ one. Who needs to parse command line arguments via pure-nix, right? That very person happens to be [vic](https://twitter.com/oeiuwq), like many other people I've been trying to learn Nix and configure [my system](https://github.com/vic/vix) [with it](https://github.com/vic/mk-darwin-system).
+
+Also I'm planning to release a nix-related tool soon and *really* wanted to get away from `bash` this time. So I'm just trying to program as much as I can in Nix. Yet I'm liking doing Nix a lot more than writing shell scripts with `sed,grep,read,tr,awk,bash`fulness.
+
+### Contributing
+
+Yes, please. Pull-requests are more than welcome!
+</file>
+
+</files>

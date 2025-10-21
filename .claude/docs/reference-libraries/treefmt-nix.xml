@@ -1,0 +1,8319 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  settings.yml
+checks/
+  default.nix
+examples/
+  formatter-aiken.toml
+  formatter-alejandra.toml
+  formatter-asmfmt.toml
+  formatter-autocorrect.toml
+  formatter-beautysh.toml
+  formatter-biome.toml
+  formatter-black.toml
+  formatter-buf.toml
+  formatter-buildifier.toml
+  formatter-cabal-fmt.toml
+  formatter-cabal-gild.toml
+  formatter-clang-format.toml
+  formatter-clang-tidy.toml
+  formatter-cljfmt.toml
+  formatter-cmake-format.toml
+  formatter-csharpier.toml
+  formatter-cue.toml
+  formatter-d2.toml
+  formatter-dart-format.toml
+  formatter-deadnix.toml
+  formatter-deno.toml
+  formatter-dfmt.toml
+  formatter-dhall.toml
+  formatter-djlint.toml
+  formatter-dnscontrol.toml
+  formatter-dockfmt.toml
+  formatter-dos2unix.toml
+  formatter-dprint.toml
+  formatter-dscanner.toml
+  formatter-efmt.toml
+  formatter-erlfmt.toml
+  formatter-fish_indent.toml
+  formatter-fnlfmt.toml
+  formatter-fourmolu.toml
+  formatter-fprettify.toml
+  formatter-genemichaels.toml
+  formatter-gleam.toml
+  formatter-gofmt.toml
+  formatter-gofumpt.toml
+  formatter-goimports.toml
+  formatter-golangci-lint.toml
+  formatter-golines.toml
+  formatter-google-java-format.toml
+  formatter-hclfmt.toml
+  formatter-hlint.toml
+  formatter-hujsonfmt.toml
+  formatter-isort.toml
+  formatter-jsonfmt.toml
+  formatter-jsonnet-lint.toml
+  formatter-jsonnetfmt.toml
+  formatter-kdlfmt.toml
+  formatter-keep-sorted.toml
+  formatter-ktfmt.toml
+  formatter-ktlint.toml
+  formatter-latexindent.toml
+  formatter-leptosfmt.toml
+  formatter-mdformat.toml
+  formatter-mdsh.toml
+  formatter-meson.toml
+  formatter-mix-format.toml
+  formatter-nickel.toml
+  formatter-nimpretty.toml
+  formatter-nixf-diagnose.toml
+  formatter-nixfmt-classic.toml
+  formatter-nixfmt-rfc-style.toml
+  formatter-nixfmt.toml
+  formatter-nixpkgs-fmt.toml
+  formatter-ocamlformat.toml
+  formatter-odinfmt.toml
+  formatter-ormolu.toml
+  formatter-oxipng.toml
+  formatter-packer.toml
+  formatter-perltidy.toml
+  formatter-php-cs-fixer.toml
+  formatter-pinact.toml
+  formatter-prettier.toml
+  formatter-protolint.toml
+  formatter-purs-tidy.toml
+  formatter-rstfmt.toml
+  formatter-rubocop.toml
+  formatter-ruff-check.toml
+  formatter-ruff-format.toml
+  formatter-rufo.toml
+  formatter-rustfmt.toml
+  formatter-scalafmt.toml
+  formatter-shellcheck.toml
+  formatter-shfmt.toml
+  formatter-sizelint.toml
+  formatter-sql-formatter.toml
+  formatter-sqlfluff-lint.toml
+  formatter-sqlfluff.toml
+  formatter-sqruff.toml
+  formatter-statix.toml
+  formatter-stylish-haskell.toml
+  formatter-stylua.toml
+  formatter-taplo.toml
+  formatter-templ.toml
+  formatter-terraform.toml
+  formatter-texfmt.toml
+  formatter-toml-sort.toml
+  formatter-typos.toml
+  formatter-typstfmt.toml
+  formatter-typstyle.toml
+  formatter-xmllint.toml
+  formatter-yamlfmt.toml
+  formatter-yapf.toml
+  formatter-zprint.toml
+programs/
+  actionlint.nix
+  aiken.nix
+  alejandra.nix
+  asmfmt.nix
+  autocorrect.nix
+  beautysh.nix
+  biome.nix
+  black.nix
+  buf.nix
+  buildifier.nix
+  cabal-fmt.nix
+  cabal-gild.nix
+  clang-format.nix
+  clang-tidy.nix
+  cljfmt.nix
+  cmake-format.nix
+  csharpier.nix
+  cue.nix
+  d2.nix
+  dart-format.nix
+  deadnix.nix
+  deno.nix
+  dfmt.nix
+  dhall.nix
+  djlint.nix
+  dnscontrol.nix
+  dockerfmt.nix
+  dockfmt.nix
+  dos2unix.nix
+  dprint.nix
+  dscanner.nix
+  efmt.nix
+  elm-format.nix
+  erlfmt.nix
+  fantomas.nix
+  fish_indent.nix
+  fnlfmt.nix
+  formatjson5.nix
+  fourmolu.nix
+  fprettify.nix
+  gdformat.nix
+  genemichaels.nix
+  gleam.nix
+  gofmt.nix
+  gofumpt.nix
+  goimports.nix
+  golangci-lint.nix
+  golines.nix
+  google-java-format.nix
+  hclfmt.nix
+  hlint.nix
+  hujsonfmt.nix
+  isort.nix
+  jsonfmt.nix
+  jsonnet-lint.nix
+  jsonnetfmt.nix
+  just.nix
+  kdlfmt.nix
+  keep-sorted.nix
+  ktfmt.nix
+  ktlint.nix
+  latexindent.nix
+  leptosfmt.nix
+  mdformat.nix
+  mdsh.nix
+  meson.nix
+  mix-format.nix
+  muon.nix
+  mypy.nix
+  nickel.nix
+  nimpretty.nix
+  nixf-diagnose.nix
+  nixfmt-classic.nix
+  nixfmt-rfc-style.nix
+  nixfmt.nix
+  nixpkgs-fmt.nix
+  ocamlformat.nix
+  odinfmt.nix
+  opa.nix
+  ormolu.nix
+  oxipng.nix
+  packer.nix
+  perltidy.nix
+  php-cs-fixer.nix
+  pinact.nix
+  prettier.nix
+  protolint.nix
+  purs-tidy.nix
+  rstfmt.nix
+  rubocop.nix
+  ruff-check.nix
+  ruff-format.nix
+  rufo.nix
+  rustfmt.nix
+  scalafmt.nix
+  shellcheck.nix
+  shfmt.nix
+  sizelint.nix
+  sql-formatter.nix
+  sqlfluff-lint.nix
+  sqlfluff.nix
+  sqruff.nix
+  statix.nix
+  stylish-haskell.nix
+  stylua.nix
+  swift-format.nix
+  taplo.nix
+  templ.nix
+  terraform.nix
+  texfmt.nix
+  toml-sort.nix
+  typos.nix
+  typstfmt.nix
+  typstyle.nix
+  xmllint.nix
+  yamlfmt.nix
+  yapf.nix
+  zig.nix
+  zizmor.nix
+  zprint.nix
+.gitignore
+default.nix
+examples.sh
+flake-module.nix
+flake.lock
+flake.nix
+LICENSE.md
+module-options.nix
+programs.nix
+README.md
+renovate.json
+run-tests.sh
+supported-programs.sh
+treefmt.nix
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/settings.yml">
+repository:
+  # See https://developer.github.com/v3/repos/#edit for all available settings.
+
+  # The name of the repository. Changing this will rename the repository
+  name: treefmt-nix
+  # A short description of the repository that will show up on GitHub
+  description: treefmt nix configuration
+  # A URL with more information about the repository
+  homepage: "https://numtide.github.io/treefmt/"
+  # A comma-separated list of topics to set on the repository
+  topics: "nix, flake-parts, treefmt"
+  # Either `true` to make the repository private, or `false` to make it public.
+  private: false
+  # Either `true` to enable issues for this repository, `false` to disable them.
+  has_issues: true
+  # Either `true` to enable projects for this repository, or `false` to disable them.
+  # If projects are disabled for the organization, passing `true` will cause an API error.
+  has_projects: false
+  # Either `true` to enable the wiki for this repository, `false` to disable it.
+  has_wiki: false
+  # Either `true` to enable downloads for this repository, `false` to disable them.
+  has_downloads: false
+  # Updates the default branch for this repository.
+  default_branch: main
+  # Either `true` to allow squash-merging pull requests, or `false` to prevent
+  # squash-merging.
+  allow_squash_merge: true
+  # Either `true` to allow merging pull requests with a merge commit, or `false`
+  # to prevent merging pull requests with merge commits.
+  allow_merge_commit: true
+  # Either `true` to allow rebase-merging pull requests, or `false` to prevent
+  # rebase-merging.
+  allow_rebase_merge: true
+  # Either `true` to enable automatic deletion of branches on merge, or `false` to disable
+  delete_branch_on_merge: true
+  # Either `true` to enable automated security fixes, or `false` to disable
+  # automated security fixes.
+  enable_automated_security_fixes: true
+  # Either `true` to enable vulnerability alerts, or `false` to disable
+  # vulnerability alerts.
+  enable_vulnerability_alerts: true
+# Labels: define labels for Issues and Pull Requests
+#
+labels:
+# NOTE: leave that up to the https://github.com/numtide/.github repo
+#   - name: bug
+#     color: CC0000
+#     description: An issue with the system 🐛.
+
+#   - name: feature
+#     # If including a `#`, make sure to wrap it with quotes!
+#     color: '#336699'
+#     description: New functionality.
+
+#   - name: Help Wanted
+#     # Provide a new name to rename an existing label
+#     new_name: first-timers-only
+
+# Milestones: define milestones for Issues and Pull Requests
+milestones:
+#   - title: milestone-title
+#     description: milestone-description
+#     # The state of the milestone. Either `open` or `closed`
+#     state: open
+
+# Collaborators: give specific users access to this repository.
+# See https://docs.github.com/en/rest/reference/repos#add-a-repository-collaborator for available options
+collaborators:
+  - username: basile-henry
+    # Note: `permission` is only valid on organization-owned repositories.
+    # The permission to grant the collaborator. Can be one of:
+    # * `pull` - can pull, but not push to or administer this repository.
+    # * `push` - can pull and push, but not administer this repository.
+    # * `admin` - can pull, push and administer this repository.
+    # * `maintain` - Recommended for project managers who need to manage the repository without access to sensitive or destructive actions.
+    # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
+    permission: push
+# See https://docs.github.com/en/rest/reference/teams#add-or-update-team-repository-permissions for available options
+teams:
+  - name: network
+    # The permission to grant the team. Can be one of:
+    # * `pull` - can pull, but not push to or administer this repository.
+    # * `push` - can pull and push, but not administer this repository.
+    # * `admin` - can pull, push and administer this repository.
+    # * `maintain` - Recommended for project managers who need to manage the repository without access to sensitive or destructive actions.
+    # * `triage` - Recommended for contributors who need to proactively manage issues and pull requests without write access.
+    permission: maintain
+branches:
+  - name: main
+    # https://docs.github.com/en/rest/reference/repos#update-branch-protection
+    # Branch Protection settings. Set to null to disable
+    protection:
+      # Required. Require at least one approving review on a pull request, before merging. Set to null to disable.
+      required_pull_request_reviews:
+      # # The number of approvals required. (1-6)
+      # required_approving_review_count: 1
+      # # Dismiss approved reviews automatically when a new commit is pushed.
+      # dismiss_stale_reviews: true
+      # # Blocks merge until code owners have reviewed.
+      # require_code_owner_reviews: true
+      # # Specify which users and teams can dismiss pull request reviews. Pass an empty dismissal_restrictions object to disable. User and team dismissal_restrictions are only available for organization-owned repositories. Omit this parameter for personal repositories.
+      # dismissal_restrictions:
+      #   users: []
+      #   teams: []
+      # Required. Require status checks to pass before merging. Set to null to disable
+      required_status_checks:
+        # Required. Require branches to be up to date before merging.
+        strict: true
+        # Required. The list of status checks to require in order to merge into this branch
+        contexts: ["buildbot/nix-eval"]
+      # Required. Enforce all configured restrictions for administrators. Set to true to enforce required status checks for repository administrators. Set to null to disable.
+      enforce_admins: false
+      # Required. Restrict who can push to this branch. Team and user restrictions are only available for organization-owned repositories. Set to null to disable.
+      restrictions:
+        apps: []
+        users: []
+        teams: []
+</file>
+
+<file path="checks/default.nix">
+{ pkgs, treefmt-nix, ... }:
+let
+  inherit (pkgs) lib;
+
+  join = lib.concatStringsSep;
+
+  toConfig =
+    name:
+    treefmt-nix.mkConfigFile pkgs {
+      programs.${name}.enable = true;
+    };
+
+  # Helper to get meta attributes for a specific formatter
+  getFormatterMeta =
+    name:
+    let
+      # Find the module file for this formatter
+      moduleFile = ../programs + "/${name}.nix";
+      # Import it with minimal context to extract meta
+      moduleImport = import moduleFile {
+        inherit (pkgs) lib;
+        inherit (treefmt-nix) mkFormatterModule;
+        # Provide dummy values for modules that need them
+        config = { };
+        options = { };
+        pkgs = pkgs;
+      };
+    in
+    moduleImport.meta or { };
+
+  # Check if a platform is supported by a formatter
+  isPlatformSupported =
+    platform: meta:
+    let
+      supportedPlatforms = meta.platforms or null;
+      brokenPlatforms = meta.brokenPlatforms or [ ];
+    in
+    (supportedPlatforms == null || lib.elem platform supportedPlatforms)
+    && !(lib.elem platform brokenPlatforms);
+
+  # Check if a formatter should be included based on its meta attributes
+  isFormatterUsable =
+    name:
+    let
+      meta = getFormatterMeta name;
+      isBroken = meta.broken or false;
+      currentPlatform = pkgs.stdenv.hostPlatform.system;
+    in
+    !isBroken && isPlatformSupported currentPlatform meta;
+
+  # Standard platforms that examples should work on
+  standardPlatforms = [
+    "x86_64-linux"
+    "aarch64-linux"
+    "x86_64-darwin"
+    "aarch64-darwin"
+  ];
+
+  # Check if a formatter should skip example generation
+  shouldSkipExample =
+    name:
+    let
+      meta = getFormatterMeta name;
+      explicitSkip = meta.skipExample or false;
+      availableOnAllStandardPlatforms = lib.all (
+        platform: isPlatformSupported platform meta
+      ) standardPlatforms;
+    in
+    explicitSkip || !availableOnAllStandardPlatforms;
+
+  # Filter formatters for program configs
+  usableFormatterNames = lib.filter isFormatterUsable treefmt-nix.programs.names;
+
+  programConfigs = lib.listToAttrs (
+    map (name: {
+      name = "formatter-${name}";
+      value = toConfig name;
+    }) usableFormatterNames
+  );
+
+  examples =
+    let
+      configs =
+        lib.mapAttrs
+          (name: value: ''
+            {
+              echo "# Example generated by ../examples.sh"
+              sed -n '/^$/q;p' ${value} | sed 's|\(command = "\).*/\([^"]\+"\)|\1\2|' | sed 's|/nix/store/.*-||'
+            } > "$out/${name}.toml"
+          '')
+          (
+            lib.filterAttrs (
+              n: _:
+              # Filter out formatters to skip in example generation
+              !shouldSkipExample (lib.removePrefix "formatter-" n)
+            ) programConfigs
+          );
+    in
+    pkgs.runCommand "examples" { } ''
+      mkdir $out
+
+      ${join "\n" (lib.attrValues configs)}
+    '';
+
+  treefmtEval = treefmt-nix.evalModule pkgs ../treefmt.nix;
+
+  treefmtDocEval = treefmt-nix.evalModule stubPkgs ../treefmt.nix;
+
+  stubPkgs =
+    lib.mapAttrs (
+      k: _:
+      throw "The module documentation must not depend on pkgs attributes such as ${lib.strings.escapeNixIdentifier k}"
+    ) pkgs
+    // {
+      _type = "pkgs";
+      inherit lib;
+      # Formats is ok and supported upstream too
+      inherit (pkgs) formats;
+    };
+
+  self = {
+    empty-config = treefmt-nix.mkConfigFile pkgs { };
+
+    simple-wrapper = treefmt-nix.mkWrapper pkgs {
+      projectRootFile = "flake.nix";
+    };
+
+    # Check if the examples folder needs to be updated
+    examples =
+      pkgs.runCommand "test-examples"
+        {
+          passthru.examples = examples;
+        }
+        ''
+          if ! diff -r ${../examples} ${examples}; then
+            echo "The generated ./examples folder is out of sync"
+            echo "Run ./examples.sh to fix the issue"
+            exit 1
+          fi
+          touch $out
+        '';
+
+    # Check that the repo is formatted
+    self-formatting = treefmtEval.config.build.check ../.;
+
+    # Expose the current wrapper
+    self-wrapper = treefmtEval.config.build.wrapper;
+
+    # Check that the docs render properly
+    module-docs = (pkgs.nixosOptionsDoc { options = treefmtDocEval.options; }).optionsCommonMark;
+  }
+  // programConfigs;
+in
+self
+</file>
+
+<file path="examples/formatter-aiken.toml">
+# Example generated by ../examples.sh
+[formatter.aiken]
+command = "aiken"
+excludes = []
+includes = ["*.ak"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-alejandra.toml">
+# Example generated by ../examples.sh
+[formatter.alejandra]
+command = "alejandra"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-asmfmt.toml">
+# Example generated by ../examples.sh
+[formatter.asmfmt]
+command = "asmfmt"
+excludes = []
+includes = ["*.s"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-autocorrect.toml">
+# Example generated by ../examples.sh
+[formatter.autocorrect]
+command = "autocorrect"
+excludes = []
+includes = ["*"]
+options = ["--fix"]
+</file>
+
+<file path="examples/formatter-beautysh.toml">
+# Example generated by ../examples.sh
+[formatter.beautysh]
+command = "beautysh"
+excludes = []
+includes = ["*.sh"]
+options = ["-i", "2"]
+</file>
+
+<file path="examples/formatter-biome.toml">
+# Example generated by ../examples.sh
+[formatter.biome]
+command = "biome"
+excludes = []
+includes = [
+    "*.js",
+    "*.ts",
+    "*.mjs",
+    "*.mts",
+    "*.cjs",
+    "*.cts",
+    "*.jsx",
+    "*.tsx",
+    "*.d.ts",
+    "*.d.cts",
+    "*.d.mts",
+    "*.json",
+    "*.jsonc",
+    "*.css",
+]
+options = ["check", "--write", "--no-errors-on-unmatched", "--config-path", "config.json"]
+</file>
+
+<file path="examples/formatter-black.toml">
+# Example generated by ../examples.sh
+[formatter.black]
+command = "black"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = []
+</file>
+
+<file path="examples/formatter-buf.toml">
+# Example generated by ../examples.sh
+[formatter.buf]
+command = "buf-wrapper"
+excludes = []
+includes = ["*.proto"]
+options = []
+</file>
+
+<file path="examples/formatter-buildifier.toml">
+# Example generated by ../examples.sh
+[formatter.buildifier]
+command = "buildifier"
+excludes = []
+includes = ["*.bazel", "*.bzl"]
+options = []
+</file>
+
+<file path="examples/formatter-cabal-fmt.toml">
+# Example generated by ../examples.sh
+[formatter.cabal-fmt]
+command = "cabal-fmt"
+excludes = []
+includes = ["*.cabal"]
+options = ["--inplace"]
+</file>
+
+<file path="examples/formatter-cabal-gild.toml">
+# Example generated by ../examples.sh
+[formatter.cabal-gild]
+command = "cabal-gild-wrapper"
+excludes = []
+includes = ["*.cabal", "cabal.project", "cabal.project.local"]
+options = []
+</file>
+
+<file path="examples/formatter-clang-format.toml">
+# Example generated by ../examples.sh
+[formatter.clang-format]
+command = "clang-format"
+excludes = []
+includes = [
+    "*.c",
+    "*.cc",
+    "*.cpp",
+    "*.h",
+    "*.hh",
+    "*.hpp",
+    "*.glsl",
+    "*.vert",
+    ".tesc",
+    ".tese",
+    ".geom",
+    ".frag",
+    ".comp",
+]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-clang-tidy.toml">
+# Example generated by ../examples.sh
+[formatter.clang-tidy]
+command = "clang-tidy"
+excludes = []
+includes = [
+    "*.c",
+    "*.cc",
+    "*.cpp",
+    "*.h",
+    "*.hh",
+    "*.hpp",
+    "*.glsl",
+    "*.vert",
+    ".tesc",
+    ".tese",
+    ".geom",
+    ".frag",
+    ".comp",
+]
+options = ["--fix", "--quiet"]
+</file>
+
+<file path="examples/formatter-cljfmt.toml">
+# Example generated by ../examples.sh
+[formatter.cljfmt]
+command = "cljfmt"
+excludes = []
+includes = ["*.clj", "*.cljc", "*.cljs", "*.cljx"]
+options = ["fix"]
+</file>
+
+<file path="examples/formatter-cmake-format.toml">
+# Example generated by ../examples.sh
+[formatter.cmake-format]
+command = "cmake-format"
+excludes = []
+includes = ["*.cmake", "CMakeLists.txt"]
+options = ["--in-place"]
+</file>
+
+<file path="examples/formatter-csharpier.toml">
+# Example generated by ../examples.sh
+[formatter.csharpier]
+command = "csharpier"
+excludes = []
+includes = ["*.cs", "*.csproj", "*.slnx", "*.xaml"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-cue.toml">
+# Example generated by ../examples.sh
+[formatter.cue]
+command = "cue"
+excludes = []
+includes = ["*.cue"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-d2.toml">
+# Example generated by ../examples.sh
+[formatter.d2]
+command = "d2"
+excludes = []
+includes = ["*.d2"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-dart-format.toml">
+# Example generated by ../examples.sh
+[formatter.dart-format]
+command = "dart"
+excludes = []
+includes = ["*.dart"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-deadnix.toml">
+# Example generated by ../examples.sh
+[formatter.deadnix]
+command = "deadnix"
+excludes = []
+includes = ["*.nix"]
+options = ["--edit"]
+</file>
+
+<file path="examples/formatter-deno.toml">
+# Example generated by ../examples.sh
+[formatter.deno]
+command = "deno"
+excludes = []
+includes = [
+    "*.css",
+    "*.html",
+    "*.js",
+    "*.json",
+    "*.jsonc",
+    "*.jsx",
+    "*.less",
+    "*.markdown",
+    "*.md",
+    "*.sass",
+    "*.scss",
+    "*.ts",
+    "*.tsx",
+    "*.yaml",
+    "*.yml",
+]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-dfmt.toml">
+# Example generated by ../examples.sh
+[formatter.dfmt]
+command = "dfmt"
+excludes = []
+includes = ["*.d"]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-dhall.toml">
+# Example generated by ../examples.sh
+[formatter.dhall]
+command = "dhall"
+excludes = []
+includes = ["*.dhall"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-djlint.toml">
+# Example generated by ../examples.sh
+[formatter.djlint]
+command = "djlint"
+excludes = []
+includes = ["*.html"]
+options = ["--reformat", "--quiet", "--indent", "4"]
+</file>
+
+<file path="examples/formatter-dnscontrol.toml">
+# Example generated by ../examples.sh
+[formatter.dnscontrol]
+command = "dnscontrol-fix"
+excludes = []
+includes = ["dnsconfig.js"]
+options = []
+</file>
+
+<file path="examples/formatter-dockfmt.toml">
+# Example generated by ../examples.sh
+[formatter.dockfmt]
+command = "dockfmt"
+excludes = []
+includes = ["Dockerfile", "*.Dockerfile", "Dockerfile.*"]
+options = ["fmt", "-w"]
+</file>
+
+<file path="examples/formatter-dos2unix.toml">
+# Example generated by ../examples.sh
+[formatter.dos2unix]
+command = "dos2unix"
+excludes = []
+includes = ["*"]
+options = ["--keepdate"]
+</file>
+
+<file path="examples/formatter-dprint.toml">
+# Example generated by ../examples.sh
+[formatter.dprint]
+command = "dprint"
+excludes = []
+includes = [".*"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-dscanner.toml">
+# Example generated by ../examples.sh
+[formatter.dscanner]
+command = "dscanner"
+excludes = []
+includes = ["*.d"]
+options = ["lint"]
+</file>
+
+<file path="examples/formatter-efmt.toml">
+# Example generated by ../examples.sh
+[formatter.efmt]
+command = "efmt"
+excludes = []
+includes = [
+    "*.erl",
+    "*.hrl",
+    "*.app",
+    "*.app.src",
+    "*.config",
+    "*.script",
+    "*.escript",
+]
+options = ["--write"]
+</file>
+
+<file path="examples/formatter-erlfmt.toml">
+# Example generated by ../examples.sh
+[formatter.erlfmt]
+command = "erlfmt"
+excludes = []
+includes = [
+    "*.erl",
+    "*.hrl",
+    "*.app",
+    "*.app.src",
+    "*.config",
+    "*.script",
+    "*.escript",
+]
+options = ["--write", "--print-width", "100"]
+</file>
+
+<file path="examples/formatter-fish_indent.toml">
+# Example generated by ../examples.sh
+[formatter.fish_indent]
+command = "fish_indent"
+excludes = []
+includes = ["*.fish"]
+options = ["--write"]
+</file>
+
+<file path="examples/formatter-fnlfmt.toml">
+# Example generated by ../examples.sh
+[formatter.fnlfmt]
+command = "fnlfmt"
+excludes = []
+includes = ["*.fnl"]
+options = ["--fix"]
+</file>
+
+<file path="examples/formatter-fourmolu.toml">
+# Example generated by ../examples.sh
+[formatter.fourmolu]
+command = "fourmolu"
+excludes = []
+includes = ["*.hs"]
+options = [
+    "-i",
+    "-c",
+    "--ghc-opt",
+    "-XBangPatterns",
+    "--ghc-opt",
+    "-XPatternSynonyms",
+    "--ghc-opt",
+    "-XTypeApplications",
+]
+</file>
+
+<file path="examples/formatter-fprettify.toml">
+# Example generated by ../examples.sh
+[formatter.fprettify]
+command = "fprettify"
+excludes = []
+includes = ["*.f90"]
+options = []
+</file>
+
+<file path="examples/formatter-genemichaels.toml">
+# Example generated by ../examples.sh
+[formatter.genemichaels]
+command = "genemichaels"
+excludes = []
+includes = ["*.rs"]
+options = ["--config", "genemichaels.json"]
+</file>
+
+<file path="examples/formatter-gleam.toml">
+# Example generated by ../examples.sh
+[formatter.gleam]
+command = "gleam"
+excludes = []
+includes = ["*.gleam"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-gofmt.toml">
+# Example generated by ../examples.sh
+[formatter.gofmt]
+command = "gofmt"
+excludes = ["vendor/*"]
+includes = ["*.go"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-gofumpt.toml">
+# Example generated by ../examples.sh
+[formatter.gofumpt]
+command = "gofumpt"
+excludes = ["vendor/*"]
+includes = ["*.go"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-goimports.toml">
+# Example generated by ../examples.sh
+[formatter.goimports]
+command = "goimports"
+excludes = ["vendor/*"]
+includes = ["*.go"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-golangci-lint.toml">
+# Example generated by ../examples.sh
+[formatter.golangci-lint]
+command = "golangci-lint"
+excludes = ["vendor/*"]
+includes = ["*.go"]
+options = ["run", "--fix"]
+</file>
+
+<file path="examples/formatter-golines.toml">
+# Example generated by ../examples.sh
+[formatter.golines]
+command = "golines"
+excludes = ["vendor/*"]
+includes = ["*.go"]
+options = ["-w", "--no-reformat-tags"]
+</file>
+
+<file path="examples/formatter-google-java-format.toml">
+# Example generated by ../examples.sh
+[formatter.google-java-format]
+command = "google-java-format"
+excludes = []
+includes = ["*.java"]
+options = ["--replace"]
+</file>
+
+<file path="examples/formatter-hclfmt.toml">
+# Example generated by ../examples.sh
+[formatter.hclfmt]
+command = "hclfmt"
+excludes = []
+includes = ["*.hcl"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-hlint.toml">
+# Example generated by ../examples.sh
+[formatter.hlint]
+command = "hlint"
+excludes = []
+includes = ["*.hs"]
+options = ["-j"]
+</file>
+
+<file path="examples/formatter-hujsonfmt.toml">
+# Example generated by ../examples.sh
+[formatter.hujsonfmt]
+command = "hujsonfmt"
+excludes = []
+includes = ["*.hujson"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-isort.toml">
+# Example generated by ../examples.sh
+[formatter.isort]
+command = "isort"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = []
+</file>
+
+<file path="examples/formatter-jsonfmt.toml">
+# Example generated by ../examples.sh
+[formatter.jsonfmt]
+command = "jsonfmt"
+excludes = []
+includes = ["*.json"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-jsonnet-lint.toml">
+# Example generated by ../examples.sh
+[formatter.jsonnet-lint]
+command = "jsonnet-lint"
+excludes = []
+includes = ["*.jsonnet", "*.libsonnet"]
+options = []
+</file>
+
+<file path="examples/formatter-jsonnetfmt.toml">
+# Example generated by ../examples.sh
+[formatter.jsonnetfmt]
+command = "jsonnetfmt"
+excludes = []
+includes = ["*.jsonnet", "*.libsonnet"]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-kdlfmt.toml">
+# Example generated by ../examples.sh
+[formatter.kdlfmt]
+command = "kdlfmt"
+excludes = []
+includes = ["*.kdl"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-keep-sorted.toml">
+# Example generated by ../examples.sh
+[formatter.keep-sorted]
+command = "keep-sorted"
+excludes = []
+includes = ["*"]
+options = []
+</file>
+
+<file path="examples/formatter-ktfmt.toml">
+# Example generated by ../examples.sh
+[formatter.ktfmt]
+command = "ktfmt"
+excludes = []
+includes = ["*.kt", "*.kts"]
+options = []
+</file>
+
+<file path="examples/formatter-ktlint.toml">
+# Example generated by ../examples.sh
+[formatter.ktlint]
+command = "ktlint"
+excludes = []
+includes = ["*.kt", "*.kts"]
+options = ["--format"]
+</file>
+
+<file path="examples/formatter-latexindent.toml">
+# Example generated by ../examples.sh
+[formatter.latexindent]
+command = "latexindent"
+excludes = []
+includes = ["*.tex", "*.sty", "*.cls", "*.bib", "*.cmh"]
+options = ["-wd"]
+</file>
+
+<file path="examples/formatter-leptosfmt.toml">
+# Example generated by ../examples.sh
+[formatter.leptosfmt]
+command = "leptosfmt"
+excludes = []
+includes = ["*.rs"]
+options = []
+</file>
+
+<file path="examples/formatter-mdformat.toml">
+# Example generated by ../examples.sh
+[formatter.mdformat]
+command = "mdformat"
+excludes = []
+includes = ["*.md"]
+options = []
+</file>
+
+<file path="examples/formatter-mdsh.toml">
+# Example generated by ../examples.sh
+[formatter.mdsh]
+command = "mdsh"
+excludes = []
+includes = ["README.md"]
+options = ["--inputs"]
+</file>
+
+<file path="examples/formatter-meson.toml">
+# Example generated by ../examples.sh
+[formatter.meson]
+command = "meson"
+excludes = []
+includes = [
+    "meson.build",
+    "meson.options",
+    "meson_options.txt",
+    "*/meson.build",
+    "*/meson.options",
+    "*/meson_options.txt",
+]
+options = ["fmt", "-i"]
+</file>
+
+<file path="examples/formatter-mix-format.toml">
+# Example generated by ../examples.sh
+[formatter.mix-format]
+command = "mix"
+excludes = []
+includes = ["*.ex", "*.exs"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-nickel.toml">
+# Example generated by ../examples.sh
+[formatter.nickel]
+command = "nickel"
+excludes = []
+includes = ["*.ncl", "*.nickel"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-nimpretty.toml">
+# Example generated by ../examples.sh
+[formatter.nimpretty]
+command = "nimpretty"
+excludes = []
+includes = ["*.nim"]
+options = []
+</file>
+
+<file path="examples/formatter-nixf-diagnose.toml">
+# Example generated by ../examples.sh
+[formatter.nixf-diagnose]
+command = "nixf-diagnose"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-nixfmt-classic.toml">
+# Example generated by ../examples.sh
+[formatter.nixfmt-classic]
+command = "nixfmt"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-nixfmt-rfc-style.toml">
+# Example generated by ../examples.sh
+[formatter.nixfmt-rfc-style]
+command = "nixfmt"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-nixfmt.toml">
+# Example generated by ../examples.sh
+[formatter.nixfmt]
+command = "nixfmt"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-nixpkgs-fmt.toml">
+# Example generated by ../examples.sh
+[formatter.nixpkgs-fmt]
+command = "nixpkgs-fmt"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-ocamlformat.toml">
+# Example generated by ../examples.sh
+[formatter.ocamlformat]
+command = "ocamlformat"
+excludes = []
+includes = ["*.ml", "*.mli"]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-odinfmt.toml">
+# Example generated by ../examples.sh
+[formatter.odinfmt]
+command = "odinfmt"
+excludes = []
+includes = ["*.odin"]
+options = ["-w"]
+</file>
+
+<file path="examples/formatter-ormolu.toml">
+# Example generated by ../examples.sh
+[formatter.ormolu]
+command = "ormolu"
+excludes = []
+includes = ["*.hs"]
+options = [
+    "--mode",
+    "inplace",
+    "--check-idempotence",
+    "--ghc-opt",
+    "-XBangPatterns",
+    "--ghc-opt",
+    "-XPatternSynonyms",
+    "--ghc-opt",
+    "-XTypeApplications",
+]
+</file>
+
+<file path="examples/formatter-oxipng.toml">
+# Example generated by ../examples.sh
+[formatter.oxipng]
+command = "oxipng"
+excludes = []
+includes = ["*.png"]
+options = ["--opt", "2"]
+</file>
+
+<file path="examples/formatter-packer.toml">
+# Example generated by ../examples.sh
+[formatter.packer]
+command = "treefmt-nix-packer-fmt-wrapper"
+excludes = []
+includes = ["*.pkr.hcl", "*.pkrvars.hcl"]
+options = ["--"]
+</file>
+
+<file path="examples/formatter-perltidy.toml">
+# Example generated by ../examples.sh
+[formatter.perltidy]
+command = "perltidy"
+excludes = []
+includes = ["*.pl"]
+options = ["-b", "-bext='/'"]
+</file>
+
+<file path="examples/formatter-php-cs-fixer.toml">
+# Example generated by ../examples.sh
+[formatter.php-cs-fixer]
+command = "php-cs-fixer"
+excludes = []
+includes = ["*.php"]
+options = ["fix", "--config", "./.php-cs-fixer.php"]
+</file>
+
+<file path="examples/formatter-pinact.toml">
+# Example generated by ../examples.sh
+[formatter.pinact]
+command = "pinact"
+excludes = []
+includes = [".github/workflows/*.yml", ".github/workflows/*.yaml", "**/action.yml", "**/action.yaml"]
+options = ["run", "--update", "--verify"]
+</file>
+
+<file path="examples/formatter-prettier.toml">
+# Example generated by ../examples.sh
+[formatter.prettier]
+command = "prettier"
+excludes = []
+includes = [
+    "*.cjs",
+    "*.css",
+    "*.html",
+    "*.js",
+    "*.json",
+    "*.json5",
+    "*.jsx",
+    "*.md",
+    "*.mdx",
+    "*.mjs",
+    "*.scss",
+    "*.ts",
+    "*.tsx",
+    "*.vue",
+    "*.yaml",
+    "*.yml",
+]
+options = ["--write"]
+</file>
+
+<file path="examples/formatter-protolint.toml">
+# Example generated by ../examples.sh
+[formatter.protolint]
+command = "protolint"
+excludes = []
+includes = ["*.proto"]
+options = ["lint", "-fix"]
+</file>
+
+<file path="examples/formatter-purs-tidy.toml">
+# Example generated by ../examples.sh
+[formatter.purs-tidy]
+command = "purs-tidy"
+excludes = []
+includes = ["src/**/*.purs", "test/**/*.purs"]
+options = ["format-in-place"]
+</file>
+
+<file path="examples/formatter-rstfmt.toml">
+# Example generated by ../examples.sh
+[formatter.rstfmt]
+command = "rstfmt"
+excludes = []
+includes = ["*.rst", "*.txt"]
+options = ["-w", "72"]
+</file>
+
+<file path="examples/formatter-rubocop.toml">
+# Example generated by ../examples.sh
+[formatter.rubocop]
+command = "rubocop"
+excludes = []
+includes = ["*.rb"]
+options = []
+</file>
+
+<file path="examples/formatter-ruff-check.toml">
+# Example generated by ../examples.sh
+[formatter.ruff-check]
+command = "ruff"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = ["check", "--fix"]
+</file>
+
+<file path="examples/formatter-ruff-format.toml">
+# Example generated by ../examples.sh
+[formatter.ruff-format]
+command = "ruff"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-rufo.toml">
+# Example generated by ../examples.sh
+[formatter.rufo]
+command = "rufo"
+excludes = []
+includes = ["*.rb"]
+options = ["-x"]
+</file>
+
+<file path="examples/formatter-rustfmt.toml">
+# Example generated by ../examples.sh
+[formatter.rustfmt]
+command = "rustfmt"
+excludes = []
+includes = ["*.rs"]
+options = ["--config", "skip_children=true", "--edition", "2024"]
+</file>
+
+<file path="examples/formatter-scalafmt.toml">
+# Example generated by ../examples.sh
+[formatter.scalafmt]
+command = "scalafmt"
+excludes = []
+includes = ["*.sbt", "*.scala"]
+options = []
+</file>
+
+<file path="examples/formatter-shellcheck.toml">
+# Example generated by ../examples.sh
+[formatter.shellcheck]
+command = "shellcheck"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = []
+</file>
+
+<file path="examples/formatter-shfmt.toml">
+# Example generated by ../examples.sh
+[formatter.shfmt]
+command = "shfmt"
+excludes = []
+includes = ["*.sh", "*.bash", "*.envrc", "*.envrc.*"]
+options = ["-w", "-i", "2", "-s"]
+</file>
+
+<file path="examples/formatter-sizelint.toml">
+# Example generated by ../examples.sh
+[formatter.sizelint]
+command = "sizelint"
+excludes = []
+includes = ["*"]
+options = ["check"]
+</file>
+
+<file path="examples/formatter-sql-formatter.toml">
+# Example generated by ../examples.sh
+[formatter.sql-formatter]
+command = "sql-formatter-fix"
+excludes = []
+includes = ["*.sql"]
+options = []
+</file>
+
+<file path="examples/formatter-sqlfluff-lint.toml">
+# Example generated by ../examples.sh
+[formatter.sqlfluff-lint]
+command = "sqlfluff"
+excludes = []
+includes = ["*.sql"]
+options = ["lint", "--disable-progress-bar", "--processes", "0"]
+</file>
+
+<file path="examples/formatter-sqlfluff.toml">
+# Example generated by ../examples.sh
+[formatter.sqlfluff]
+command = "sqlfluff"
+excludes = []
+includes = ["*.sql"]
+options = ["format", "--disable-progress-bar", "--processes", "0"]
+</file>
+
+<file path="examples/formatter-sqruff.toml">
+# Example generated by ../examples.sh
+[formatter.sqruff]
+command = "sqruff"
+excludes = []
+includes = ["*.sql"]
+options = ["fix", "--force"]
+</file>
+
+<file path="examples/formatter-statix.toml">
+# Example generated by ../examples.sh
+[formatter.statix]
+command = "statix-fix"
+excludes = []
+includes = ["*.nix"]
+options = []
+</file>
+
+<file path="examples/formatter-stylish-haskell.toml">
+# Example generated by ../examples.sh
+[formatter.stylish-haskell]
+command = "stylish-haskell"
+excludes = []
+includes = ["*.hs"]
+options = ["-i", "-r"]
+</file>
+
+<file path="examples/formatter-stylua.toml">
+# Example generated by ../examples.sh
+[formatter.stylua]
+command = "stylua"
+excludes = []
+includes = ["*.lua"]
+options = []
+</file>
+
+<file path="examples/formatter-taplo.toml">
+# Example generated by ../examples.sh
+[formatter.taplo]
+command = "taplo"
+excludes = []
+includes = ["*.toml"]
+options = ["format"]
+</file>
+
+<file path="examples/formatter-templ.toml">
+# Example generated by ../examples.sh
+[formatter.templ]
+command = "templ"
+excludes = []
+includes = ["*.templ"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-terraform.toml">
+# Example generated by ../examples.sh
+[formatter.terraform]
+command = "tofu"
+excludes = []
+includes = ["*.tf", "*.tfvars", "*.tftest.hcl"]
+options = ["fmt"]
+</file>
+
+<file path="examples/formatter-texfmt.toml">
+# Example generated by ../examples.sh
+[formatter.texfmt]
+command = "tex-fmt"
+excludes = []
+includes = ["*.tex", "*.sty", "*.cls", "*.bib", "*.cmh"]
+options = []
+</file>
+
+<file path="examples/formatter-toml-sort.toml">
+# Example generated by ../examples.sh
+[formatter.toml-sort]
+command = "toml-sort"
+excludes = []
+includes = ["*.toml"]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-typos.toml">
+# Example generated by ../examples.sh
+[formatter.typos]
+command = "typos"
+excludes = []
+includes = ["*"]
+options = ["--write-changes", "--force-exclude"]
+</file>
+
+<file path="examples/formatter-typstfmt.toml">
+# Example generated by ../examples.sh
+[formatter.typstfmt]
+command = "typstfmt"
+excludes = []
+includes = ["*.typ", "*.typst"]
+options = []
+</file>
+
+<file path="examples/formatter-typstyle.toml">
+# Example generated by ../examples.sh
+[formatter.typstyle]
+command = "typstyle"
+excludes = []
+includes = ["*.typ", "*.typst"]
+options = ["-i"]
+</file>
+
+<file path="examples/formatter-xmllint.toml">
+# Example generated by ../examples.sh
+[formatter.xmllint]
+command = "xmllint-wrapper"
+excludes = []
+includes = [
+    "*.xml",
+    "*.svg",
+    "*.xhtml",
+    "*.xsl",
+    "*.xslt",
+    "*.dtd",
+    "*.xsd",
+]
+options = []
+</file>
+
+<file path="examples/formatter-yamlfmt.toml">
+# Example generated by ../examples.sh
+[formatter.yamlfmt]
+command = "yamlfmt"
+excludes = []
+includes = ["*.yaml", "*.yml"]
+options = []
+</file>
+
+<file path="examples/formatter-yapf.toml">
+# Example generated by ../examples.sh
+[formatter.yapf]
+command = "yapf"
+excludes = []
+includes = ["*.py", "*.pyi"]
+options = ["--in-place"]
+</file>
+
+<file path="examples/formatter-zprint.toml">
+# Example generated by ../examples.sh
+[formatter.zprint]
+command = "zprint"
+excludes = []
+includes = ["*.clj", "*.cljc", "*.cljs", "*.edn"]
+options = ["--write"]
+</file>
+
+<file path="programs/actionlint.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "katexochen" ];
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "actionlint";
+      includes = [
+        ".github/workflows/*.yml"
+        ".github/workflows/*.yaml"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/aiken.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "locallycompact" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "aiken";
+      args = [
+        "fmt"
+      ];
+      includes = [ "*.ak" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/alejandra.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "alejandra";
+      includes = [ "*.nix" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/asmfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "asmfmt";
+      args = [ "-w" ];
+      includes = [ "*.s" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/autocorrect.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.autocorrect;
+  configFormat = pkgs.formats.json { };
+
+  # 0 - off, 1 - error, 2 - warning
+  ruleType = lib.types.nullOr (
+    lib.types.enum [
+      "off"
+      "error"
+      "warning"
+    ]
+  );
+
+  # Configuration schema for Autocorrect, which we generate .autocorrectrc with.
+  # Definition taken from: https://github.com/huacnlee/autocorrect/raw/refs/heads/main/.autocorrectrc.template
+  settingsSchema = {
+    rules = lib.mkOption {
+      description = "Configure rules for autocorrect formatting.";
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            space-word = lib.mkOption {
+              description = "Auto add spacing between CJK (Chinese, Japanese, Korean) and English words.";
+              type = ruleType;
+              example = "off";
+              default = null;
+            };
+
+            space-punctuation = lib.mkOption {
+              description = "Add space between some punctuations.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            space-bracket = lib.mkOption {
+              description = "Add space between brackets (), [] when near the CJK.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            space-backticks = lib.mkOption {
+              description = "Add space between ``, when near the CJK.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            space-dash = lib.mkOption {
+              description = "Add space between dash `-`.";
+              type = ruleType;
+              example = "off";
+              default = null;
+            };
+
+            space-dollar = lib.mkOption {
+              description = "Add space between dollar $ when near the CJK.";
+              type = ruleType;
+              example = "off";
+              default = null;
+            };
+
+            fullwidth = lib.mkOption {
+              description = "Convert to fullwidth.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            no-space-fullwidth = lib.mkOption {
+              description = "Remove space near the fullwidth.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            halfwidth-word = lib.mkOption {
+              description = "Fullwidth alphanumeric characters to halfwidth.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            halfwidth-punctuation = lib.mkOption {
+              description = "Fullwidth punctuations to halfwidth in english.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+
+            spellcheck = lib.mkOption {
+              description = "Spellcheck.";
+              type = ruleType;
+              example = "warning";
+              default = null;
+            };
+          };
+        }
+      );
+      default = null;
+    };
+
+    context = lib.mkOption {
+      description = "Enable or disable in a specific context.";
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            codeblock = lib.mkOption {
+              description = "Enable or disable to format codeblock in Markdown or AsciiDoc etc.";
+              type = ruleType;
+              example = "error";
+              default = null;
+            };
+          };
+        }
+      );
+      default = null;
+    };
+
+    textRules = lib.mkOption {
+      description = "Configure special rules for some texts.";
+      type = lib.types.nullOr (lib.types.attrsOf ruleType);
+      example = {
+        "Hello你好" = "warning";
+        "Hi你好" = "off";
+      };
+      default = null;
+    };
+
+    fileTypes = lib.mkOption {
+      description = "Configure the files associations, you config is higher priority than default.";
+      type = lib.types.nullOr (lib.types.attrsOf lib.types.str);
+      example = {
+        "rb" = "ruby";
+        "Rakefile" = "ruby";
+        "*.js" = "javascript";
+        ".mdx" = "markdown";
+      };
+      default = null;
+    };
+
+    spellcheck = lib.mkOption {
+      description = "Spellcheck configuration.";
+      type = lib.types.nullOr (
+        lib.types.submodule {
+          options = {
+            words = lib.mkOption {
+              description = "Correct Words (Case insensitive) for by Spellcheck.";
+              type = lib.types.nullOr (lib.types.listOf lib.types.str);
+              example = [
+                "GitHub"
+                "App Store"
+                "AppStore = App Store"
+                "Git"
+                "Node.js"
+                "nodejs = Node.js"
+                "VIM"
+                "DNS"
+                "HTTP"
+                "SSL"
+              ];
+              default = null;
+            };
+          };
+        }
+      );
+      default = null;
+    };
+  };
+
+  settingsFile =
+    let
+      # Convert rule lib.types from strings to numeric values
+      convertRuleTypes =
+        attrs:
+        lib.mapAttrsRecursive (
+          _path: value:
+          if isNull value then
+            null
+          else
+            {
+              "off" = 0;
+              "error" = 1;
+              "warning" = 2;
+            }
+            .${value} or value
+        ) attrs;
+
+      # remove all null values and convert rule lib.types
+      settings = lib.filterAttrsRecursive (_n: v: v != null) (convertRuleTypes cfg.settings);
+    in
+    if settings != { } then configFormat.generate ".autocorrectrc" settings else null;
+in
+{
+  meta.maintainers = [ "definfo" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "autocorrect";
+      args = [ "--fix" ];
+      includes = [ "*" ];
+    })
+  ];
+
+  options.programs.autocorrect = {
+    threads = lib.mkOption {
+      description = "Number of threads, 0 - use number of CPU. [default: 0]";
+      type = lib.types.nullOr lib.types.int;
+      example = 2;
+      default = null;
+    };
+
+    # Represents the .autocorrectrc config schema
+    settings = settingsSchema;
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.autocorrect = {
+      options =
+        (lib.optionals (!isNull cfg.threads) [
+          "--threads"
+          (toString cfg.threads)
+        ])
+        ++ (lib.optionals (settingsFile != null) [
+          "--config"
+          (toString settingsFile)
+        ]);
+    };
+  };
+}
+</file>
+
+<file path="programs/beautysh.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.beautysh;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "beautysh";
+      includes = [ "*.sh" ];
+    })
+  ];
+
+  options.programs.beautysh = {
+    indent_size = lib.mkOption {
+      type = lib.types.int;
+      default = 2;
+      example = 4;
+      description = ''
+        Sets the number of spaces to be used in indentation.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.beautysh = {
+      options = [
+        "-i"
+        (toString cfg.indent_size)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/biome.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  l = lib // builtins;
+  t = l.types;
+  p = pkgs;
+
+  cfg = config.programs.biome;
+  biomeVersion = if builtins.match "^1\\." pkgs.biome.version != null then "1.9.4" else "2.1.2";
+  schemaUrl = "https://biomejs.dev/schemas/${biomeVersion}/schema.json";
+  schemaSha256s = {
+    "1.9.4" = "sha256:0yzw4vymwpa7akyq45v7kkb9gp0szs6zfm525zx2vh1d80568dlz";
+    "2.1.2" = "sha256:07qlk53lja9rsa46b8nv3hqgdzc9mif5r1nwh7i8mrxcqmfp99s2";
+  };
+  schemaSha256 = schemaSha256s.${biomeVersion};
+
+  ext.js = [
+    "*.js"
+    "*.ts"
+    "*.mjs"
+    "*.mts"
+    "*.cjs"
+    "*.cts"
+    "*.jsx"
+    "*.tsx"
+    "*.d.ts"
+    "*.d.cts"
+    "*.d.mts"
+  ];
+
+  ext.json = [
+    "*.json"
+    "*.jsonc"
+  ];
+
+  ext.css = [
+    "*.css"
+  ];
+
+in
+{
+  meta.maintainers = [ "andrea11" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "biome";
+      args = [
+        cfg.formatCommand
+        "--write"
+        "--no-errors-on-unmatched"
+      ];
+      includes = ext.js ++ ext.json ++ ext.css;
+    })
+  ];
+
+  options.programs.biome = {
+    formatCommand = l.mkOption {
+      type = t.enum [
+        "format"
+        "lint"
+        "check"
+      ];
+      description = "The command to run Biome with.";
+      default = "check";
+      example = "format";
+    };
+    formatUnsafe = l.mkOption {
+      type = t.bool;
+      description = "Allows to format a document that has unsafe fixes.";
+      default = false;
+    };
+    settings = l.mkOption {
+      type = t.attrsOf t.anything;
+      description = "Raw Biome configuration (must conform to Biome JSON schema)";
+      default = { };
+      example = {
+        formatter = {
+          indentStyle = "space";
+          lineWidth = 100;
+        };
+        javascript = {
+          formatter = {
+            quoteStyle = "single";
+            lineWidth = 120;
+          };
+        };
+        json = {
+          formatter = {
+            enabled = false;
+          };
+        };
+      };
+    };
+  };
+
+  config = l.mkIf cfg.enable {
+    settings.formatter.biome.options =
+      let
+        json = l.toJSON cfg.settings;
+        jsonFile = p.writeText "biome.json" json;
+        biomeSchema = builtins.fetchurl {
+          url = schemaUrl;
+          sha256 = schemaSha256;
+        };
+
+        validatedConfig =
+          p.runCommand "validated-biome-config.json"
+            {
+              buildInputs = [
+                p.check-jsonschema
+              ];
+            }
+            ''
+              echo "Validating biome.json against schema ${schemaUrl}..."
+              export HOME=$TMPDIR
+              check-jsonschema --schemafile '${biomeSchema}' '${jsonFile}'
+              cp '${jsonFile}' $out
+            '';
+      in
+      [
+        "--config-path"
+        (l.toString validatedConfig)
+      ]
+      ++ l.optional cfg.formatUnsafe "--unsafe";
+  };
+}
+</file>
+
+<file path="programs/black.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "black";
+      includes = [
+        "*.py"
+        "*.pyi"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/buf.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.buf;
+in
+{
+  meta.maintainers = [
+    "drew-dirac"
+  ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "buf";
+      includes = [ "*.proto" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.buf = {
+      # buf doesn't support multiple file targets
+      command = pkgs.writeShellScriptBin "buf-wrapper" ''
+        for file in "$@"; do
+          ${lib.getExe cfg.package} format -w "$file"
+        done
+      '';
+    };
+  };
+}
+</file>
+
+<file path="programs/buildifier.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "buildifier";
+      mainProgram = "buildifier";
+      includes = [
+        "*.bazel"
+        "*.bzl"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/cabal-fmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "cabal-fmt";
+      package = [
+        "haskellPackages"
+        "cabal-fmt"
+      ];
+      args = [ "--inplace" ];
+      includes = [ "*.cabal" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/cabal-gild.nix">
+{
+  mkFormatterModule,
+  lib,
+  config,
+  pkgs,
+  ...
+}:
+
+let
+  cfg = config.programs.cabal-gild;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "cabal-gild";
+      package = [
+        "haskellPackages"
+        "cabal-gild"
+      ];
+      includes = [
+        "*.cabal"
+        "cabal.project"
+        "cabal.project.local"
+      ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.cabal-gild = {
+      # cabal-gild doesn't support multiple file targets
+      # https://github.com/tfausak/cabal-gild/issues/35
+      command = pkgs.writeShellApplication {
+        name = "cabal-gild-wrapper";
+        text = ''
+          for file in "$@"; do
+            ${lib.getExe cfg.package} --io="$file"
+          done
+        '';
+      };
+    };
+  };
+}
+</file>
+
+<file path="programs/clang-format.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "clang-format";
+      package = "clang-tools";
+      mainProgram = "clang-format";
+      args = [ "-i" ];
+      includes = [
+        "*.c"
+        "*.cc"
+        "*.cpp"
+        "*.h"
+        "*.hh"
+        "*.hpp"
+        "*.glsl"
+        "*.vert"
+        ".tesc"
+        ".tese"
+        ".geom"
+        ".frag"
+        ".comp"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/clang-tidy.nix">
+{
+  config,
+  mkFormatterModule,
+  lib,
+  ...
+}:
+let
+  cfg = config.programs.clang-tidy;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "clang-tidy";
+      package = "clang-tools";
+      mainProgram = "clang-tidy";
+      includes = [
+        "*.c"
+        "*.cc"
+        "*.cpp"
+        "*.h"
+        "*.hh"
+        "*.hpp"
+        "*.glsl"
+        "*.vert"
+        ".tesc"
+        ".tese"
+        ".geom"
+        ".frag"
+        ".comp"
+      ];
+    })
+  ];
+
+  options.programs.clang-tidy = {
+    configFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      description = "Specify the path of .clang-tidy or custom config file";
+      default = null;
+      example = "/some/path/myTidyConfigFile";
+    };
+    compileCommandsPath = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      description = "used to read a compile command database";
+      default = null;
+      example = "/my/cmake/build/directory";
+    };
+    quiet = lib.mkOption {
+      type = lib.types.bool;
+      description = "Run clang-tidy in quiet mode";
+      default = true;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.clang-tidy = {
+      options = [
+        "--fix"
+      ]
+      ++ lib.optional (cfg.configFile != null) "--config-file=${cfg.configFile}"
+      ++ lib.optional (cfg.compileCommandsPath != null) "-p=${cfg.compileCommandsPath}"
+      ++ lib.optional cfg.quiet "--quiet";
+    };
+  };
+}
+</file>
+
+<file path="programs/cljfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "cljfmt";
+      args = [ "fix" ];
+      includes = [
+        "*.clj"
+        "*.cljc"
+        "*.cljs"
+        "*.cljx"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/cmake-format.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "cmake-format";
+      args = [ "--in-place" ];
+      includes = [
+        "*.cmake"
+        "CMakeLists.txt"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/csharpier.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [
+    "thomaslaich"
+  ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "csharpier";
+      package = "csharpier";
+      mainProgram = "csharpier";
+      args = [ "format" ];
+      includes = [
+        "*.cs"
+        "*.csproj"
+        "*.slnx" # support added in 1.1.0
+        "*.xaml" # support added in 1.1.0
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/cue.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "cue";
+      args = [ "fmt" ];
+      includes = [ "*.cue" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/d2.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "d2";
+      args = [ "fmt" ];
+      includes = [ "*.d2" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dart-format.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "JakobLichterfeld" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "dart-format";
+      package = "dart";
+      args = [ "format" ];
+      includes = [ "*.dart" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/deadnix.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.deadnix;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "deadnix";
+      args = [ "--edit" ];
+      includes = [ "*.nix" ];
+    })
+  ];
+
+  options.programs.deadnix = {
+    no-lambda-arg = lib.mkEnableOption "Don't check lambda parameter arguments";
+    no-lambda-pattern-names = lib.mkEnableOption "Don't check lambda attrset pattern names (don't break nixpkgs callPackage)";
+    no-underscore = lib.mkEnableOption "Don't check any bindings that start with a _";
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.deadnix.options =
+      (lib.optional cfg.no-lambda-arg "--no-lambda-arg")
+      ++ (lib.optional cfg.no-lambda-pattern-names "--no-lambda-pattern-names")
+      ++ (lib.optional cfg.no-underscore "--no-underscore");
+  };
+}
+</file>
+
+<file path="programs/deno.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  meta.brokenPlatforms = [ "riscv64-linux" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "deno";
+      args = [ "fmt" ];
+      includes = [
+        "*.css"
+        "*.html"
+        "*.js"
+        "*.json"
+        "*.jsonc"
+        "*.jsx"
+        "*.less"
+        "*.markdown"
+        "*.md"
+        "*.sass"
+        "*.scss"
+        "*.ts"
+        "*.tsx"
+        "*.yaml"
+        "*.yml"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  imports = [
+    (mkFormatterModule {
+      name = "dfmt";
+      package = "dformat";
+      args = [ "-i" ];
+      includes = [
+        "*.d"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dhall.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.dhall;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "dhall";
+      includes = [ "*.dhall" ];
+    })
+  ];
+
+  options.programs.dhall = {
+    lint = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to lint in addition to formatting.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.dhall = {
+      options = [ (if cfg.lint then "lint" else "format") ];
+    };
+  };
+}
+</file>
+
+<file path="programs/djlint.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.djlint;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "djlint";
+      includes = [ "*.html" ];
+    })
+  ];
+
+  options.programs.djlint = {
+    lint = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Whether to lint in addition to formatting.";
+    };
+    ignoreRules = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = "Which H-rules to ignore";
+    };
+    indent = lib.mkOption {
+      type = lib.types.ints.unsigned;
+      default = 4;
+      description = "Default indentation depth in spaces";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.djlint = {
+      options = [
+        "--reformat"
+        "--quiet"
+        "--indent"
+        (builtins.toString cfg.indent)
+      ]
+      ++ lib.optional cfg.lint "--lint"
+      ++ lib.optional (cfg.ignoreRules != [ ]) ("--ignore=" + lib.concatStringsSep "," cfg.ignoreRules);
+    };
+  };
+}
+</file>
+
+<file path="programs/dnscontrol.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.dnscontrol;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "dnscontrol";
+      includes = [ "dnsconfig.js" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.dnscontrol = {
+      # dnscontrol doesn't support multiple file targets
+      command = pkgs.writeShellScriptBin "dnscontrol-fix" ''
+        for file in "$@"; do
+          ${lib.getExe cfg.package} fmt -i "$file" -o "$file"
+        done
+      '';
+    };
+  };
+}
+</file>
+
+<file path="programs/dockerfmt.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "bizmythy" ];
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "dockerfmt";
+      args = [
+        "-w"
+        "-n"
+      ];
+      includes = [
+        "*/Dockerfile"
+        "*.dockerfile"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dockfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "theobori" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "dockfmt";
+      args = [
+        "fmt"
+        "-w"
+      ];
+      includes = [
+        "Dockerfile"
+        "*.Dockerfile"
+        "Dockerfile.*"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dos2unix.nix">
+{
+  mkFormatterModule,
+  ...
+}:
+{
+  meta.maintainers = [ "sebaszv" ];
+
+  /*
+    Package `dos2unix` has several binaries.
+    Since `meta.mainProgram` isn't defined,
+    we specify which to use.
+  */
+  imports = [
+    (mkFormatterModule {
+      name = "dos2unix";
+      mainProgram = "dos2unix";
+      args = [ "--keepdate" ];
+      includes = [ "*" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/dprint.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib)
+    filterAttrsRecursive
+    literalExpression
+    mkIf
+    mkOption
+    optionals
+    types
+    ;
+
+  cfg = config.programs.dprint;
+  configFormat = pkgs.formats.json { };
+
+  # Definition taken from:
+  # https://raw.githubusercontent.com/dprint/dprint/5168db9ff0a9b5d42774f95edd58681fc67c9009/website/src/assets/schemas/v0.json
+  settingsSchema = mkOption {
+    default = { };
+    description = "Configuration to generate dprint.json with";
+    type = types.submodule {
+      freeformType = configFormat.type;
+      options = {
+        incremental = mkOption {
+          description = "Whether to format files only when they change.";
+          type = types.nullOr types.bool;
+          example = true;
+          default = null;
+        };
+        extends = mkOption {
+          description = "Configurations to extend.";
+          type = types.nullOr (
+            types.oneOf [
+              types.str
+              (types.listOf types.str)
+            ]
+          );
+          example = "https://dprint.dev/path/to/config/file.v1.json";
+          default = null;
+        };
+        lineWidth = mkOption {
+          description = ''
+            The width of a line the printer will try to stay under. Note that the
+            printer may exceed this width in certain cases.
+          '';
+          type = types.nullOr types.int;
+          example = 80;
+          default = null;
+        };
+        indentWidth = mkOption {
+          description = "The number of characters for an indent";
+          type = types.nullOr types.int;
+          example = 2;
+          default = null;
+        };
+        useTabs = mkOption {
+          description = ''
+            Whether to use tabs (true) or spaces (false) for indentation.
+          '';
+          type = types.nullOr types.bool;
+          example = true;
+          default = null;
+        };
+        newLineKind = mkOption {
+          description = ''
+            The kind of newline to use (one of: auto, crlf, lf, system).
+          '';
+          type = types.nullOr types.str;
+          example = "auto";
+          default = null;
+        };
+        includes = mkOption {
+          internal = true;
+          description = "Set this value on program.dprint.includes";
+          type = types.nullOr (types.listOf types.str);
+          default = null;
+        };
+        excludes = mkOption {
+          internal = true;
+          description = "Set this value on program.dprint.excludes";
+          type = types.nullOr (types.listOf types.str);
+          default = null;
+        };
+        plugins = mkOption {
+          description = "Array of plugin URLs to format files.";
+          type = types.nullOr (types.listOf types.str);
+          example =
+            literalExpression
+              # nix
+              ''
+                # (recommended) using plugins from nixpkgs
+                # plugins is the list of all available dprint plugins in nixpkgs
+                (pkgs.dprint-plugins.getPluginList (
+                  plugins: with plugins; [
+                    dprint-plugin-toml
+                    dprint-plugin-dockerfile
+                    g-plane-pretty_yaml
+                    # (pkgs.callPackage ./dprint/plugins/sample.nix {})
+                  ]
+                ))
+                # (not recommended) using url plugins
+                # treefmt then only works outside the nix sandbox, so treefmt nix flake check will fail
+                ++ [
+                  "https://plugins.dprint.dev/json-0.17.2.wasm"
+                  "https://plugins.dprint.dev/markdown-0.15.2.wasm"
+                  "https://plugins.dprint.dev/typescript-0.84.4.wasm"
+                ]
+              '';
+          default = null;
+        };
+      };
+    };
+  };
+
+  settingsFile =
+    let
+      # remove all null values
+      settings = filterAttrsRecursive (_n: v: v != null) cfg.settings;
+    in
+    if settings != { } then
+      configFormat.generate "dprint.json" (
+        settings
+        // {
+          includes = cfg.includes;
+          excludes = cfg.excludes;
+        }
+      )
+    else
+      null;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "dprint";
+      args = [ "fmt" ];
+      includes = [ ".*" ];
+    })
+  ];
+
+  options.programs.dprint = {
+    # Represents the dprint.json config schema
+    settings = settingsSchema;
+  };
+
+  config = mkIf cfg.enable {
+    settings.formatter.dprint = {
+      options = optionals (settingsFile != null) [
+        "--config"
+        (toString settingsFile)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/dscanner.nix">
+{ mkFormatterModule, ... }:
+{
+  imports = [
+    (mkFormatterModule {
+      name = "dscanner";
+      args = [ "lint" ];
+      includes = [
+        "*.d"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/efmt.nix">
+{
+  mkFormatterModule,
+  ...
+}:
+
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "efmt";
+      args = [ "--write" ];
+      includes = [
+        "*.erl"
+        "*.hrl"
+        "*.app"
+        "*.app.src"
+        "*.config"
+        "*.script"
+        "*.escript"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/elm-format.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  # See https://github.com/NixOS/nixpkgs/issues/370084
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "elm-format";
+      package = [
+        "elmPackages"
+        "elm-format"
+      ];
+      args = [ "--yes" ];
+      includes = [ "*.elm" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/erlfmt.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.erlfmt;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "erlfmt";
+      args = [ "--write" ];
+      includes = [
+        "*.erl"
+        "*.hrl"
+        "*.app"
+        "*.app.src"
+        "*.config"
+        "*.script"
+        "*.escript"
+      ];
+    })
+  ];
+
+  options.programs.erlfmt = {
+    print-width = lib.mkOption {
+      description = "The line length that formatter would wrap on";
+      type = lib.types.int;
+      example = 80;
+      default = 100;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.erlfmt = {
+      options = [
+        "--print-width"
+        (toString cfg.print-width)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/fantomas.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.fantomas;
+in
+{
+  meta.maintainers = [ ];
+  # Broken on macOS
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "fantomas";
+      includes = [
+        "*.fs"
+        "*.fsx"
+        "*.fsi"
+        "*.ml"
+        "*.mli"
+      ];
+    })
+  ];
+
+  options.programs.fantomas = {
+    dotnet-sdk = lib.mkPackageOption pkgs "dotnet-sdk" { };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.fantomas = {
+      command = pkgs.writeShellApplication {
+        name = "fantomas";
+        runtimeInputs = with cfg; [
+          dotnet-sdk
+          package
+        ];
+        text = ''
+          fantomas "$@"
+        '';
+      };
+    };
+  };
+}
+</file>
+
+<file path="programs/fish_indent.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.fish_indent;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "fish_indent";
+      package = "fish";
+      args = [ "--write" ];
+      includes = [ "*.fish" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.fish_indent = {
+      command = "${cfg.package}/bin/fish_indent";
+    };
+  };
+}
+</file>
+
+<file path="programs/fnlfmt.nix">
+{
+  mkFormatterModule,
+  ...
+}:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "fnlfmt";
+      args = [ "--fix" ];
+      includes = [ "*.fnl" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/formatjson5.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.formatjson5;
+in
+{
+  meta.maintainers = [ "katexochen" ];
+  # See https://github.com/NixOS/nixpkgs/pull/370124
+  meta.broken = true;
+
+  imports = [
+    (mkFormatterModule {
+      name = "formatjson5";
+      args = [ "--replace" ];
+      includes = [ "*.json5" ];
+    })
+  ];
+
+  options.programs.formatjson5 = {
+    noTrailingCommas = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Suppress trailing commas (otherwise added by default)";
+    };
+    oneElementLines = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Objects or arrays with a single child should collapse to a single line";
+    };
+    sortArrays = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Sort arrays of primitive values (string, number, boolean, or null) lexicographically";
+    };
+    indent = lib.mkOption {
+      type = lib.types.int;
+      default = 4;
+      description = "Indent by the given number of spaces";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.formatjson5 = {
+      options = [
+        "--indent=${toString cfg.indent}"
+      ]
+      ++ lib.optional cfg.noTrailingCommas "--no_trailing_commas"
+      ++ lib.optional cfg.oneElementLines "--one_element_lines"
+      ++ lib.optional cfg.sortArrays "--sort_arrays";
+    };
+  };
+}
+</file>
+
+<file path="programs/fourmolu.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.fourmolu;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "fourmolu";
+      package = [
+        "haskellPackages"
+        "fourmolu"
+      ];
+      args = [
+        "-i"
+        "-c"
+      ];
+      includes = [ "*.hs" ];
+    })
+  ];
+
+  options.programs.fourmolu = {
+    ghcOpts = lib.mkOption {
+      description = "Which GHC language extensions to enable";
+      default = [
+        "BangPatterns"
+        "PatternSynonyms"
+        "TypeApplications"
+      ];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.fourmolu = {
+      options = lib.concatMap (x: [
+        "--ghc-opt"
+        "-X${x}"
+      ]) cfg.ghcOpts;
+    };
+  };
+}
+</file>
+
+<file path="programs/fprettify.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "fprettify";
+      includes = [ "*.f90" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/gdformat.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  # Broken on macOS
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "gdformat";
+      package = "gdtoolkit_4";
+      mainProgram = "gdformat";
+      includes = [ "*.gd" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/genemichaels.nix">
+{
+  lib,
+  pkgs,
+  config,
+  options,
+  ...
+}:
+let
+  cfg = config.programs.genemichaels;
+  configFormat = pkgs.formats.json { };
+
+  inherit (lib)
+    types
+    ;
+
+  inherit (lib.lists)
+    optionals
+    ;
+
+  inherit (lib.modules)
+    mkIf
+    ;
+
+  inherit (lib.options)
+    mkEnableOption
+    mkOption
+    mkPackageOption
+    ;
+
+  showOptionParent =
+    opt: _n:
+    assert opt._type == "option";
+    lib.showOption (lib.take (lib.length opt.loc - 1) opt.loc);
+in
+{
+  meta.maintainers = [ "djacu" ];
+
+  options.programs.genemichaels = {
+    enable = mkEnableOption "genemichaels" // {
+      description = ''
+        Whether to enable [`genemichaels`](https://github.com/andrewbaxter/genemichaels/blob/master/readme_genemichaels.md), a Rust code formatter.
+      '';
+    };
+    package = mkPackageOption pkgs "genemichaels" { };
+
+    # Configuration scheme for genemichaels, which we generate .genemichaels.json with.
+    # Definition taken from https://github.com/andrewbaxter/genemichaels/blob/genemichaels-v0.5.7/readme.md#configuration
+    settings = {
+      max_width = mkOption {
+        description = ''
+          Ideal maximum line width. If there's an unbreakable element the line
+          won't be split.
+        '';
+        type = types.ints.positive;
+        example = 80;
+        default = 120;
+      };
+      root_splits = mkOption {
+        description = ''
+          When breaking a child element, also break all parent elements.
+        '';
+        type = types.bool;
+        example = true;
+        default = false;
+      };
+      split_brace_threshold = mkOption {
+        description = ''
+          Break a `()` or `{}` if it has greater than this number of children.
+          Set to `null` to disable breaking due to high child counts.
+        '';
+        type = types.nullOr types.ints.positive;
+        example = null;
+        default = 1;
+      };
+      split_attributes = mkOption {
+        description = ''
+          Break a `#[]` on a separate line before the element it's associated
+          with.
+        '';
+        type = types.bool;
+        example = false;
+        default = true;
+      };
+      split_where = mkOption {
+        description = ''
+          Put the `where` clause on a new line.
+        '';
+        type = types.bool;
+        example = false;
+        default = true;
+      };
+      comment_width = mkOption {
+        description = ''
+          Maximum relative line length for comments (past the comment
+          indentation level). Can be `null` to disable relative wrapping. If
+          disabled, still wraps at `max_width`.
+        '';
+        type = types.nullOr types.ints.positive;
+        example = null;
+        default = 80;
+      };
+      comment_errors_fatal = mkOption {
+        description = ''
+          If reformatting comments results in an error, abort formatting the
+          document.
+        '';
+        type = types.bool;
+        example = true;
+        default = false;
+      };
+      keep_max_blank_lines = mkOption {
+        description = ''
+          Genemichaels will replace line breaks with it's own deterministic
+          line breaks. You can use this to keep extra line breaks (1 will keep
+          up to 1 extra line break) during comment extraction. This is unused
+          during formatting.
+        '';
+        type = types.ints.unsigned;
+        example = 1;
+        default = 0;
+      };
+    };
+
+    settingsFile = mkOption {
+      description = "The configuration file used by `genemichaels`.";
+      type = types.path;
+      example = lib.literalExpression ''./.genemichaels.json'';
+      default = configFormat.generate ".genemichaels.json" cfg.settings;
+      defaultText = lib.literalMD "Generated JSON file from `${showOptionParent options.programs.genemichaels.settings.max_width 1}`";
+    };
+
+    threadCount = mkOption {
+      description = ''
+        How many threads to use for formatting multiple files. Set to `null` to
+        default to the number of cores on the system.
+      '';
+      type = types.nullOr types.ints.unsigned;
+      example = 1;
+      default = null;
+    };
+
+    includes = mkOption {
+      description = ''
+        Path / file patterns to include for genemichaels.
+      '';
+      type = types.listOf types.str;
+      default = [
+        "*.rs"
+      ];
+    };
+
+    excludes = mkOption {
+      description = ''
+        Path / file patterns to exclude for genemichaels.
+      '';
+      type = types.listOf types.str;
+      default = [ ];
+    };
+  };
+
+  config = mkIf cfg.enable {
+    settings.formatter.genemichaels = {
+      command = "${cfg.package}/bin/genemichaels";
+      options =
+        (optionals (cfg.threadCount != null) [
+          "--thread-count"
+          (toString cfg.threadCount)
+        ])
+        ++ [
+          "--config"
+          (toString cfg.settingsFile)
+        ];
+      includes = cfg.includes;
+      excludes = cfg.excludes;
+    };
+  };
+}
+</file>
+
+<file path="programs/gleam.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "anntnzrb" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "gleam";
+      args = [ "format" ];
+      includes = [ "*.gleam" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/gofmt.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.gofmt;
+in
+{
+  meta.maintainers = [ "zimbatm" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "gofmt";
+      # It would be nice to extract gofmt to its own package
+      package = "go";
+      args = [ "-w" ];
+      includes = [ "*.go" ];
+      excludes = [ "vendor/*" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.gofmt = {
+      command = "${cfg.package}/bin/gofmt";
+    };
+  };
+}
+</file>
+
+<file path="programs/gofumpt.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.gofumpt;
+in
+{
+  meta.maintainers = [ "zimbatm" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "gofumpt";
+      args = [ "-w" ];
+      includes = [ "*.go" ];
+      excludes = [ "vendor/*" ];
+    })
+  ];
+
+  options.programs.gofumpt = {
+    extra = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether to enable extra rules.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.gofumpt = {
+      options = lib.optional cfg.extra "-extra";
+    };
+  };
+}
+</file>
+
+<file path="programs/goimports.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.goimports;
+in
+{
+  meta.maintainers = [ "gabyx" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "goimports";
+      package = "gotools";
+      args = [ "-w" ];
+      includes = [ "*.go" ];
+      excludes = [ "vendor/*" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.goimports = {
+      command = "${cfg.package}/bin/goimports";
+    };
+  };
+}
+</file>
+
+<file path="programs/golangci-lint.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.golangci-lint;
+in
+{
+  meta.maintainers = [ "Dauliac" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "golangci-lint";
+      package = "golangci-lint";
+      args = [
+        "run"
+        "--fix"
+      ];
+      includes = [ "*.go" ];
+      excludes = [ "vendor/*" ];
+    })
+  ];
+
+  options.programs.golangci-lint = {
+    configFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = ".golangci.yml";
+      description = "Path to golangci-lint configuration file";
+    };
+
+    noConfig = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't read any configuration file";
+    };
+
+    enableLinters = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [
+        "govet"
+        "errcheck"
+        "staticcheck"
+      ];
+      description = "Enable specific linters";
+    };
+
+    disableLinters = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [ "typecheck" ];
+      description = "Disable specific linters";
+    };
+
+    enableOnly = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [
+        "govet"
+        "gofmt"
+      ];
+      description = "Override configuration to run only specific linter(s)";
+    };
+
+    timeout = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "5m";
+      description = "Timeout for total work (e.g., '5m', '1h', '10s')";
+    };
+
+    concurrency = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 4;
+      description = "Number of CPUs to use (auto-configured by default)";
+    };
+
+    buildTags = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      example = [
+        "integration"
+        "e2e"
+      ];
+      description = "Build tags to use during analysis";
+    };
+
+    tests = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Analyze test files";
+    };
+
+    maxIssuesPerLinter = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 50;
+      description = "Maximum issues per linter (default: 50)";
+    };
+
+    maxSameIssues = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 3;
+      description = "Maximum count of same issues (default: 3)";
+    };
+
+    newFromRev = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "HEAD~1";
+      description = "Show only new issues created after git revision REV";
+    };
+
+    fastOnly = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Run only fast linters from enabled linters set";
+    };
+
+    verbose = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Enable verbose output";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.golangci-lint = {
+      command = "${cfg.package}/bin/golangci-lint";
+      options =
+        (lib.optionals (cfg.configFile != null) [
+          "--config"
+          cfg.configFile
+        ])
+        ++ (lib.optionals cfg.noConfig [ "--no-config" ])
+        ++ (lib.optionals (cfg.enableLinters != [ ]) [
+          "--enable"
+          (lib.concatStringsSep "," cfg.enableLinters)
+        ])
+        ++ (lib.optionals (cfg.disableLinters != [ ]) [
+          "--disable"
+          (lib.concatStringsSep "," cfg.disableLinters)
+        ])
+        ++ (lib.optionals (cfg.enableOnly != [ ]) [
+          "--enable-only"
+          (lib.concatStringsSep "," cfg.enableOnly)
+        ])
+        ++ (lib.optionals (cfg.timeout != null) [
+          "--timeout"
+          cfg.timeout
+        ])
+        ++ (lib.optionals (cfg.concurrency != null) [
+          "--concurrency"
+          (toString cfg.concurrency)
+        ])
+        ++ (lib.optionals (cfg.buildTags != [ ]) [
+          "--build-tags"
+          (lib.concatStringsSep "," cfg.buildTags)
+        ])
+        ++ (lib.optionals (cfg.maxIssuesPerLinter != null) [
+          "--max-issues-per-linter"
+          (toString cfg.maxIssuesPerLinter)
+        ])
+        ++ (lib.optionals (cfg.maxSameIssues != null) [
+          "--max-same-issues"
+          (toString cfg.maxSameIssues)
+        ])
+        ++ (lib.optionals (cfg.newFromRev != null) [
+          "--new-from-rev"
+          cfg.newFromRev
+        ])
+        ++ (lib.optional (!cfg.tests) "--skip-files-test")
+        ++ (lib.optional cfg.fastOnly "--fast")
+        ++ (lib.optional cfg.verbose "--verbose");
+    };
+  };
+}
+</file>
+
+<file path="programs/golines.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.golines;
+in
+{
+  meta.maintainers = [ "gabyx" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "golines";
+      package = "golines";
+      args = [
+        "-w"
+        # Do not reformat tags due to destructive operations:
+        # See https://github.com/segmentio/golines/issues/161
+        "--no-reformat-tags"
+      ];
+      includes = [ "*.go" ];
+      excludes = [ "vendor/*" ];
+    })
+  ];
+
+  options.programs.golines = {
+    maxLength = lib.mkOption {
+      type = with lib.types; nullOr int;
+      default = null;
+      example = 100;
+      description = ''
+        Target maximum line length (default: 100)
+      '';
+    };
+
+    tabLength = lib.mkOption {
+      type = with lib.types; nullOr int;
+      default = null;
+      example = 4;
+      description = ''
+        Length of a tab (default: 4)
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.golines = {
+      command = "${cfg.package}/bin/golines";
+      options =
+        (lib.optionals (cfg.maxLength != null) [
+          "--max-len"
+          (toString cfg.maxLength)
+        ])
+        ++ (lib.optionals (cfg.tabLength != null) [
+          "--tab-len"
+          (toString cfg.tabLength)
+        ]);
+    };
+  };
+}
+</file>
+
+<file path="programs/google-java-format.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.google-java-format;
+in
+{
+  meta.maintainers = [ "sebaszv" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "google-java-format";
+      args = [ "--replace" ];
+      includes = [ "*.java" ];
+    })
+  ];
+
+  options.programs.google-java-format = {
+    aospStyle = lib.mkOption {
+      description = ''
+        Whether to use AOSP (Android Open Source Project) indentation.
+        In a few words, use 4-space indentation rather than the conventional
+        2-space indentation width that Google uses.
+      '';
+      type = lib.types.bool;
+      example = true;
+      default = false;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.google-java-format.options = lib.optional cfg.aospStyle "--aosp";
+  };
+}
+</file>
+
+<file path="programs/hclfmt.nix">
+# NOTE: this is the hclfmt that comes from hashicorp/hcl
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "zimbatm" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "hclfmt";
+      args = [ "-w" ];
+      includes = [ "*.hcl" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/hlint.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "hlint";
+      args = [ "-j" ];
+      includes = [ "*.hs" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/hujsonfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "fjij" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "hujsonfmt";
+      args = [ "-w" ];
+      includes = [ "*.hujson" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/isort.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.isort;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "isort";
+      includes = [
+        "*.py"
+        "*.pyi"
+      ];
+    })
+  ];
+
+  options.programs.isort = {
+    profile = lib.mkOption {
+      type = lib.types.str;
+      default = "";
+      description = ''
+        The profile to use for isort.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.isort.options = lib.optionals (cfg.profile != "") [
+      "--profile"
+      cfg.profile
+    ];
+  };
+}
+</file>
+
+<file path="programs/jsonfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "jsonfmt";
+      args = [ "-w" ];
+      includes = [ "*.json" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/jsonnet-lint.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.jsonnet-lint;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "jsonnet-lint";
+      package = "go-jsonnet";
+      includes = [
+        "*.jsonnet"
+        "*.libsonnet"
+      ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.jsonnet-lint = {
+      command = "${cfg.package}/bin/jsonnet-lint";
+    };
+  };
+}
+</file>
+
+<file path="programs/jsonnetfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "jsonnetfmt";
+      package = "go-jsonnet";
+      mainProgram = "jsonnetfmt";
+      args = [ "-i" ];
+      includes = [
+        "*.jsonnet"
+        "*.libsonnet"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/just.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  # Search 'justfile' in subdirectories too. This isn't needed for filename starting with `*.`.
+  alsoSearchSubdirectory = lib.lists.concatMap (fileName: [ fileName ] ++ [ "*/${fileName}" ]);
+  cfg = config.programs.just;
+in
+{
+  meta.maintainers = [ "katexochen" ];
+  # Example contains store paths
+  meta.skipExample = true;
+
+  imports = [
+    (mkFormatterModule {
+      name = "just";
+      includes =
+        alsoSearchSubdirectory [
+          "[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]" # 'justfile', case insensitive
+          ".[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]" # '.justfile', case insensitive
+        ]
+        ++ [
+          "*.[Jj][Uu][Ss][Tt]" # '.just' module, case insensitive
+          "*.[Jj][Uu][Ss][Tt][Ff][Ii][Ll][Ee]" # '.justfile' module, case insensitive
+        ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.just = {
+      # just itself doesn't comply with the treefmt spec, as the --justfile flags expects a single argument
+      # the spec requires the formatter to accept multiple file names as arguments (see https://treefmt.com/latest/reference/formatter-spec/#1-files-passed-as-arguments).
+      command = pkgs.bash;
+      options = [
+        "-euc"
+        ''
+          for f in "$@"; do
+            ${lib.getExe cfg.package} --fmt --unstable --justfile "$f"
+          done
+        ''
+        "--" # bash swallows the second argument when using -c
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/kdlfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "kdlfmt";
+      args = [ "format" ];
+      includes = [
+        "*.kdl"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/keep-sorted.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "katexochen" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "keep-sorted";
+      includes = [ "*" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/ktfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "ktfmt";
+      includes = [
+        "*.kt"
+        "*.kts"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/ktlint.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "ktlint";
+      args = [ "--format" ];
+      includes = [
+        "*.kt"
+        "*.kts"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/latexindent.nix">
+{
+  mkFormatterModule,
+  ...
+}:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "latexindent";
+      package = "texliveMedium";
+      mainProgram = "latexindent";
+      args = [ "-wd" ];
+      includes = [
+        "*.tex"
+        "*.sty"
+        "*.cls"
+        "*.bib"
+        "*.cmh"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/leptosfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "leptosfmt";
+      includes = [ "*.rs" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/mdformat.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.mdformat;
+in
+{
+  meta.maintainers = [ "sebaszv" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "mdformat";
+      includes = [ "*.md" ];
+    })
+  ];
+
+  /*
+    The options and descriptions were taken from the mdformat README
+    on the project's GitHub page:
+    <https://github.com/hukkin/mdformat>
+  */
+  options.programs.mdformat =
+    let
+      inherit (lib.types)
+        bool
+        enum
+        functionTo
+        int
+        listOf
+        nullOr
+        oneOf
+        package
+        ;
+    in
+    {
+      plugins = lib.mkOption {
+        description = ''
+          Plugins for mdformat that extend its functionality (for Markdown
+          extensions, formatting code blocks, etc).
+
+          See [mdformat docs](https://mdformat.readthedocs.io/en/stable/users/plugins.html)
+          for a (non-exhaustive) list of plugins.
+        '';
+        type = functionTo (listOf package);
+        default = _: [ ];
+        defaultText = lib.literalExpression ''
+          ps: [ ];
+        '';
+        example = lib.literalExpression ''
+          ps: [
+            ps.mdformat-footnote
+            ps.mdformat-gfm
+          ];
+        '';
+      };
+
+      settings = {
+        end-of-line = lib.mkOption {
+          description = ''
+            Output file line ending mode.
+          '';
+          type = nullOr (enum [
+            "crlf"
+            "lf"
+            "keep"
+          ]);
+          example = "lf";
+          default = null;
+        };
+
+        number = lib.mkOption {
+          description = ''
+            Apply consecutive numbering to ordered lists.
+          '';
+          type = bool;
+          example = false;
+          default = false;
+        };
+
+        wrap = lib.mkOption {
+          description = ''
+            Paragraph word wrap mode.
+            Set to an INTEGER to wrap at that length.
+          '';
+          type = nullOr (oneOf [
+            int
+            (enum [
+              "keep"
+              "no"
+            ])
+          ]);
+          example = "keep";
+          default = null;
+        };
+      };
+    };
+
+  config = lib.mkIf cfg.enable {
+    programs.mdformat.finalPackage = cfg.package.withPlugins cfg.plugins;
+    settings.formatter.mdformat.options =
+      let
+        inherit (cfg.settings)
+          end-of-line
+          number
+          wrap
+          ;
+      in
+      (lib.optionals (end-of-line != null) [
+        "--end-of-line"
+        end-of-line
+      ])
+      ++ (lib.optional number "--number")
+      ++ (lib.optionals (wrap != null) [
+        "--wrap"
+        (toString wrap)
+      ]);
+  };
+}
+</file>
+
+<file path="programs/mdsh.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "zimbatm" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "mdsh";
+      args = [ "--inputs" ];
+      includes = [ "README.md" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/meson.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.meson;
+in
+{
+  meta.maintainers = [ "RossSmyth" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "meson";
+      args = [
+        "fmt"
+        "-i"
+      ];
+      includes = [
+        "meson.build"
+        "meson.options"
+        "meson_options.txt"
+        "*/meson.build"
+        "*/meson.options"
+        "*/meson_options.txt"
+      ];
+    })
+  ];
+
+  options.programs.meson = {
+    editorconfig = lib.mkOption {
+      description = ''
+        Try to read configuration from .editorconfig
+      '';
+      type = lib.types.bool;
+      example = true;
+      default = false;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.meson.options = lib.optionals cfg.editorconfig [ "-e" ];
+  };
+}
+</file>
+
+<file path="programs/mix-format.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "mix-format";
+      package = "elixir";
+      mainProgram = "mix";
+      args = [ "format" ];
+      includes = [
+        "*.ex"
+        "*.exs"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/muon.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.muon;
+in
+{
+  meta.maintainers = [ ];
+  # Broken on macOS
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "muon";
+      args = [
+        "fmt"
+        "-i"
+      ];
+      includes = [
+        "meson.build"
+        "meson.options"
+        "meson_options.txt"
+        "*/meson.build"
+        "*/meson.options"
+        "*/meson_options.txt"
+      ];
+    })
+  ];
+
+  options.programs.muon = {
+    editorconfig = lib.mkOption {
+      description = ''
+        Try to read configuration from .editorconfig
+      '';
+      type = lib.types.bool;
+      example = true;
+      default = false;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.muon.options = lib.optionals cfg.editorconfig [ "-e" ];
+  };
+}
+</file>
+
+<file path="programs/mypy.nix">
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
+let
+  escapePath = lib.replaceStrings [ "/" "." ] [ "-" "" ];
+in
+{
+  meta.maintainers = [ ];
+  # Example contains store paths
+  meta.skipExample = true;
+
+  options.programs.mypy = {
+    enable = lib.mkEnableOption "mypy";
+    package = lib.mkPackageOption pkgs "mypy" { };
+    directories = lib.mkOption {
+      description = "Directories to run mypy in";
+      type = lib.types.attrsOf (
+        lib.types.submodule (
+          { name, ... }:
+          {
+            options = {
+              directory = lib.mkOption {
+                type = lib.types.str;
+                default = name;
+                description = "Directory to run mypy in";
+              };
+              extraPythonPackages = lib.mkOption {
+                type = lib.types.listOf lib.types.package;
+                default = [ ];
+                example = lib.literalMD "[ pkgs.python3.pkgs.requests ]";
+                description = "Extra packages to add to PYTHONPATH";
+              };
+              extraPythonPaths = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                example = [ "path/to/my/module" ];
+                description = ''
+                  Extra paths to add to PYTHONPATH.
+                  Paths are interpreted relative to the directory options and are added before extraPythonPackages.
+                '';
+              };
+              options = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ ];
+                example = [ "--ignore-missing-imports" ];
+                description = "Options to pass to mypy";
+              };
+              modules = lib.mkOption {
+                type = lib.types.listOf lib.types.str;
+                default = [ "" ];
+                example = [
+                  "mymodule"
+                  "tests"
+                ];
+                description = "Modules to check";
+              };
+            };
+          }
+        )
+      );
+      default = {
+        "" = { };
+      };
+      example = {
+        "" = {
+          modules = [
+            "mymodule"
+            "tests"
+          ];
+        };
+        "subdir" = { };
+      };
+    };
+  };
+
+  config = lib.mkIf config.programs.mypy.enable {
+    settings.formatter = lib.mapAttrs' (
+      name: cfg:
+      lib.nameValuePair "mypy-${escapePath name}" {
+        command = pkgs.bash;
+        options = [
+          "-eucx"
+          ''
+            ${lib.optionalString (cfg.directory != "") ''cd "${cfg.directory}"''}
+            export PYTHONPATH="${
+              lib.concatStringsSep ":" (
+                cfg.extraPythonPaths
+                ++ lib.optional (cfg.extraPythonPackages != [ ]) (
+                  pkgs.python3.pkgs.makePythonPath cfg.extraPythonPackages
+                )
+              )
+            }"
+            ${lib.getExe config.programs.mypy.package} ${lib.escapeShellArgs cfg.options} ${lib.escapeShellArgs cfg.modules}
+          ''
+        ];
+        includes = builtins.map (
+          module:
+          lib.concatStringsSep "/" (
+            lib.optional (cfg.directory != "") cfg.directory ++ lib.optional (module != "") module ++ [ "*.py" ]
+          )
+        ) cfg.modules;
+      }
+    ) config.programs.mypy.directories;
+  };
+}
+</file>
+
+<file path="programs/nickel.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nickel";
+      args = [ "format" ];
+      includes = [
+        "*.ncl"
+        "*.nickel"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/nimpretty.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.nimpretty;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nimpretty";
+      package = "nim";
+      includes = [ "*.nim" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.nimpretty = {
+      command = "${cfg.package}/bin/nimpretty";
+    };
+  };
+}
+</file>
+
+<file path="programs/nixf-diagnose.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nixf-diagnose";
+      includes = [ "*.nix" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/nixfmt-classic.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nixfmt-classic";
+      includes = [ "*.nix" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/nixfmt-rfc-style.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.nixfmt-rfc-style;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nixfmt-rfc-style";
+      includes = [ "*.nix" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.nixfmt-rfc-style = (
+      lib.warn ''
+         nixfmt-rfc-style is now the default for the 'nixfmt' formatter.
+        'nixfmt-rfc-style' is deprecated and will be removed in the future.
+      '' { }
+    );
+  };
+}
+</file>
+
+<file path="programs/nixfmt.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.nixfmt;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nixfmt";
+      package = "nixfmt-rfc-style";
+      includes = [ "*.nix" ];
+    })
+  ];
+
+  options.programs.nixfmt = {
+    strict = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enable a stricter formatting mode that isn't influenced
+        as much by how the input is formatted.
+      '';
+    };
+
+    width = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 120;
+      description = ''
+        Maximum width in characters [default: 100]
+      '';
+    };
+
+    indent = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 4;
+      description = ''
+        Number of spaces to use for indentation [default: 2]
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.nixfmt.options =
+      lib.optionals (!isNull cfg.width) [
+        "--width"
+        (toString cfg.width)
+      ]
+      ++ lib.optionals (!isNull cfg.indent) [
+        "--indent"
+        (toString cfg.indent)
+      ]
+      ++ lib.optional cfg.strict "--strict";
+  };
+}
+</file>
+
+<file path="programs/nixpkgs-fmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "zimbatm" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "nixpkgs-fmt";
+      includes = [ "*.nix" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/ocamlformat.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.ocamlformat;
+
+  detectVersion =
+    configFile: pkgSet:
+    let
+      optionValue =
+        list:
+        assert lib.assertMsg (list != [ ]) "treefmt-nix: Unable to detect ocamlformat version from file";
+        lib.elemAt list (lib.length list - 1);
+      trim = lib.replaceStrings [ " " ] [ "" ];
+    in
+    lib.getAttr "ocamlformat_${lib.replaceStrings [ "." ] [ "_" ] (optionValue (lib.findFirst (option: lib.head option == "version") [ ] (lib.map (n: lib.splitString "=" (trim n)) (lib.splitString "\n" (lib.readFile configFile)))))}" pkgSet;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "ocamlformat";
+      args = [ "-i" ];
+      includes = [
+        "*.ml"
+        "*.mli"
+      ];
+    })
+  ];
+
+  options.programs.ocamlformat = {
+    pkgs = lib.mkOption {
+      type = lib.types.lazyAttrsOf lib.types.raw;
+      description = "The package set used to get the ocamlformat package at a specific version.";
+      default = pkgs;
+      defaultText = lib.literalMD "Nixpkgs from context";
+    };
+
+    configFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.path;
+      description = "Path to the .ocamlformat file. Used to pick the right version of ocamlformat if passed.";
+      default = null;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.ocamlformat = {
+      command = if cfg.configFile == null then cfg.package else detectVersion cfg.configFile cfg.pkgs;
+    };
+  };
+}
+</file>
+
+<file path="programs/odinfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "odinfmt";
+      package = "ols";
+      mainProgram = "odinfmt";
+      args = [ "-w" ];
+      includes = [
+        "*.odin"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/opa.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "opa";
+      package = "open-policy-agent";
+      args = [
+        "fmt"
+        "-w"
+      ];
+      includes = [ "*.rego" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/ormolu.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.ormolu;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "ormolu";
+      args = [
+        "--mode"
+        "inplace"
+        "--check-idempotence"
+      ];
+      includes = [ "*.hs" ];
+    })
+  ];
+
+  options.programs.ormolu = {
+    ghcOpts = lib.mkOption {
+      description = "Which GHC language extensions to enable";
+      default = [
+        "BangPatterns"
+        "PatternSynonyms"
+        "TypeApplications"
+      ];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.ormolu = {
+      options = (
+        lib.concatMap (x: [
+          "--ghc-opt"
+          "-X${x}"
+        ]) cfg.ghcOpts
+      );
+    };
+  };
+}
+</file>
+
+<file path="programs/oxipng.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.oxipng;
+in
+{
+  meta.maintainers = [ "nim65s" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "oxipng";
+      includes = [ "*.png" ];
+    })
+  ];
+
+  options.programs.oxipng = {
+    alpha = lib.mkEnableOption "Perform additional optimization on images with an alpha channel";
+    opt = lib.mkOption {
+      description = "Set the optimization level preset";
+      type = with lib.types; str;
+      example = "max";
+      default = "2";
+    };
+    scale16 = lib.mkEnableOption "Forcibly reduce images with 16 bits per channel to 8 bits per channel";
+    strip = lib.mkOption {
+      description = "Strip metadata chunks";
+      type = with lib.types; nullOr str;
+      example = "safe";
+      default = null;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.oxipng = {
+      options = [
+        "--opt"
+        cfg.opt
+      ]
+      ++ lib.optionals cfg.alpha [
+        "--alpha"
+      ]
+      ++ lib.optionals cfg.scale16 [
+        "--scale16"
+      ]
+      ++ lib.optionals (cfg.strip != null) [
+        "--strip"
+        cfg.strip
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/packer.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.packer;
+
+  # `packer fmt` accepts only a single template as an argument:
+  # > $ packer fmt -h |& head -n 1
+  # > Usage: packer fmt [options] [TEMPLATE]
+  # `packer fmt` supports recursively formatting all `*.pkr.hcl` and
+  # `*.pkrvars.hcl` files in a specified directory, but since we want to
+  # control the exact list of files-to-be-formatted, we instead have to invoke
+  # `packer fmt` once per selected file.  Consequently, we need a means of
+  # distinguishing which arguments are options (from
+  # `settings.formatter.packer.options`) and which are filenames; this is so
+  # that we can pass all options to each `packer fmt`.  The traditional `--`
+  # sequence suits this purpose.
+  command = pkgs.writers.writeBashBin "treefmt-nix-packer-fmt-wrapper" ''
+      set -eu
+
+      declare -a opts
+      saw_separator=0
+      while (( "$#" > 0 )); do
+        if [[ "$1" = -- ]]; then
+          saw_separator=1
+          shift
+          break
+        fi
+
+        opts+=("$1")
+        shift
+      done
+
+      if [[ "$saw_separator" = 0 ]]; then
+        echo 1>&2 "\
+    Error: ''${0##*/}: the end-of-options separator sequence is missing.
+    Please ensure that the final entry in 'settings.formatter.packer.options' is a bare double-dash ('--').
+    Otherwise, this program cannot determine which arguments are options to 'packer fmt' and which are filenames."
+        exit 1
+      fi
+
+      rc=0
+      for tmpl in "$@"; do
+        ${lib.escapeShellArg cfg.package}/bin/packer fmt "''${opts[@]}" "$tmpl" || rc="$?"
+      done
+
+      exit "''${rc:-0}"
+  '';
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "packer";
+      includes = [
+        "*.pkr.hcl"
+        "*.pkrvars.hcl"
+      ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.packer = {
+      inherit command;
+      options = lib.mkAfter [ "--" ];
+    };
+  };
+}
+</file>
+
+<file path="programs/perltidy.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.perltidy;
+in
+{
+  meta.maintainers = [ "haruki7049" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "perltidy";
+      package = [
+        "perlPackages"
+        "PerlTidy"
+      ];
+      args = [
+        "-b"
+        "-bext='/'"
+      ];
+      includes = [ "*.pl" ];
+    })
+  ];
+
+  options.programs.perltidy = {
+    perltidyrc = lib.mkOption {
+      description = "A path for perltidy's configuration file, usually named .perltidyrc";
+      type = lib.types.nullOr lib.types.path;
+      default = null;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.perltidy = {
+      options = lib.optional (cfg.perltidyrc != null) "-pro=${cfg.perltidyrc}";
+    };
+  };
+}
+</file>
+
+<file path="programs/php-cs-fixer.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib) types;
+  cfg = config.programs.php-cs-fixer;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "php-cs-fixer";
+      package = [
+        "php83Packages"
+        "php-cs-fixer"
+      ];
+      args = [ "fix" ];
+      includes = [ "*.php" ];
+    })
+  ];
+
+  options.programs.php-cs-fixer = {
+    configFile = lib.mkOption {
+      description = "Path to php-cs-fixer config file.";
+      type = types.oneOf [
+        types.str
+        types.path
+      ];
+      default = "./.php-cs-fixer.php";
+      example = "./.php-cs-fixer.dist.php";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.php-cs-fixer = {
+      options = [
+        "--config"
+        "${cfg.configFile}"
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/pinact.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+
+let
+  cfg = config.programs.pinact;
+
+  settingsFormat = pkgs.formats.yaml { };
+in
+
+{
+  meta.maintainers = [ "katexochen" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "pinact";
+      args = [ "run" ];
+      includes = [
+        ".github/workflows/*.yml"
+        ".github/workflows/*.yaml"
+        "**/action.yml"
+        "**/action.yaml"
+      ];
+    })
+  ];
+
+  options.programs.pinact = {
+    update = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Update actions to latest versions.";
+    };
+    verify = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Verify if pairs of commit SHA and version are correct.";
+    };
+    settings = lib.mkOption {
+      type = lib.types.submodule { freeformType = settingsFormat.type; };
+      default = { };
+      description = ''
+        Configuration for pinact, see
+        <link xlink:href="https://github.com/suzuki-shunsuke/pinact?tab=readme-ov-file#configuration"/>
+        for supported values.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.pinact = {
+      options =
+        lib.optional (cfg.settings != { }) "--config=${settingsFormat.generate "pinact.yaml" cfg.settings}"
+        ++ lib.optional (cfg.update) "--update"
+        ++ lib.optional (cfg.verify) "--verify";
+
+    };
+  };
+}
+</file>
+
+<file path="programs/prettier.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib) filterAttrsRecursive mkOption types;
+
+  cfg = config.programs.prettier;
+  configFormat = pkgs.formats.json { };
+
+  # Configuration schema for Prettier, which we generate prettierrc.json with.
+  # Definition taken from: http://json.schemastore.org/prettierrc
+  settingsSchema = {
+    arrowParens = mkOption {
+      description = "Include parentheses around a sole arrow function parameter.";
+      type = types.nullOr (
+        types.enum [
+          "always"
+          "avoid"
+        ]
+      );
+      example = "always";
+      default = null;
+    };
+    bracketSameLine = mkOption {
+      description = ''
+        Put > of opening tags on the last line instead of on a new line.
+      '';
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    bracketSpacing = mkOption {
+      description = "Print spaces between brackets";
+      type = types.nullOr types.bool;
+      example = true;
+      default = null;
+    };
+    cursorOffset = mkOption {
+      description = ''
+        Print (to stderr) where a cursor at the given position would move to
+        after formatting. This option cannot be used with --range-start and
+        --range-end.
+      '';
+      type = types.nullOr types.int;
+      example = -1;
+      default = null;
+    };
+    editorconfig = mkOption {
+      description = ''
+        Whether parse the .editorconfig file in your project and convert its
+        properties to the corresponding Prettier configuration. This
+        configuration will be overridden by .prettierrc, etc.
+      '';
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    embeddedLanguageFormatting = mkOption {
+      description = ''
+        Control how Prettier formats quoted code embedded in the file.
+      '';
+      type = types.nullOr (
+        types.enum [
+          "auto"
+          "off"
+        ]
+      );
+      example = "auto";
+      default = null;
+    };
+    endOfLine = mkOption {
+      description = "Which end of line characters to apply.";
+      type = types.nullOr (
+        types.enum [
+          "lf"
+          "crlf"
+          "cr"
+          "auto"
+        ]
+      );
+      example = "lf";
+      default = null;
+    };
+    filepath = mkOption {
+      description = ''
+        Specify the input filepath. This will be used to do parser inference.
+      '';
+      type = types.nullOr types.str;
+      example = "example.js";
+      default = null;
+    };
+    htmlWhitespaceSensitivity = mkOption {
+      description = "How to handle whitespaces in HTML.";
+      type = types.nullOr (
+        types.enum [
+          "css"
+          "strict"
+          "ignore"
+        ]
+      );
+      example = "css";
+      default = null;
+    };
+    insertPragma = mkOption {
+      description = ''
+        Insert @format pragma into file's first docblock commentypes.
+      '';
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    jsxSingleQuote = mkOption {
+      description = "Use single quotes in JSX";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    parser = mkOption {
+      description = "Which parser to use.";
+      type = types.nullOr (
+        types.either (types.enum [
+          "flow"
+          "babel"
+          "babel-flow"
+          "babel-ts"
+          "typescript"
+          "acorn"
+          "espree"
+          "meriyah"
+          "css"
+          "less"
+          "scss"
+          "json"
+          "json5"
+          "json-stringify"
+          "graphql"
+          "markdown"
+          "mdx"
+          "vue"
+          "yaml"
+          "glimmer"
+          "html"
+          "angular"
+          "lwc"
+        ]) types.str
+      );
+      example = "typescript";
+      default = null;
+    };
+    pluginSearchDirs = mkOption {
+      description = ''
+        Custom directory that contains prettier plugins in node_modules
+        subdirectory. Overrides default behavior when plugins are searched
+        relatively to the location of Prettier.\nMultiple values are accepted.
+      '';
+      type = types.nullOr (types.either (types.listOf types.str) (types.enum [ false ]));
+      example = false;
+      default = null;
+    };
+    plugins = mkOption {
+      description = ''
+        Add a plugin. Multiple plugins can be passed as separate `--plugin`s.
+      '';
+      type = types.nullOr (types.listOf types.str);
+      example = [ "@prettier/plugin-xml" ];
+      default = null;
+    };
+    printWidth = mkOption {
+      description = "The line length where Prettier will try wrap.";
+      type = types.nullOr types.int;
+      example = 80;
+      default = null;
+    };
+    proseWrap = mkOption {
+      description = "How to wrap prose.";
+      type = types.nullOr (
+        types.enum [
+          "always"
+          "never"
+          "preserve"
+        ]
+      );
+      example = "preserve";
+      default = null;
+    };
+    quoteProps = mkOption {
+      description = "Change when properties in objects are quoted";
+      type = types.nullOr (
+        types.enum [
+          "as-needed"
+          "consistent"
+          "preserve"
+        ]
+      );
+      example = "as-needed";
+      default = null;
+    };
+    rangeEnd = mkOption {
+      description = ''
+        Format code ending at a given character offset (exclusive). The range
+        will extend forwards to the end of the selected statementypes. This
+        option cannot be used with --cursor-offsetypes.
+      '';
+      type = types.nullOr types.str;
+      example = 0;
+      default = null;
+    };
+    rangeStart = mkOption {
+      description = ''
+        Format code starting at a given character offsetypes. The range will
+        extend backwards to the start of the first line containing the selected
+        statementypes. his option cannot be used with --cursor-offsetypes.
+      '';
+      type = types.nullOr types.int;
+      example = 0;
+      default = null;
+    };
+    requirePragma = mkOption {
+      description = ''
+        Require either '@prettier' or '@format' to be present in the file's
+        first docblock comment\nin order for it to be formatted.
+      '';
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    semi = mkOption {
+      description = "Print semicolons.";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    singleAttributePerLine = mkOption {
+      description = "Enforce single attribute per line in HTML, Vue and JSX.";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    singleQuote = mkOption {
+      description = "Use single quotes instead of double quotes.";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    tabWidth = mkOption {
+      description = "Number of spaces per indentation level.";
+      type = types.nullOr types.int;
+      example = 2;
+      default = null;
+    };
+    trailingComma = mkOption {
+      description = "Print trailing commas wherever possible when multi-line.";
+      type = types.nullOr (
+        types.enum [
+          "es5"
+          "none"
+          "all"
+        ]
+      );
+      example = "es5";
+      default = null;
+    };
+    useTabs = mkOption {
+      description = "Indent with tabs instead of spaces";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    vueIndentScriptAndStyle = mkOption {
+      description = "Indent script and style tags in Vue files.";
+      type = types.nullOr types.bool;
+      example = false;
+      default = null;
+    };
+    overrides = mkOption {
+      description = ''
+        Provide a list of patterns to override prettier configuration.
+      '';
+      type = types.nullOr (types.listOf types.attrs);
+      example = {
+        files = [
+          "*.html"
+          "legacy/**/*.js"
+        ];
+        options.tabwidth = 4;
+      };
+      default = null;
+    };
+  };
+
+  settingsFile =
+    let
+      # remove all null values
+      settings = filterAttrsRecursive (_n: v: v != null) cfg.settings;
+    in
+    if settings != { } then configFormat.generate "prettierrc.json" settings else null;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "prettier";
+      package = [
+        "nodePackages"
+        "prettier"
+      ];
+      args = [ "--write" ];
+      includes = [
+        "*.cjs"
+        "*.css"
+        "*.html"
+        "*.js"
+        "*.json"
+        "*.json5"
+        "*.jsx"
+        "*.md"
+        "*.mdx"
+        "*.mjs"
+        "*.scss"
+        "*.ts"
+        "*.tsx"
+        "*.vue"
+        "*.yaml"
+        "*.yml"
+      ];
+    })
+  ];
+
+  options.programs.prettier = {
+    # Represents the prettierrc.json config schema
+    settings = settingsSchema;
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.prettier = {
+      options = lib.optionals (settingsFile != null) [
+        "--config"
+        (toString settingsFile)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/protolint.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "protolint";
+      args = [
+        "lint"
+        "-fix"
+      ];
+      includes = [ "*.proto" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/purs-tidy.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "purs-tidy";
+      package = [
+        "nodePackages"
+        "purs-tidy"
+      ];
+      args = [ "format-in-place" ];
+      includes = [
+        "src/**/*.purs"
+        "test/**/*.purs"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/rstfmt.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.rstfmt;
+in
+{
+  meta.maintainers = [ "rbpatt2019" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "rstfmt";
+      includes = [
+        "*.rst"
+        "*.txt"
+      ];
+    })
+  ];
+
+  options.programs.rstfmt = {
+    line_length = lib.mkOption {
+      type = lib.types.int;
+      default = 72;
+      example = 80;
+      description = ''
+        Sets the line length.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.rstfmt = {
+      options = [
+        "-w"
+        (toString cfg.line_length)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/rubocop.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "rubocop";
+      includes = [ "*.rb" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/ruff-check.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.ruff-check;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (lib.mkRenamedOptionModule
+      [ "programs" "ruff" "check" ]
+      [
+        "programs"
+        "ruff-check"
+        "enable"
+      ]
+    )
+    (lib.mkRenamedOptionModule
+      [ "programs" "ruff" "enable" ]
+      [
+        "programs"
+        "ruff-check"
+        "enable"
+      ]
+    )
+    (mkFormatterModule {
+      name = "ruff-check";
+      package = "ruff";
+      args = [
+        "check"
+        "--fix"
+      ];
+      includes = [
+        "*.py"
+        "*.pyi"
+      ];
+    })
+  ];
+
+  options.programs.ruff-check = {
+    extendSelect = lib.mkOption {
+      description = ''
+        --extend-select options
+      '';
+      type = lib.types.listOf lib.types.str;
+      example = [ "I" ];
+      default = [ ];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.ruff-check = {
+      options = lib.optionals ((builtins.length cfg.extendSelect) != 0) [
+        "--extend-select"
+        (lib.concatStringsSep "," cfg.extendSelect)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/ruff-format.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.ruff-format;
+in
+{
+  meta.maintainers = [ "sebaszv" ];
+
+  imports = [
+    (lib.mkRenamedOptionModule
+      [ "programs" "ruff" "format" ]
+      [
+        "programs"
+        "ruff-format"
+        "enable"
+      ]
+    )
+    (mkFormatterModule {
+      name = "ruff-format";
+      package = "ruff";
+      args = [ "format" ];
+      includes = [
+        "*.py"
+        "*.pyi"
+      ];
+    })
+  ];
+
+  options.programs.ruff-format = {
+    lineLength = lib.mkOption {
+      description = ''
+        Set the line-length.
+      '';
+      type = with lib.types; nullOr int;
+      example = 79;
+      default = null;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.ruff-format = {
+      options = lib.mkIf (cfg.lineLength != null) [
+        "--line-length"
+        (toString cfg.lineLength)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/rufo.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "rufo";
+      args = [ "-x" ];
+      includes = [ "*.rb" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/rustfmt.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.rustfmt;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "rustfmt";
+      mainProgram = "rustfmt";
+      args = [
+        "--config"
+        "skip_children=true"
+      ];
+      includes = [ "*.rs" ];
+    })
+  ];
+
+  options.programs.rustfmt = {
+    edition = lib.mkOption {
+      type = lib.types.str;
+      default = "2024";
+      description = ''
+        Rust edition to target when formatting
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.rustfmt = {
+      options = [
+        "--edition"
+        cfg.edition
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/scalafmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "scalafmt";
+      includes = [
+        "*.sbt"
+        "*.scala"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/shellcheck.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "zimbatm" ];
+  meta.brokenPlatforms = [ "riscv64-linux" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "shellcheck";
+      includes = [
+        "*.sh"
+        "*.bash"
+        # direnv
+        "*.envrc"
+        "*.envrc.*"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/shfmt.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.shfmt;
+in
+{
+  meta.maintainers = [
+    "zimbatm"
+    "katexochen"
+  ];
+  meta.brokenPlatforms = [ "riscv64-linux" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "shfmt";
+      args = [ "-w" ];
+      includes = [
+        "*.sh"
+        "*.bash"
+        # direnv
+        "*.envrc"
+        "*.envrc.*"
+      ];
+    })
+  ];
+
+  options.programs.shfmt = {
+    indent_size = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = 2;
+      example = 4;
+      description = ''
+        Sets the number of spaces to be used in indentation. Uses tabs if set to
+        zero. If this is null, then [.editorconfig will be used to configure
+        shfmt](https://github.com/patrickvane/shfmt#description).
+      '';
+    };
+
+    simplify = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = ''
+        Enables the `-s` (`--simplify`) flag, which simplifies code where possible.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.shfmt.options =
+      (lib.optionals (!isNull cfg.indent_size) [
+        "-i"
+        (toString cfg.indent_size)
+      ])
+      ++ (lib.optionals (cfg.simplify) [ "-s" ]);
+  };
+}
+</file>
+
+<file path="programs/sizelint.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib) mkOption types;
+
+  cfg = config.programs.sizelint;
+  configFormat = pkgs.formats.toml { };
+  settingsSchema = mkOption {
+    description = "Configuration to generate sizelint.toml with";
+    default = { };
+    type = types.submodule { freeformType = configFormat.type; };
+  };
+  settingsFile =
+    if cfg.settings != { } then configFormat.generate "sizelint.toml" (cfg.settings) else null;
+in
+{
+  meta.maintainers = [ "a-kenji" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "sizelint";
+      args = [ "check" ];
+      includes = [ "*" ];
+    })
+  ];
+
+  options.programs.sizelint = {
+    settings = settingsSchema;
+    failOnWarn = lib.mkEnableOption "fail-on-warn";
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.sizelint = {
+      options =
+        lib.optionals (settingsFile != null) [
+          "--config"
+          (toString settingsFile)
+        ]
+        ++ lib.optional cfg.failOnWarn "--fail-on-warn";
+    };
+  };
+}
+</file>
+
+<file path="programs/sql-formatter.nix">
+{
+  pkgs,
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.sql-formatter;
+
+  dialects = [
+    "bigquery"
+    "db2"
+    "db2i"
+    "hive"
+    "mariadb"
+    "mysql"
+    "n1ql"
+    "plsql"
+    "postgresql"
+    "redshift"
+    "spark"
+    "sqlite"
+    "sql"
+    "tidb"
+    "trino"
+    "transactsql"
+    "tsql"
+    "singlestoredb"
+    "snowflake"
+  ];
+in
+{
+  imports = [
+    (mkFormatterModule {
+      name = "sql-formatter";
+      package = "sql-formatter";
+      includes = [ "*.sql" ];
+    })
+  ];
+
+  options.programs.sql-formatter = {
+    dialect = lib.mkOption {
+      description = "The sql dialect to use for formatting";
+      type = with lib.types; nullOr (enum dialects);
+      default = null;
+      example = "postgresql";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.sql-formatter = {
+      # sql-formatter doesn't support multiple file targets
+      # see https://github.com/sql-formatter-org/sql-formatter/issues/552
+      command = pkgs.writeShellScriptBin "sql-formatter-fix" ''
+        for file in "$@"; do
+          ${cfg.package}/bin/sql-formatter --fix ${
+            lib.optionalString (cfg.dialect != null) "-l ${cfg.dialect}"
+          } $file
+        done
+      '';
+    };
+  };
+}
+</file>
+
+<file path="programs/sqlfluff-lint.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  fcfg = config.programs.sqlfluff;
+  cfg = config.programs.sqlfluff-lint;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "sqlfluff-lint";
+      package = "sqlfluff";
+      args = [
+        "lint"
+        "--disable-progress-bar"
+        "--processes"
+        "0"
+      ];
+      includes = [ "*.sql" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.sqlfluff-lint = {
+      options = lib.optionals (fcfg.dialect != null) [
+        "--dialect=${fcfg.dialect}"
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/sqlfluff.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.sqlfluff;
+
+  # https://github.com/sqlfluff/sqlfluff/blob/main/README.md#dialects-supported
+  dialects = [
+    "db2"
+    "ansi"
+    "soql"
+    "tsql"
+    "hive"
+    "trino"
+    "mysql"
+    "oracle"
+    "sqlite"
+    "duckdb"
+    "exasol"
+    "athena"
+    "mariadb"
+    "vertica"
+    "teradata"
+    "redshift"
+    "sparksql"
+    "bigquery"
+    "postgres"
+    "greenplum"
+    "snowflake"
+    "materializ"
+    "clickhouse"
+    "databricks"
+  ];
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "sqlfluff";
+      args = [
+        "format"
+        "--disable-progress-bar"
+        "--processes"
+        "0"
+      ];
+      includes = [ "*.sql" ];
+    })
+  ];
+
+  options.programs.sqlfluff = {
+    dialect = lib.mkOption {
+      description = "The sql dialect to use for formatting";
+      type = with lib.types; nullOr (enum dialects);
+      default = null;
+      example = "sqlite";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.sqlfluff = {
+      options = lib.optionals (cfg.dialect != null) [
+        "--dialect=${cfg.dialect}"
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/sqruff.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "sqruff";
+      args = [
+        "fix"
+        "--force"
+      ];
+      includes = [ "*.sql" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/statix.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.statix;
+  configFormat = pkgs.formats.toml { };
+  settingsFile = configFormat.generate "statix.toml" { disabled = cfg.disabled-lints; };
+
+  # statix requires its configuration file to be named statix.toml exactly
+  # See: https://github.com/nerdypepper/statix/pull/54
+  settingsDir = pkgs.runCommandLocal "statix-config" { } ''
+    mkdir "$out"
+    cp ${settingsFile} "''${out}/statix.toml"
+  '';
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "statix";
+      includes = [ "*.nix" ];
+    })
+  ];
+
+  options.programs.statix = {
+    disabled-lints = lib.mkOption {
+      description = ''
+        List of ignored lints. Run `statix list` to see all available lints.
+      '';
+      type = with lib.types; listOf str;
+      example = [ "empty_pattern" ];
+      default = [ ];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.statix = {
+      # statix doesn't support multiple file targets
+      command = pkgs.writeShellScriptBin "statix-fix" ''
+        for file in "$@"; do
+          ${lib.getExe cfg.package} fix --config '${toString settingsDir}/statix.toml' "$file"
+        done
+      '';
+    };
+  };
+}
+</file>
+
+<file path="programs/stylish-haskell.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "stylish-haskell";
+      args = [
+        "-i"
+        "-r"
+      ];
+      includes = [ "*.hs" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/stylua.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib.types)
+    bool
+    int
+    enum
+    nullOr
+    ;
+
+  cfg = config.programs.stylua;
+  configFormat = pkgs.formats.toml { };
+
+  /*
+    The schema and descriptions were taken from the StyLua README
+    on the project's GitHub page:
+    <https://github.com/JohnnyMorganz/StyLua/blob/main/README.md>
+  */
+  settingsSchema = {
+    column_width = lib.mkOption {
+      description = ''
+        Approximate line length for printing.
+
+        Used as a guide for line wrapping -
+        this is not a hard requirement:
+        lines may fall under or over the limit.
+      '';
+      type = nullOr int;
+      example = 120;
+      default = null;
+    };
+
+    line_endings = lib.mkOption {
+      description = ''
+        Line endings type.
+      '';
+      type = nullOr (enum [
+        "Unix"
+        "Windows"
+      ]);
+      example = "Unix";
+      default = null;
+    };
+
+    indent_type = lib.mkOption {
+      description = ''
+        Indent type.
+      '';
+      type = nullOr (enum [
+        "Tabs"
+        "Spaces"
+      ]);
+      example = "Tabs";
+      default = null;
+    };
+
+    indent_width = lib.mkOption {
+      description = ''
+        Character size of single indentation.
+
+        If `indent_type` is set to `Tabs`,
+        this option is used as a heuristic to
+        determine column width only.
+      '';
+      type = nullOr int;
+      example = 4;
+      default = null;
+    };
+
+    quote_style = lib.mkOption {
+      description = ''
+        Quote style for string literals.
+
+        `AutoPrefer` styles will prefer the
+        specified quote style, but fall back to
+        the alternative if it has fewer string
+        escapes. `Force` styles always use the
+        specified style regardless of escapes.
+      '';
+      type = nullOr (enum [
+        "AutoPreferDouble"
+        "AutoPreferSingle"
+        "ForceDouble"
+        "ForceSingle"
+      ]);
+      example = "AutoPreferDouble";
+      default = null;
+    };
+
+    call_parentheses = lib.mkOption {
+      description = ''
+        Whether parentheses should be applied on
+        function calls with a single string/table
+        argument.  `Always` applies parentheses in
+        all cases. `NoSingleString` omits
+        parentheses on calls with a single string
+        argument. Similarly, `NoSingleTable` omits
+        parentheses on calls with a single table
+        argument. `None` omits parentheses in both
+        cases.
+
+        Note: parentheses are still kept in situations
+        where removal can lead to obscurity
+        (e.g. `foo "bar".setup -> foo("bar").setup`,
+        since the index is on the call result, not the string).
+
+        `Input` removes all automation and preserves
+        parentheses only if they were present in input code:
+        consistency is not enforced.
+      '';
+      type = nullOr (enum [
+        "Always"
+        "NoSingleString"
+        "NoSingleTable"
+        "None"
+        "Input"
+      ]);
+      example = "Always";
+      default = null;
+    };
+
+    collapse_simple_statement = lib.mkOption {
+      description = ''
+        Specify whether to collapse simple statements.
+      '';
+      type = nullOr (enum [
+        "Never"
+        "FunctionOnly"
+        "ConditionalOnly"
+        "Always"
+      ]);
+      example = "Never";
+      default = null;
+    };
+
+    sort_requires.enabled = lib.mkOption {
+      description = ''
+        StyLua has built-in support for sorting
+        require statements. We group consecutive
+        require statements into a single "block",
+        and then requires are sorted only within
+        that block. Blocks of requires do not
+        move around the file.
+
+        We only include requires of the form
+        `local NAME = require(EXPR)`, and sort
+        lexicographically based on `NAME`.
+        (We also sort Roblox services of the form
+        `local NAME = game:GetService(EXPR)`)
+      '';
+      type = nullOr bool;
+      example = false;
+      default = null;
+    };
+  };
+
+  settingsFile =
+    let
+      filterOutNull = lib.filterAttrsRecursive (_: v: v != null);
+      filterOutEmptyAttrs = lib.filterAttrsRecursive (_: v: v != { });
+
+      settings = filterOutEmptyAttrs (filterOutNull cfg.settings);
+    in
+    if settings != { } then configFormat.generate "stylua.toml" settings else null;
+in
+{
+  meta.maintainers = [ "sebaszv" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "stylua";
+      includes = [ "*.lua" ];
+    })
+  ];
+
+  options.programs.stylua = {
+    settings = settingsSchema;
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.stylua = {
+      options = lib.mkIf (settingsFile != null) [
+        "--config-path"
+        (toString settingsFile)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/swift-format.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  # See https://github.com/numtide/treefmt-nix/pull/201
+  meta.broken = true;
+
+  imports = [
+    (mkFormatterModule {
+      name = "swift-format";
+      args = [ "-i" ];
+      includes = [ "*.swift" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/taplo.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  inherit (lib) mkOption types;
+
+  cfg = config.programs.taplo;
+  configFormat = pkgs.formats.toml { };
+  settingsSchema = mkOption {
+    description = "Configuration to generate taplo.toml with";
+    default = { };
+    type = types.submodule { freeformType = configFormat.type; };
+  };
+  settingsFile =
+    if cfg.settings != { } then
+      configFormat.generate "taplo.toml" (
+        cfg.settings
+        // {
+          include = cfg.includes;
+          exclude = cfg.excludes;
+        }
+      )
+    else
+      null;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "taplo";
+      args = [ "format" ];
+      includes = [ "*.toml" ];
+    })
+  ];
+
+  options.programs.taplo = {
+    settings = settingsSchema;
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.taplo = {
+      options = lib.optionals (settingsFile != null) [
+        "--config"
+        (toString settingsFile)
+      ];
+    };
+  };
+}
+</file>
+
+<file path="programs/templ.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.programs.templ;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "templ";
+      args = [ "fmt" ];
+      includes = [ "*.templ" ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.templ = {
+      command = pkgs.writeShellApplication {
+        name = "templ";
+        runtimeInputs = [
+          pkgs.go
+          pkgs.templ
+        ];
+        text = ''
+          exec templ "$@"
+        '';
+      };
+    };
+  };
+}
+</file>
+
+<file path="programs/terraform.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "terraform";
+      package = "opentofu";
+      args = [ "fmt" ];
+      # All opentofu-supported files
+      includes = [
+        "*.tf"
+        "*.tfvars"
+        "*.tftest.hcl"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/texfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "texfmt";
+      package = "tex-fmt";
+      includes = [
+        "*.tex"
+        "*.sty"
+        "*.cls"
+        "*.bib"
+        "*.cmh"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/toml-sort.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.toml-sort;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "toml-sort";
+      args = [ "-i" ];
+      includes = [ "*.toml" ];
+    })
+  ];
+
+  options.programs.toml-sort = {
+    all = lib.mkEnableOption "sort ALL keys";
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.toml-sort = {
+      options = lib.optional cfg.all "--all";
+    };
+  };
+}
+</file>
+
+<file path="programs/typos.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.typos;
+in
+{
+  meta.maintainers = [ "adam-gaia" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "typos";
+      args = [
+        "--write-changes"
+
+        # Treefmt may pass files otherwise ignored by typos (e.g. files ignored in typos.toml).
+        # '--force-exclude' stops typos from acting on any ignored files passed
+        "--force-exclude"
+      ];
+      includes = [ "*" ];
+    })
+  ];
+
+  options.programs.typos = {
+    threads = lib.mkOption {
+      type = lib.types.nullOr lib.types.int;
+      default = null;
+      example = 2;
+      description = "The approximate number of threads to use [default: 0]";
+    };
+
+    sort = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      example = true;
+      description = "Sort results";
+    };
+
+    configFile = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "typos.toml";
+      description = "Custom config file";
+    };
+
+    isolated = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Ignore implicit configuration files";
+    };
+
+    hidden = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Search hidden files and directories";
+    };
+
+    noIgnore = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't respect ignore files";
+    };
+
+    noIgnoreDot = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't respect .ignore files";
+    };
+
+    noIgnoreGlobal = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't respect global ignore files";
+    };
+
+    noIgnoreParent = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't respect ignore files in parent directories";
+    };
+
+    noIgnoreVCS = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Don't respect ignore files in vsc directories";
+    };
+
+    binary = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Search binary files";
+    };
+
+    noCheckFilenames = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Skip verifying spelling in file names";
+    };
+
+    noCheckFiles = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Skip verifying spelling in files";
+    };
+
+    noUnicode = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = "Only allow ASCII characters in identifiers";
+    };
+
+    locale = lib.mkOption {
+      type = lib.types.nullOr (
+        lib.types.enum [
+          "en"
+          "en-us"
+          "en-gb"
+          "en-ca"
+          "en-au"
+        ]
+      );
+      default = null;
+      description = "Language locale to suggest corrections for [possible values: en, en-us, en-gb, en-ca, en-au]";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.typos = {
+      options =
+        (lib.optionals (!isNull cfg.threads) [
+          "--threads"
+          (toString cfg.threads)
+        ])
+        ++ (lib.optionals (!isNull cfg.locale) [
+          "--locale"
+          (toString cfg.locale)
+        ])
+        ++ (lib.optionals (!isNull cfg.configFile) [
+          "--config"
+          cfg.configFile
+        ])
+        ++ lib.optional cfg.sort "--sort"
+        ++ lib.optional cfg.isolated "--isolated"
+        ++ lib.optional cfg.hidden "--hidden"
+        ++ lib.optional cfg.noIgnore "--no-ignore"
+        ++ lib.optional cfg.noIgnoreDot "--no-ignore-dot"
+        ++ lib.optional cfg.noIgnoreGlobal "--no-ignore-global"
+        ++ lib.optional cfg.noIgnoreParent "--no-ignore-parent"
+        ++ lib.optional cfg.noIgnoreVCS "--no-ignore-vcs"
+        ++ lib.optional cfg.binary "--binary"
+        ++ lib.optional cfg.noCheckFilenames "--no-check-filenames"
+        ++ lib.optional cfg.noCheckFiles "--no-check-files"
+        ++ lib.optional cfg.noUnicode "--no-unicode";
+    };
+  };
+}
+</file>
+
+<file path="programs/typstfmt.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "typstfmt";
+      includes = [
+        "*.typ"
+        "*.typst"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/typstyle.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.typstyle;
+in
+{
+  meta.maintainers = [ "SigmaSquadron" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "typstyle";
+      args = [ "-i" ];
+      includes = [
+        "*.typ"
+        "*.typst"
+      ];
+    })
+  ];
+
+  options.programs.typstyle = with lib; {
+    indentWidth = mkOption {
+      type = types.nullOr types.int;
+      default = null;
+      example = 4;
+      description = ''
+        Number of spaces per indent level (default: 2).
+      '';
+    };
+    lineWidth = mkOption {
+      type = types.nullOr types.int;
+      default = null;
+      example = 100;
+      description = ''
+        Maximum line width in characters (default: 80).
+      '';
+    };
+    wrapText = mkEnableOption "line wrapping of markup text";
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.typstyle.options =
+      lib.optional cfg.wrapText "--wrap-text"
+      ++ lib.optionals (!isNull cfg.lineWidth) [
+        "--line-width"
+        (toString cfg.lineWidth)
+      ]
+      ++ lib.optionals (!isNull cfg.indentWidth) [
+        "--indent-width"
+        (toString cfg.indentWidth)
+      ];
+  };
+
+}
+</file>
+
+<file path="programs/xmllint.nix">
+{
+  config,
+  lib,
+  mkFormatterModule,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.programs.xmllint;
+in
+{
+  meta.maintainers = [ "andrea11" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "xmllint";
+      package = "libxml2";
+      includes = [
+        "*.xml"
+        "*.svg"
+        "*.xhtml"
+        "*.xsl"
+        "*.xslt"
+        "*.dtd"
+        "*.xsd"
+      ];
+    })
+  ];
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.xmllint = {
+      # xmllint doesn't format in place by default
+      command = pkgs.writeShellApplication {
+        name = "xmllint-wrapper";
+        text = ''
+          for file in "$@"; do
+            ${lib.getExe' cfg.package "xmllint"} --format "$file" --output "$file"
+          done
+        '';
+      };
+    };
+  };
+}
+</file>
+
+<file path="programs/yamlfmt.nix">
+{
+  lib,
+  pkgs,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.yamlfmt;
+
+  settingsFormat = pkgs.formats.yaml { };
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "yamlfmt";
+      includes = [
+        "*.yaml"
+        "*.yml"
+      ];
+    })
+  ];
+
+  options.programs.yamlfmt = {
+    settings = lib.mkOption {
+      type = lib.types.submodule { freeformType = settingsFormat.type; };
+      default = { };
+      description = ''
+        Configuration for yamlfmt, see
+        <link xlink:href="https://github.com/google/yamlfmt/blob/main/docs/config-file.md"/>
+        for supported values.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.yamlfmt = {
+      options = lib.optional (
+        cfg.settings != { }
+      ) "-conf=${settingsFormat.generate "yamlfmt.conf" cfg.settings}";
+    };
+  };
+}
+</file>
+
+<file path="programs/yapf.nix">
+{ mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "c4patino" ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "yapf";
+      includes = [
+        "*.py"
+        "*.pyi"
+      ];
+      args = [ "--in-place" ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/zig.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ ];
+  # Broken on macOS
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "zig";
+      package = "zig";
+      args = [ "fmt" ];
+      includes = [
+        "*.zig"
+        "*.zon"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/zizmor.nix">
+{ lib, mkFormatterModule, ... }:
+{
+  meta.maintainers = [ "katexochen" ];
+  meta.brokenPlatforms = lib.platforms.darwin;
+
+  imports = [
+    (mkFormatterModule {
+      name = "zizmor";
+      includes = [
+        ".github/workflows/*.yml"
+        ".github/workflows/*.yaml"
+        ".github/actions/**/*.yml"
+        ".github/actions/**/*.yaml"
+      ];
+    })
+  ];
+}
+</file>
+
+<file path="programs/zprint.nix">
+{
+  lib,
+  config,
+  mkFormatterModule,
+  ...
+}:
+let
+  cfg = config.programs.zprint;
+in
+{
+  meta.maintainers = [ ];
+
+  imports = [
+    (mkFormatterModule {
+      name = "zprint";
+      args = [ "--write" ];
+      includes = [
+        "*.clj"
+        "*.cljc"
+        "*.cljs"
+        "*.edn"
+      ];
+    })
+  ];
+
+  options.programs.zprint = {
+    zprintOpts = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      example = "{:width 90}";
+      description = ''
+        Clojure map containing zprint options.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    settings.formatter.zprint = {
+      # zprint options must be first
+      options = lib.mkOrder 100 (lib.optional (cfg.zprintOpts != null) cfg.zprintOpts);
+    };
+  };
+}
+</file>
+
+<file path=".gitignore">
+# Nix build output
+result
+</file>
+
+<file path="default.nix">
+# A pure Nix library that handles the treefmt configuration.
+let
+  # The base module configuration that generates and wraps the treefmt config
+  # with Nix.
+  module-options = ./module-options.nix;
+
+  # Program to formatter mapping
+  programs = import ./programs.nix;
+
+  mkFormatterModule =
+    {
+      name,
+      package ? name,
+      mainProgram ? null,
+      args ? [ ],
+      includes ? [ ],
+      excludes ? [ ],
+    }:
+    {
+      pkgs,
+      lib,
+      config,
+      options,
+      ...
+    }:
+    let
+      cfg = config.programs.${name};
+      opt = options.programs.${name};
+    in
+    {
+      options.programs.${name} = {
+        enable = lib.mkEnableOption name;
+
+        package = lib.mkPackageOption pkgs package { };
+
+        includes = lib.mkOption {
+          description = "Path / file patterns to include";
+          type = lib.types.listOf lib.types.str;
+          default = includes;
+        };
+
+        excludes = lib.mkOption {
+          description = "Path / file patterns to exclude";
+          type = lib.types.listOf lib.types.str;
+          default = excludes;
+        };
+
+        priority = lib.mkOption {
+          description = "Priority";
+          type = lib.types.nullOr lib.types.int;
+          default = null;
+        };
+
+        finalPackage = lib.mkOption {
+          type = lib.types.package;
+          readOnly = true;
+          description = "Resulting `${name}` package bundled with plugins, if any.";
+        };
+      };
+
+      config = lib.mkIf cfg.enable {
+        settings.formatter.${name} = {
+          command = lib.mkDefault (
+            let
+              pkg = if opt.finalPackage.isDefined then cfg.finalPackage else cfg.package;
+            in
+            if mainProgram == null then pkg else "${pkg}/bin/${mainProgram}"
+          );
+        }
+        // (lib.optionalAttrs (args != [ ]) {
+          options = if args._type or null == "order" then args else lib.mkBefore args;
+        })
+        // (lib.optionalAttrs (cfg.includes != [ ]) {
+          inherit (cfg) includes;
+        })
+        // (lib.optionalAttrs (cfg.excludes != [ ]) {
+          inherit (cfg) excludes;
+        })
+        // (lib.optionalAttrs (cfg.priority != null) {
+          inherit (cfg) priority;
+        });
+      };
+    };
+
+  all-modules =
+    nixpkgs:
+    [
+      {
+        _module.args = {
+          pkgs = nixpkgs;
+          lib = nixpkgs.lib;
+        };
+      }
+      module-options
+    ]
+    ++ programs.modules;
+
+  # treefmt-nix can be loaded into a submodule. In this case we get our `pkgs` from
+  # our own standard option `pkgs`; not externally.
+  submodule-modules = [
+    (
+      { config, lib, ... }:
+      let
+        inherit (lib)
+          mkOption
+          types
+          ;
+      in
+      {
+        options.pkgs = mkOption {
+          type = types.uniq (types.lazyAttrsOf (types.raw or types.unspecified));
+          description = ''
+            Nixpkgs to use in `treefmt`.
+          '';
+        };
+        config._module.args = {
+          pkgs = config.pkgs;
+        };
+      }
+    )
+    module-options
+  ]
+  ++ programs.modules;
+
+  # Use the Nix module system to validate the treefmt config file format.
+  #
+  # nixpkgs is an instance of <nixpkgs> that contains treefmt.
+  # configuration is an attrset used to configure the nix module
+  evalModule =
+    nixpkgs: configuration:
+    # NOTE: keep in sync with submoduleWith
+    nixpkgs.lib.evalModules {
+      modules = all-modules nixpkgs ++ [ configuration ];
+      specialArgs = defaultSpecialArgs;
+    };
+
+  /**
+    The built-in specialArgs for treefmt-nix.
+    These are module arguments that are passed to all treefmt-nix modules.
+  */
+  defaultSpecialArgs = {
+    inherit mkFormatterModule;
+  };
+
+  /**
+    Invoke treefmt-nix as a submodule, integrating this into a larger configuration management system.
+
+    Unlike in `evalModule`, the caller is responsible for setting `_module.args.pkgs` inside the submodule.
+
+    # Inputs
+
+    - `lib`: the Nixpkgs `lib`
+
+    - attribute set
+      - `modules`: additional modules to include. Unlike modules in `config`, these will be rendered in the documentation.
+      - `specialArgs`: additional arguments to pass to all modules in the submodule. See [`evalModules`' `specialArgs`](https://nixos.org/manual/nixpkgs/stable/#module-system-lib-evalModules-param-specialArgs).
+
+    # Output
+
+    A module system type that can be passed to [`mkOption`](https://nixos.org/manual/nixos/stable/#sec-option-declarations)'s `type`.
+  */
+  submoduleWith =
+    lib:
+    {
+      modules ? [ ],
+      specialArgs ? { },
+    }:
+    # NOTE: keep in sync with evalModule
+    lib.types.submoduleWith {
+      modules = submodule-modules ++ modules;
+      specialArgs = defaultSpecialArgs // specialArgs;
+    };
+
+  # Returns a treefmt.toml generated from the passed configuration.
+  #
+  # nixpkgs is an instance of <nixpkgs> that contains treefmt.
+  # configuration is an attrset used to configure the nix module
+  mkConfigFile =
+    nixpkgs: configuration:
+    let
+      mod = evalModule nixpkgs configuration;
+    in
+    mod.config.build.configFile;
+
+  # Returns an instance of treefmt, wrapped with some configuration.
+  #
+  # nixpkgs is an instance of <nixpkgs> that contains treefmt.
+  # configuration is an attrset used to configure the nix module
+  mkWrapper =
+    nixpkgs: configuration:
+    let
+      mod = evalModule nixpkgs configuration;
+    in
+    mod.config.build.wrapper;
+in
+{
+  inherit
+    module-options
+    programs
+    all-modules
+    submodule-modules
+    evalModule
+    submoduleWith
+    mkConfigFile
+    mkWrapper
+    ;
+}
+</file>
+
+<file path="examples.sh">
+#!/usr/bin/env bash
+# Used to generate the examples/ folder
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+# Get the system tuple for later
+system=$(nix eval --raw --impure --expr 'builtins.currentSystem')
+
+# Generate the examples from the config
+nix build ".#checks.$system.examples.passthru.examples"
+
+# Copy
+rm -f ./examples/* || true
+cp ./result/* ./examples
+</file>
+
+<file path="flake-module.nix">
+{
+  self,
+  lib,
+  flake-parts-lib,
+  ...
+}:
+let
+  inherit (flake-parts-lib)
+    mkPerSystemOption
+    ;
+  inherit (lib)
+    mkOption
+    types
+    ;
+  treefmt-nix-lib = import ./.;
+in
+{
+  options = {
+    perSystem = mkPerSystemOption (
+      {
+        config,
+        pkgs,
+        ...
+      }:
+      {
+        options.treefmt = mkOption {
+          description = ''
+            Project-level treefmt configuration
+
+            Use `config.treefmt.build.wrapper` to get access to the resulting treefmt
+            package based on this configuration.
+
+            By default treefmt-nix will set the `formatter.<system>` attribute of the flake,
+            used by the `nix fmt` command.
+          '';
+          type = treefmt-nix-lib.submoduleWith lib {
+            modules = [
+              {
+                options.pkgs = lib.mkOption {
+                  default = pkgs;
+                  defaultText = lib.literalMD "`pkgs` (module argument of `perSystem`)";
+                };
+                options.flakeFormatter = lib.mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = ''
+                    Enables `treefmt` the default formatter used by the `nix fmt` command
+                  '';
+                };
+                options.flakeCheck = lib.mkOption {
+                  type = types.bool;
+                  default = true;
+                  description = ''
+                    Add a flake check to run `treefmt`
+                  '';
+                };
+                options.projectRoot = lib.mkOption {
+                  type = types.path;
+                  default = self;
+                  defaultText = lib.literalExpression "self";
+                  description = ''
+                    Path to the root of the project on which treefmt operates
+                  '';
+                };
+
+                config.projectRootFile = lib.mkDefault "flake.nix";
+              }
+            ];
+          };
+          default = { };
+        };
+        config = {
+          checks = lib.mkIf config.treefmt.flakeCheck {
+            treefmt = config.treefmt.build.check config.treefmt.projectRoot;
+          };
+          formatter = lib.mkIf config.treefmt.flakeFormatter (lib.mkDefault config.treefmt.build.wrapper);
+        };
+      }
+    );
+  };
+}
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1760596604,
+        "narHash": "sha256-J/i5K6AAz/y5dBePHQOuzC7MbhyTOKsd/GLezSbEFiM=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "3cbe716e2346710d6e1f7c559363d14e11c32a43",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  description = "treefmt nix configuration modules";
+
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixpkgs-unstable";
+
+  outputs =
+    { self, nixpkgs }:
+    let
+      inherit (nixpkgs) lib;
+      eachSystem = lib.genAttrs [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
+    in
+    {
+      lib = import ./.;
+
+      flakeModule = ./flake-module.nix;
+
+      formatter = eachSystem (system: self.checks.${system}.self-wrapper);
+
+      checks = eachSystem (
+        system:
+        (import ./checks {
+          pkgs = import nixpkgs {
+            inherit system;
+            config = {
+              # required for packer
+              allowUnfree = true;
+            };
+          };
+          treefmt-nix = self.lib;
+        })
+      );
+    };
+}
+</file>
+
+<file path="LICENSE.md">
+MIT License
+
+Copyright (c) 2021 NumTide Ltd and contributors.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of
+the Software, and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+</file>
+
+<file path="module-options.nix">
+{
+  config,
+  options,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  inherit (lib) mkOption mkPackageOption types;
+
+  # A new kind of option type that calls lib.getExe on derivations
+  exeType = lib.mkOptionType {
+    name = "exe";
+    description = "Path to executable";
+    check = x: lib.isString x || builtins.isPath x || lib.isDerivation x;
+    merge =
+      loc: defs:
+      let
+        res = lib.mergeOneOption loc defs;
+      in
+      if lib.isString res || builtins.isPath res then "${res}" else lib.getExe res;
+  };
+
+  configFormat = pkgs.formats.toml { };
+
+  # The schema of the treefmt.toml data structure.
+  configSchema = mkOption {
+    default = { };
+    description = "The contents of treefmt.toml";
+    type = types.submodule {
+      freeformType = configFormat.type;
+      options = {
+        global = {
+          excludes = mkOption {
+            description = "A global list of paths to exclude. Supports glob.";
+            type = types.listOf types.str;
+            default = [ ];
+            example = [ "node_modules/*" ];
+          };
+
+          on-unmatched = mkOption {
+            description = "Log paths that did not match any formatters at the specified log level.";
+            type = types.enum [
+              "debug"
+              "info"
+              "warn"
+              "error"
+              "fatal"
+            ];
+            default = "warn";
+          };
+        };
+
+        formatter = mkOption {
+          type = types.attrsOf (
+            types.submodule [
+              {
+                freeformType = configFormat.type;
+                options = {
+                  command = mkOption {
+                    description = "Executable obeying the treefmt formatter spec";
+                    type = exeType;
+                  };
+
+                  options = mkOption {
+                    description = "List of arguments to pass to the command";
+                    type = types.listOf types.str;
+                    default = [ ];
+                  };
+
+                  includes = mkOption {
+                    description = "List of files to include for formatting. Supports globbing.";
+                    type = types.listOf types.str;
+                  };
+
+                  excludes = mkOption {
+                    description = "List of files to exclude for formatting. Supports globbing. Takes precedence over the includes.";
+                    type = types.listOf types.str;
+                    default = [ ];
+                  };
+                };
+              }
+            ]
+          );
+          default = { };
+          description = "Set of formatters to use";
+        };
+      };
+      config = {
+        global.excludes = lib.mkIf config.enableDefaultExcludes [
+          # generated lock files i.e. yarn, cargo, nix flakes
+          "*.lock"
+          # Files generated by patch
+          "*.patch"
+
+          # NPM
+          "package-lock.json"
+
+          # Go
+          # In theory go mod tidy could format this, but it has other side-effects beyond formatting.
+          "go.mod"
+          "go.sum"
+
+          # VCS
+          ".gitignore"
+          ".gitmodules"
+          ".hgignore"
+          ".svnignore"
+        ];
+      };
+    };
+
+  };
+in
+{
+  # Schema
+  options = {
+    # Represents the treefmt.toml config
+    settings = configSchema;
+
+    package = mkPackageOption pkgs "treefmt" { };
+
+    projectRootFile = mkOption {
+      description = ''
+        File to look for to determine the root of the project in the
+        build.wrapper.
+      '';
+      default = ".git/config";
+      type = types.str;
+    };
+
+    enableDefaultExcludes = mkOption {
+      description = ''
+        Enable the default excludes in the treefmt configuration.
+      '';
+      type = types.bool;
+      default = true;
+    };
+
+    # Meta attributes
+    meta = {
+      maintainers = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        internal = true;
+        default = [ ];
+        example = lib.literalExpression ''[ "zimbatm" ]'';
+        description = ''
+          List of github users responsible for a formatter.
+
+          This option should be defined at most once per module.
+        '';
+      };
+
+      broken = lib.mkOption {
+        type = lib.types.bool;
+        internal = true;
+        default = false;
+        description = ''
+          Whether this formatter module is broken.
+        '';
+      };
+
+      platforms = lib.mkOption {
+        type = lib.types.nullOr (lib.types.listOf lib.types.str);
+        internal = true;
+        default = null;
+        example = lib.literalExpression ''[ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]'';
+        description = ''
+          List of supported platforms for this formatter.
+          Null means all platforms are supported.
+        '';
+      };
+
+      skipExample = lib.mkOption {
+        type = lib.types.bool;
+        internal = true;
+        default = false;
+        description = ''
+          Whether to skip this formatter in example generation (e.g., due to store paths in output).
+          When true, the formatter will be excluded from example generation.
+        '';
+      };
+
+      brokenPlatforms = lib.mkOption {
+        type = lib.types.listOf lib.types.str;
+        internal = true;
+        default = [ ];
+        example = lib.literalExpression ''[ "x86_64-darwin" ]'';
+        description = ''
+          List of platforms where this formatter is broken.
+          These platforms will be excluded even if they appear in the platforms list.
+        '';
+      };
+    };
+
+    # Outputs
+    build = {
+      devShell = mkOption {
+        description = "The development shell with treefmt and its underlying programs";
+        type = types.package;
+        readOnly = true;
+      };
+      configFile = mkOption {
+        description = ''
+          Contains the generated config file derived from the settings.
+        '';
+        type = types.path;
+      };
+      wrapper = mkOption {
+        description = ''
+          The treefmt package, wrapped with the config file.
+        '';
+        type = types.package;
+        defaultText = lib.literalMD "wrapped `treefmt` command";
+        default =
+          let
+            code =
+              if builtins.compareVersions "2.0.0-rc4" config.package.version == 1 then
+                ''
+                  set -euo pipefail
+                  find_up() {
+                    ancestors=()
+                    while true; do
+                      if [[ -f $1 ]]; then
+                        echo "$PWD"
+                        exit 0
+                      fi
+                      ancestors+=("$PWD")
+                      if [[ $PWD == / ]] || [[ $PWD == // ]]; then
+                        echo "ERROR: Unable to locate the projectRootFile ($1) in any of: ''${ancestors[*]@Q}" >&2
+                        exit 1
+                      fi
+                      cd ..
+                    done
+                  }
+                  tree_root=$(find_up "${config.projectRootFile}")
+                  exec ${config.package}/bin/treefmt --config-file ${config.build.configFile} "$@" --tree-root "$tree_root"
+                ''
+              # treefmt-2.0.0-rc4 and later support the tree-root-file option
+              else
+                ''
+                  set -euo pipefail
+                  unset PRJ_ROOT
+                  exec ${config.package}/bin/treefmt \
+                    --config-file=${config.build.configFile} \
+                    --tree-root-file=${config.projectRootFile} \
+                    "$@"
+                '';
+            x = pkgs.writeShellScriptBin "treefmt" code;
+          in
+          (x // { meta = config.package.meta // x.meta; });
+      };
+      programs = mkOption {
+        type = types.attrsOf types.package;
+        description = ''
+          Attrset of formatter programs enabled in treefmt configuration.
+
+          The key of the attrset is the formatter name, with the value being the
+          package used to do the formatting.
+        '';
+        defaultText = lib.literalMD "Programs used in configuration";
+        default = pkgs.lib.concatMapAttrs (
+          k: v:
+          if (options.programs.${k}.enable.visible or true) && v.enable then
+            {
+              "${k}" = if options.programs.${k}.finalPackage.isDefined then v.finalPackage else v.package;
+            }
+          else
+            { }
+        ) config.programs;
+      };
+      check = mkOption {
+        description = ''
+          Create a flake check to test that the given project tree is already
+          formatted.
+
+          Input argument is the path to the project tree (usually 'self').
+        '';
+        type = types.functionTo types.package;
+        defaultText = lib.literalMD "Default check implementation";
+        default =
+          self:
+          pkgs.runCommandLocal "treefmt-check"
+            {
+              buildInputs = [
+                pkgs.git
+                pkgs.git-lfs
+                config.build.wrapper
+              ];
+              meta.description = "Check that the project tree is formatted";
+            }
+            ''
+              set -e
+              # `treefmt --fail-on-change` is broken for purs-tidy; So we must rely
+              # on git to detect changes. An unintended advantage of this approach
+              # is that when the check fails, it will print a helpful diff at the end.
+              PRJ=$TMP/project
+              cp -r ${self} $PRJ
+              chmod -R a+w $PRJ
+              cd $PRJ
+              export HOME=$TMPDIR
+              cat > $HOME/.gitconfig <<EOF
+              [user]
+                name = Nix
+                email = nix@localhost
+              [init]
+                defaultBranch = main
+              EOF
+              git init --quiet
+              git add .
+              git commit -m init --quiet
+              export LANG=${if pkgs.stdenv.isDarwin then "en_US.UTF-8" else "C.UTF-8"}
+              export LC_ALL=${if pkgs.stdenv.isDarwin then "en_US.UTF-8" else "C.UTF-8"}
+              treefmt --version
+              treefmt --no-cache
+              git status --short
+              git --no-pager diff --exit-code
+              touch $out
+            '';
+      };
+    };
+  };
+
+  # Config
+  config.build = {
+    configFile = configFormat.generate "treefmt.toml" config.settings;
+    devShell = pkgs.mkShell {
+      nativeBuildInputs = [ config.build.wrapper ] ++ (lib.attrValues config.build.programs);
+    };
+  };
+}
+</file>
+
+<file path="programs.nix">
+# List all the files in this folder.
+#
+let
+  # All the directory entries. We assume they are all files.
+  files = builtins.attrNames (builtins.readDir ./programs);
+
+  filenameToPath = filename: ./programs + "/${filename}";
+
+  removeNixExt = filename: builtins.substring 0 (builtins.stringLength filename - 4) filename;
+in
+{
+  # The list of program names. Should map 1:1 with the filename.
+  names = map removeNixExt files;
+
+  # The module filenames
+  modules = map filenameToPath files;
+}
+</file>
+
+<file path="README.md">
+<div align="center">
+
+# treefmt-nix
+
+<img src="https://avatars.githubusercontent.com/u/20373834" height="150"/>
+
+**Fast and convenient multi-file formatting with Nix**
+
+_A <a href="https://numtide.com/">numtide</a> project._
+
+<p>
+<img alt="Static Badge" src="https://img.shields.io/badge/Status-stable-green">
+<a href="https://app.element.io/#/room/#home:numtide.com"><img src="https://img.shields.io/badge/Support-%23numtide-blue"/></a>
+</p>
+
+</div>
+
+[treefmt](https://numtide.github.io/treefmt) combines file formatters for
+multiple programming languages so that you can format all your project files
+with a single command. With `treefmt-nix` you can specify `treefmt` build
+options, dependencies and config in one place, conveniently managed by
+[Nix](https://nixos.org/).
+
+`treefmt-nix` automatically installs and configures the desired formatters as
+well as `treefmt` for you and integrates nicely into your Nix development
+environments. It comes with sane, pre-crafted
+[formatter-configs](https://github.com/numtide/treefmt-nix/tree/main/programs)
+maintained by the community; each config corresponds to a section that you would
+normally add to the `treefmt` config file `treefmt.toml`.
+
+Take a look at the already [supported formatters](#supported-programs) for
+Python, Rust, Go, Haskell and more.
+
+## Integration into Nix
+
+### Nix classic without flakes
+
+To run `treefmt-nix` with nix-classic, import the repo using
+[`niv`](https://github.com/nmattia/niv):
+
+```
+$ niv add numtide/treefmt-nix
+```
+
+Alternatively, you can download the source and run `nix-build` in the project
+root directory:
+
+```
+$ nix-build
+```
+
+The command will return the helper functions which will be later used to produce
+a derivation from the specified `treefmt-nix` configuration.
+
+After you installed treefmt-nix, specify the formatter configuration. For
+instance, this one is for formatting terraform files:
+
+```nix
+# myfile.nix
+{ system ? builtins.currentSystem }:
+let
+  nixpkgsSrc = builtins.fetchTarball "https://github.com/NixOS/nixpkgs/archive/refs/heads/nixos-unstable.tar.gz";
+  treefmt-nixSrc = builtins.fetchTarball "https://github.com/numtide/treefmt-nix/archive/refs/heads/master.tar.gz";
+  nixpkgs = import nixpkgsSrc { inherit system; };
+  treefmt-nix = import treefmt-nixSrc;
+in
+treefmt-nix.mkWrapper nixpkgs {
+  # Used to find the project root
+  projectRootFile = ".git/config";
+  # Enable the terraform formatter
+  programs.terraform.enable = true;
+  # Override the default package
+  programs.terraform.package = nixpkgs.terraform_1;
+  # Override the default settings generated by the above option
+  settings.formatter.terraform.excludes = [ "hello.tf" ];
+}
+```
+
+It's a good practice to place the configuration file in the project root
+directory.
+
+Next, execute this command:
+
+```
+$ nix-build myfile.nix
+```
+
+This command returns a derivation that contains a `treefmt` binary at
+`./result/bin/treefmt` in your current directory. The file is actually a symlink
+to the artifact in `/nix/store`.
+
+`treefmt.toml` in this case isn't generated: the binary is wrapped with the
+config.
+
+### Flakes
+
+Running treefmt-nix with flakes isn't hard. The library is exposed as the `lib`
+attribute:
+
+```nix
+# flake.nix
+{
+  inputs.treefmt-nix.url = "github:numtide/treefmt-nix";
+  inputs.systems.url = "github:nix-systems/default";
+
+  outputs = { self, nixpkgs, systems, treefmt-nix }:
+    let
+      # Small tool to iterate over each systems
+      eachSystem = f: nixpkgs.lib.genAttrs (import systems) (system: f nixpkgs.legacyPackages.${system});
+
+      # Eval the treefmt modules from ./treefmt.nix
+      treefmtEval = eachSystem (pkgs: treefmt-nix.lib.evalModule pkgs ./treefmt.nix);
+    in
+    {
+      # for `nix fmt`
+      formatter = eachSystem (pkgs: treefmtEval.${pkgs.system}.config.build.wrapper);
+      # for `nix flake check`
+      checks = eachSystem (pkgs: {
+        formatting = treefmtEval.${pkgs.system}.config.build.check self;
+      });
+    };
+}
+```
+
+And also add the `treefmt.nix` file (or put the content inline if you prefer):
+
+```nix
+# treefmt.nix
+{ pkgs, ... }:
+{
+  # Used to find the project root
+  projectRootFile = "flake.nix";
+  # Enable the terraform formatter
+  programs.terraform.enable = true;
+  # Override the default package
+  programs.terraform.package = pkgs.terraform_1;
+  # Override the default settings generated by the above option
+  settings.formatter.terraform.excludes = [ "hello.tf" ];
+}
+```
+
+This file is also the place to define all the treefmt parameters like includes,
+excludes and formatter options.
+
+After specifying the flake, run
+[`nix fmt`](https://nixos.org/manual/nix/stable/command-ref/new-cli/nix3-fmt.html):
+
+```
+$ nix fmt
+```
+
+Nix-fmt is a tool to format all nix files in the project, but with the specified
+flake, it starts treefmt-nix and formats your project.
+
+You can also run `nix flake check` (eg: in CI) to validate that the project's
+code is properly formatted.
+
+### Flake-parts
+
+This flake exposes a [flake-parts](https://flake.parts/) module as well. To use
+it:
+
+1. Add `inputs.treefmt-nix.flakeModule` to the `imports` list of your
+   `flake-parts` call.
+
+2. Add `treefmt = { .. }` (containing the configuration above) to your
+   `perSystem`.
+
+As an example, see
+<https://github.com/nix-community/buildbot-nix/blob/2695e33353d7bffb2073dc6a1789502dd9e7b9fd/nix/treefmt/flake-module.nix>
+
+## Configuration
+
+While dealing with `treefmt` outside of `nix`, the formatter configuration is
+specified in a `toml` format. On the contrary, with `nix`, you write in with a
+nix syntax like this:
+
+```nix
+# Used to find the project root
+projectRootFile = ".git/config";
+# Enable the terraform formatter
+programs.terraform.enable = true;
+# Override the default package
+programs.terraform.package = nixpkgs.terraform_1;
+# Override the default settings generated by the above option
+settings.formatter.terraform.excludes = [ "hello.tf" ];
+```
+
+**Options:**
+
+- `Project root file` is the git file of the project which you plan to format.
+- The option `programs.terraform.enable` enables the needed formatter. You can
+  specify as many formatter as you want. For instance:
+
+```
+programs.terraform.enable = true;
+programs.gofmt.enable = true;
+```
+
+- The option `programs.terraform.package` allows you to use a particular
+  build/version of the specified formatter.
+- By setting`settings.formatter.terraform.excludes` you can mark the files which
+  should be excluded from formatting. You can also specify other formatter
+  options or includes this way.
+
+For detailed description of the options, refer to the `treefmt`
+[documentation](https://treefmt.com/latest/getting-started/configure/).
+
+## Project structure
+
+This repo contains a top-level `default.nix` that returns the library helper
+functions.
+
+- `mkWrapper` is the main function which wraps treefmt with the needed
+  configuration.
+- `mkConfigFile`
+- `evalModule`
+- `all-modules`
+
+## Supported programs
+
+<!-- `> bash ./supported-programs.sh` -->
+
+<!-- BEGIN mdsh -->
+`treefmt-nix` currently supports 120 formatters:
+
+* [actionlint](programs/actionlint.nix)
+* [aiken](programs/aiken.nix)
+* [alejandra](programs/alejandra.nix)
+* [asmfmt](programs/asmfmt.nix)
+* [autocorrect](programs/autocorrect.nix)
+* [beautysh](programs/beautysh.nix)
+* [biome](programs/biome.nix)
+* [black](programs/black.nix)
+* [buf](programs/buf.nix)
+* [buildifier](programs/buildifier.nix)
+* [cabal-fmt](programs/cabal-fmt.nix)
+* [cabal-gild](programs/cabal-gild.nix)
+* [clang-format](programs/clang-format.nix)
+* [clang-tidy](programs/clang-tidy.nix)
+* [cljfmt](programs/cljfmt.nix)
+* [cmake-format](programs/cmake-format.nix)
+* [csharpier](programs/csharpier.nix)
+* [cue](programs/cue.nix)
+* [d2](programs/d2.nix)
+* [dart-format](programs/dart-format.nix)
+* [deadnix](programs/deadnix.nix)
+* [deno](programs/deno.nix)
+* [dfmt](programs/dfmt.nix)
+* [dhall](programs/dhall.nix)
+* [djlint](programs/djlint.nix)
+* [dnscontrol](programs/dnscontrol.nix)
+* [dockerfmt](programs/dockerfmt.nix)
+* [dockfmt](programs/dockfmt.nix)
+* [dos2unix](programs/dos2unix.nix)
+* [dprint](programs/dprint.nix)
+* [dscanner](programs/dscanner.nix)
+* [efmt](programs/efmt.nix)
+* [elm-format](programs/elm-format.nix)
+* [erlfmt](programs/erlfmt.nix)
+* [fantomas](programs/fantomas.nix)
+* [fish_indent](programs/fish_indent.nix)
+* [fnlfmt](programs/fnlfmt.nix)
+* [formatjson5](programs/formatjson5.nix)
+* [fourmolu](programs/fourmolu.nix)
+* [fprettify](programs/fprettify.nix)
+* [gdformat](programs/gdformat.nix)
+* [genemichaels](programs/genemichaels.nix)
+* [gleam](programs/gleam.nix)
+* [gofmt](programs/gofmt.nix)
+* [gofumpt](programs/gofumpt.nix)
+* [goimports](programs/goimports.nix)
+* [golangci-lint](programs/golangci-lint.nix)
+* [golines](programs/golines.nix)
+* [google-java-format](programs/google-java-format.nix)
+* [hclfmt](programs/hclfmt.nix)
+* [hlint](programs/hlint.nix)
+* [hujsonfmt](programs/hujsonfmt.nix)
+* [isort](programs/isort.nix)
+* [jsonfmt](programs/jsonfmt.nix)
+* [jsonnet-lint](programs/jsonnet-lint.nix)
+* [jsonnetfmt](programs/jsonnetfmt.nix)
+* [just](programs/just.nix)
+* [kdlfmt](programs/kdlfmt.nix)
+* [keep-sorted](programs/keep-sorted.nix)
+* [ktfmt](programs/ktfmt.nix)
+* [ktlint](programs/ktlint.nix)
+* [latexindent](programs/latexindent.nix)
+* [leptosfmt](programs/leptosfmt.nix)
+* [mdformat](programs/mdformat.nix)
+* [mdsh](programs/mdsh.nix)
+* [meson](programs/meson.nix)
+* [mix-format](programs/mix-format.nix)
+* [muon](programs/muon.nix)
+* [mypy](programs/mypy.nix)
+* [nickel](programs/nickel.nix)
+* [nimpretty](programs/nimpretty.nix)
+* [nixf-diagnose](programs/nixf-diagnose.nix)
+* [nixfmt-classic](programs/nixfmt-classic.nix)
+* [nixfmt-rfc-style](programs/nixfmt-rfc-style.nix)
+* [nixfmt](programs/nixfmt.nix)
+* [nixpkgs-fmt](programs/nixpkgs-fmt.nix)
+* [ocamlformat](programs/ocamlformat.nix)
+* [odinfmt](programs/odinfmt.nix)
+* [opa](programs/opa.nix)
+* [ormolu](programs/ormolu.nix)
+* [oxipng](programs/oxipng.nix)
+* [packer](programs/packer.nix)
+* [perltidy](programs/perltidy.nix)
+* [php-cs-fixer](programs/php-cs-fixer.nix)
+* [pinact](programs/pinact.nix)
+* [prettier](programs/prettier.nix)
+* [protolint](programs/protolint.nix)
+* [purs-tidy](programs/purs-tidy.nix)
+* [rstfmt](programs/rstfmt.nix)
+* [rubocop](programs/rubocop.nix)
+* [ruff-check](programs/ruff-check.nix)
+* [ruff-format](programs/ruff-format.nix)
+* [rufo](programs/rufo.nix)
+* [rustfmt](programs/rustfmt.nix)
+* [scalafmt](programs/scalafmt.nix)
+* [shellcheck](programs/shellcheck.nix)
+* [shfmt](programs/shfmt.nix)
+* [sizelint](programs/sizelint.nix)
+* [sql-formatter](programs/sql-formatter.nix)
+* [sqlfluff-lint](programs/sqlfluff-lint.nix)
+* [sqlfluff](programs/sqlfluff.nix)
+* [sqruff](programs/sqruff.nix)
+* [statix](programs/statix.nix)
+* [stylish-haskell](programs/stylish-haskell.nix)
+* [stylua](programs/stylua.nix)
+* [swift-format](programs/swift-format.nix)
+* [taplo](programs/taplo.nix)
+* [templ](programs/templ.nix)
+* [terraform](programs/terraform.nix)
+* [texfmt](programs/texfmt.nix)
+* [toml-sort](programs/toml-sort.nix)
+* [typos](programs/typos.nix)
+* [typstfmt](programs/typstfmt.nix)
+* [typstyle](programs/typstyle.nix)
+* [xmllint](programs/xmllint.nix)
+* [yamlfmt](programs/yamlfmt.nix)
+* [yapf](programs/yapf.nix)
+* [zig](programs/zig.nix)
+* [zizmor](programs/zizmor.nix)
+* [zprint](programs/zprint.nix)
+<!-- END mdsh -->
+
+For non-Nix users, you can also find the generated examples in the
+[./examples](./examples) folder.
+
+### Using a custom formatter
+
+It is also possible to use custom formatters with `treefmt-nix`. For example,
+the following custom formatter formats JSON files using `yq-go`:
+
+```nix
+settings.formatter = {
+  "yq-json" = {
+    command = "${pkgs.bash}/bin/bash";
+    options = [
+      "-euc"
+      ''
+        for file in "$@"; do
+          ${lib.getExe yq-go} -i --output-format=json $file
+        done
+      ''
+      "--" # bash swallows the second argument when using -c
+    ];
+    includes = [ "*.json" ];
+  };
+};
+```
+
+### Adding new formatters
+
+PRs to add new formatters are welcome!
+
+- The formatter should conform to the
+  [formatter specifications](https://treefmt.com/latest/reference/formatter-spec/).
+- This is not the place to debate formatting preferences. Please pick defaults
+  that are standard in your community -- for instance, python is usually
+  indented with 4 spaces, so don't add a python formatter with 2 spaces as the
+  default.
+
+In order to add a new formatter do the following things:
+
+1. Create a new entry in the `./programs/` folder.
+2. Consider adding yourself as the `meta.maintainer` (see below).
+3. Run `./examples.sh` to update the `./examples` folder.
+4. To test the program:
+
+   1. Extend the project's `./treefmt.nix` file (temporarily) to enable the new
+      formatter and configure it in whatever manner is appropriate.
+   2. Add a bunch of pertinent sources in this repo -- for instance, if the new
+      formatter is meant to format `*.foo` files, add a number of `*.foo` files,
+      some well-formatted (and therefore expected to be exempt from modification
+      by `treefmt`) and some badly-formatted.
+   3. Run `nix fmt`. Confirm that well-formatted files are unchanged and that
+      badly-formatted files are flagged as such. Re-run `nix fmt` and confirm
+      that no additional changes were made.
+   4. Add the formatter to this file [here](#supported-programs) by running:
+
+      ```bash
+      mdsh -i README.md -o README.md
+      ```
+
+      or with Nix
+
+      ```bash
+      nix run github:zimbatm/mdsh -- -i README.md -o README.md
+      ```
+
+   5. Once this is good, revert those changes.
+
+5. Submit the PR!
+
+### Definition of a `meta.maintainer`
+
+You can register your desire to help with a specific formatter by adding your
+GitHub handle to the module's `meta.maintainers` list.
+
+That mostly means, for the given formatter:
+
+- You get precedence if any decisions need to be made.
+- Getting pinged if any issue is being found.
+
+## Supported Nix versions
+
+treefmt-nix works with all known Nix version.
+
+If you rely on flakes and `nix fmt`, we recommend running Nix 2.25 or Lix 2.92
+or later. See https://github.com/NixOS/nix/pull/11438
+
+## Commercial support
+
+Looking for help or customization?
+
+Get in touch with Numtide to get a quote. We make it easy for companies to work
+with Open Source projects: <https://numtide.com/contact>
+
+## License
+
+All the code and documentation is licensed with the MIT license.
+</file>
+
+<file path="renovate.json">
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ]
+}
+</file>
+
+<file path="run-tests.sh">
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo
+echo Running tests...
+nix flake check ./tests --recreate-lock-file --show-trace
+
+echo
+echo Checking that the flake.parts docs build...
+nix build github:hercules-ci/flake.parts-website --override-input treefmt-nix . --show-trace --log-lines 1000 || {
+  echo
+  echo "Looks like the docs aren't quite ok yet."
+  echo "If there's a long stack trace, look for the keyword: option"
+  echo "Ping flake-parts / module system maintainer @roberth if the error is unclear."
+  # TODO After https://github.com/NixOS/nix/issues/7553 is resolved, review
+  #      --show-trace option and error elobaration.
+  exit 1
+}
+</file>
+
+<file path="supported-programs.sh">
+#!/usr/bin/env bash
+# shellcheck disable=SC2010 disable=SC2012
+set -euo pipefail
+
+# reproducibility
+export LC_ALL=C
+
+cd "$(dirname "$0")"
+
+programs=(programs/*.nix)
+
+echo "\`treefmt-nix\` currently supports ${#programs[@]} formatters:"
+echo
+
+for program in "${programs[@]}"; do
+  name=$(basename "$program" .nix)
+  echo "* [$name]($program)"
+done
+</file>
+
+<file path="treefmt.nix">
+{ pkgs, ... }:
+{
+  projectRootFile = "treefmt.nix";
+  settings.global.excludes = [ "*.toml" ];
+
+  programs.deadnix.enable = true;
+  programs.deno.enable = pkgs.hostPlatform.system != "riscv64-linux";
+  programs.mdsh.enable = true;
+  programs.nixfmt.enable = true;
+  programs.shellcheck.enable = pkgs.hostPlatform.system != "riscv64-linux";
+  programs.shfmt.enable = pkgs.hostPlatform.system != "riscv64-linux";
+  programs.yamlfmt.enable = true;
+}
+</file>
+
+</files>

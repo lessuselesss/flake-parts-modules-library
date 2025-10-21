@@ -1,0 +1,1114 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    flakehub-publish-rolling.yml
+    nix.yml
+    update-flake-lock.yml
+src/
+  test/
+    default.nix
+    pinned-snap-versions.toml
+  bubblewrap-insecure.patch
+  nixify.patch
+  nixos-module.nix
+  package.nix
+.gitignore
+default.nix
+flake.lock
+flake.nix
+LICENSE
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/flakehub-publish-rolling.yml">
+name: "Publish every Git push to main to FlakeHub"
+on:
+  push:
+    branches:
+      - "main"
+jobs:
+  flakehub-publish:
+    runs-on: "ubuntu-latest"
+    permissions:
+      id-token: "write"
+      contents: "read"
+    steps:
+      - uses: "actions/checkout@v3"
+      - uses: "DeterminateSystems/nix-installer-action@main"
+      - uses: "DeterminateSystems/flakehub-push@main"
+        with:
+          name: "nix-community/nix-snapd"
+          rolling: true
+          visibility: "public"
+</file>
+
+<file path=".github/workflows/nix.yml">
+name: Build and test flake
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: DeterminateSystems/flake-checker-action@main
+      - run: nix build --print-build-logs
+      - run: nix flake check --print-build-logs
+</file>
+
+<file path=".github/workflows/update-flake-lock.yml">
+name: Update flake.lock
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/update-flake-lock@main
+</file>
+
+<file path="src/test/default.nix">
+{ self, pkgs }:
+
+let
+  nixos-lib = import "${pkgs.path}/nixos/lib" { };
+
+  system = pkgs.stdenv.system;
+
+  snap = self.packages.${system}.default;
+
+  pinnedSnapVersions = (pkgs.lib.importTOML ./pinned-snap-versions.toml).${system};
+
+  # Download tested snaps with a fixed-output derivation because the test runner
+  # normally doesn't have internet access
+  downloadedSnaps =
+    pkgs.runCommand "${system}-downloaded-snaps"
+      {
+        buildInputs = [
+          snap
+          pkgs.squashfsTools
+        ];
+        outputHashMode = "recursive";
+        outputHashAlgo = "sha256";
+        outputHash = pinnedSnapVersions.hash;
+      }
+      ''
+        mkdir $out
+        cd $out
+        ${pkgs.lib.concatMapStrings (
+          { name, rev, ... }:
+          ''
+            snap download ${name} --revision=${toString rev}
+          ''
+        ) pinnedSnapVersions.snaps}
+      '';
+in
+nixos-lib.runTest {
+  name = "snap";
+  hostPkgs = pkgs;
+
+  nodes.machine = {
+    imports = [
+      (import "${pkgs.path}/nixos/tests/common/user-account.nix")
+      (import "${pkgs.path}/nixos/tests/common/x11.nix")
+      self.nixosModules.default
+    ];
+    virtualisation.diskSize = 2048;
+    test-support.displayManager.auto.user = "alice";
+    services.snap.enable = true;
+  };
+
+  enableOCR = true;
+
+  testScript = ''
+    # Check version
+    assert "${snap.version}" in machine.succeed("snap --version")
+
+    # Ensure snap programs aren't already installed
+    machine.fail("hello-world")
+    machine.fail("gnome-calculator")
+
+    # Install snaps
+    ${pkgs.lib.concatMapStrings (
+      {
+        name,
+        rev,
+        classic ? false,
+      }:
+      let
+        path = "${downloadedSnaps}/${name}_${toString rev}";
+        classicFlag = pkgs.lib.optionalString classic "--classic";
+      in
+      ''
+        machine.succeed("snap ack ${path}.assert")
+        machine.succeed("snap install ${classicFlag} ${path}.snap")
+      ''
+    ) pinnedSnapVersions.snaps}
+
+    def run():
+      machine.wait_for_unit("snapd.service")
+
+      assert machine.succeed("hello-world") == "Hello World!\n"
+      assert machine.succeed("su - alice -c hello-world") == "Hello World!\n"
+
+      # Test gnome-calculator snap
+      machine.wait_for_x()
+      machine.succeed("su - alice -c '${pkgs.xorg.xhost}/bin/xhost si:localuser:alice'")
+      machine.succeed("su - alice -c '${pkgs.xorg.xhost}/bin/xhost si:localuser:root'")
+      assert "Basic" not in machine.get_screen_text()
+      machine.execute("su - alice -c gnome-calculator >&2 &")
+      machine.wait_for_text("Basic")
+      assert "Basic" in machine.get_screen_text()
+      machine.screenshot("gnome-calculator")
+
+    # Ensure programs run after a crash or clean reboot
+    run()
+    machine.crash()
+    run()
+    machine.shutdown()
+    run()
+
+    # Ensure uninstalling snaps works
+    machine.succeed("snap remove hello-world")
+    machine.fail("hello-world")
+  '';
+}
+</file>
+
+<file path="src/test/pinned-snap-versions.toml">
+[x86_64-linux]
+hash = "sha256-B/iV42aWorzqU27LGDCCorR/JLw3yz9Xi9P3fw/CdMo="
+snaps = [
+    { name = "snapd", rev = 23258 },
+    { name = "bare", rev = 5 },
+    { name = "core", rev = 16928 },
+    { name = "core20", rev = 2318 },
+    { name = "core22", rev = 1380},
+    { name = "gnome-42-2204", rev = 176 },
+    { name = "gtk-common-themes", rev = 1535 },
+    { name = "gnome-calculator", rev = 955 },
+    { name = "hello-world", rev = 29 },
+]
+
+[aarch64-linux]
+hash = "sha256-mrw+15QmGGC4JphzZijB942ef6j47wZiicWx0RUecro="
+snaps = [
+    { name = "snapd", rev = 23259 },
+    { name = "bare", rev = 5 },
+    { name = "core", rev = 16931 },
+    { name = "core20", rev = 2321 },
+    { name = "core22", rev = 1383 },
+    { name = "gnome-42-2204", rev = 178 },
+    { name = "gtk-common-themes", rev = 1535 },
+    { name = "gnome-calculator", rev = 956 },
+    { name = "hello-world", rev = 29 },
+]
+</file>
+
+<file path="src/bubblewrap-insecure.patch">
+diff --git a/bubblewrap.c b/bubblewrap.c
+index f8728c7..964c595 100644
+--- a/bubblewrap.c
++++ b/bubblewrap.c
+@@ -2904,10 +2904,6 @@ main (int    argc,
+   /* Get the (optional) privileges we need */
+   acquire_privs ();
+ 
+-  /* Never gain any more privs during exec */
+-  if (prctl (PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) < 0)
+-    die_with_error ("prctl(PR_SET_NO_NEW_PRIVS) failed");
+-
+   /* The initial code is run with high permissions
+      (i.e. CAP_SYS_ADMIN), so take lots of care. */
+</file>
+
+<file path="src/nixify.patch">
+diff --git a/cmd/Makefile.am b/cmd/Makefile.am
+index b1923adf44..f17cce66d8 100644
+--- a/cmd/Makefile.am
++++ b/cmd/Makefile.am
+@@ -98,7 +98,7 @@ fmt:: $(filter-out $(addprefix %,$(new_format)),$(foreach dir,$(subdirs),$(wildc
+ # installing a fresh copy of snap confine and the appropriate apparmor profile.
+ .PHONY: hack
+ hack: snap-confine/snap-confine-debug snap-confine/snap-confine.apparmor snap-update-ns/snap-update-ns snap-seccomp/snap-seccomp snap-discard-ns/snap-discard-ns snap-device-helper/snap-device-helper snapd-apparmor/snapd-apparmor
+-	sudo install -D -m 4755 snap-confine/snap-confine-debug $(DESTDIR)$(libexecdir)/snap-confine
++	sudo install -D -m 755 snap-confine/snap-confine-debug $(DESTDIR)$(libexecdir)/snap-confine
+ 	if [ -d $(DESTDIR)$(APPARMOR_SYSCONFIG) ]; then sudo install -m 644 snap-confine/snap-confine.apparmor $(DESTDIR)$(APPARMOR_SYSCONFIG)/$(patsubst .%,%,$(subst /,.,$(libexecdir))).snap-confine.real; fi
+ 	sudo install -d -m 755 $(DESTDIR)$(snapdstatedir)/apparmor/snap-confine/
+ 	if [ "$$(command -v apparmor_parser)" != "" ]; then sudo apparmor_parser -r snap-confine/snap-confine.apparmor; fi
+@@ -418,7 +418,7 @@ endif
+ 
+ install-exec-hook:
+ # Ensure that snap-confine is u+s (setuid)
+-	chmod 4755 $(DESTDIR)$(libexecdir)/snap-confine
++	chmod 755 $(DESTDIR)$(libexecdir)/snap-confine
+ 
+ ##
+ ## snap-mgmt
+diff --git a/cmd/configure.ac b/cmd/configure.ac
+index 9df43ac860..78c8f428b3 100644
+--- a/cmd/configure.ac
++++ b/cmd/configure.ac
+@@ -232,9 +232,6 @@ fi
+ dnl FIXME: get this via something like pkgconf once it is defined there
+ dnl FIXME: Use PKG_CHECK_VAR when we have dropped Trusty (14.04)
+ AC_ARG_VAR([SYSTEMD_PREFIX], [value for systemd prefix (overriding pkg-config)])
+-if test -z "${SYSTEMD_PREFIX}"; then
+-  SYSTEMD_PREFIX="$($PKG_CONFIG --variable=prefix systemd)"
+-fi
+ if test -n "${SYSTEMD_PREFIX}"; then
+   SYSTEMD_SYSTEM_ENV_GENERATOR_DIR="${SYSTEMD_PREFIX}/lib/systemd/system-environment-generators"
+ else
+diff --git a/cmd/libsnap-confine-private/utils.c b/cmd/libsnap-confine-private/utils.c
+index f39e498a65..7288297508 100644
+--- a/cmd/libsnap-confine-private/utils.c
++++ b/cmd/libsnap-confine-private/utils.c
+@@ -242,7 +242,7 @@ int sc_nonfatal_mkpath(const char *const path, mode_t mode)
+ bool sc_is_expected_path(const char *path)
+ {
+ 	const char *expected_path_re =
+-	    "^((/var/lib/snapd)?/snap/(snapd|core)/x?[0-9]+/usr/lib|/usr/lib(exec)?)/snapd/snap-confine$";
++	    "^((/var/lib/snapd)?/snap/(snapd|core)/x?[0-9]+/usr/lib|(/usr|@out@)/lib(exec)?)/snapd/snap-confine(-unwrapped)?$";
+ 	regex_t re;
+ 	if (regcomp(&re, expected_path_re, REG_EXTENDED | REG_NOSUB) != 0)
+ 		die("can not compile regex %s", expected_path_re);
+diff --git a/cmd/snap-confine/mount-support.c b/cmd/snap-confine/mount-support.c
+index 513c6794d2..706fedbbe4 100644
+--- a/cmd/snap-confine/mount-support.c
++++ b/cmd/snap-confine/mount-support.c
+@@ -976,7 +976,7 @@ void sc_populate_mount_ns(struct sc_apparmor *apparmor, int snap_update_ns_fd,
+ 			{.path = "/run"},	// to get /run with sockets and what not
+ 			{.path = "/lib/modules",.is_optional = true},	// access to the modules of the running kernel
+ 			{.path = "/lib/firmware",.is_optional = true},	// access to the firmware of the running kernel
+-			{.path = "/usr/src"},	// FIXME: move to SecurityMounts in system-trace interface
++			{.path = "/usr/src",.is_optional = true},	// FIXME: move to SecurityMounts in system-trace interface
+ 			{.path = "/var/log"},	// FIXME: move to SecurityMounts in log-observe interface
+ #ifdef MERGED_USR
+ 			{.path = "/run/media",.is_bidirectional = true,.altpath = "/media"},	// access to the users removable devices
+diff --git a/cmd/snap-confine/seccomp-support.c b/cmd/snap-confine/seccomp-support.c
+index 5bf3338819..1eea7ea22e 100644
+--- a/cmd/snap-confine/seccomp-support.c
++++ b/cmd/snap-confine/seccomp-support.c
+@@ -83,10 +83,6 @@ static void validate_path_has_strict_perms(const char *path)
+ 		die("%s not root-owned %i:%i", path, stat_buf.st_uid,
+ 		    stat_buf.st_gid);
+ 	}
+-
+-	if (stat_buf.st_mode & S_IWOTH) {
+-		die("%s has 'other' write %o", path, stat_buf.st_mode);
+-	}
+ }
+ 
+ static void validate_bpfpath_is_safe(const char *path)
+diff --git a/cmd/snap-confine/snap-confine.c b/cmd/snap-confine/snap-confine.c
+index 6392657054..8dfb4a89e7 100644
+--- a/cmd/snap-confine/snap-confine.c
++++ b/cmd/snap-confine/snap-confine.c
+@@ -436,7 +436,7 @@ int main(int argc, char **argv)
+ 		 * one, which definitely doesn't run in a snap-specific namespace, has a
+ 		 * predictable PID and is long lived.
+ 		 */
+-		sc_reassociate_with_pid1_mount_ns();
++		// NIX PATCH: Don't try to escape the FHS environment
+ 		// Do global initialization:
+ 		int global_lock_fd = sc_lock_global();
+ 		// Ensure that "/" or "/snap" is mounted with the
+diff --git a/dirs/dirs.go b/dirs/dirs.go
+index f1d441ee33..4e8bc24513 100644
+--- a/dirs/dirs.go
++++ b/dirs/dirs.go
+@@ -378,7 +378,7 @@ func SnapSystemdConfDirUnder(rootdir string) string {
+ // SnapServicesDirUnder returns the path to the systemd services
+ // conf dir under rootdir.
+ func SnapServicesDirUnder(rootdir string) string {
+-	return filepath.Join(rootdir, "/etc/systemd/system")
++	return filepath.Join(rootdir, "/var/lib/snapd/nix-systemd-system")
+ }
+ 
+ func SnapRuntimeServicesDirUnder(rootdir string) string {
+@@ -533,7 +533,7 @@ func SetRootDir(rootdir string) {
+ 	SnapSystemdDir = filepath.Join(rootdir, "/etc/systemd")
+ 	SnapSystemdRunDir = filepath.Join(rootdir, "/run/systemd")
+ 
+-	SnapDBusSystemPolicyDir = filepath.Join(rootdir, "/etc/dbus-1/system.d")
++	SnapDBusSystemPolicyDir = filepath.Join(rootdir, "/var/lib/snapd/nix-dbus-system")
+ 	SnapDBusSessionPolicyDir = filepath.Join(rootdir, "/etc/dbus-1/session.d")
+ 	// Use 'dbus-1/services' and `dbus-1/system-services' to mirror
+ 	// '/usr/share/dbus-1' hierarchy.
+@@ -544,7 +544,7 @@ func SetRootDir(rootdir string) {
+ 
+ 	CloudInstanceDataFile = filepath.Join(rootdir, "/run/cloud-init/instance-data.json")
+ 
+-	SnapUdevRulesDir = filepath.Join(rootdir, "/etc/udev/rules.d")
++	SnapUdevRulesDir = filepath.Join(rootdir, "/var/lib/snapd/nix-udev-rules")
+ 
+ 	SnapKModModulesDir = filepath.Join(rootdir, "/etc/modules-load.d/")
+ 	SnapKModModprobeDir = filepath.Join(rootdir, "/etc/modprobe.d/")
+@@ -589,7 +589,7 @@ func SetRootDir(rootdir string) {
+ 		// both RHEL and CentOS list "fedora" in ID_LIKE
+ 		DistroLibExecDir = filepath.Join(rootdir, "/usr/libexec/snapd")
+ 	} else {
+-		DistroLibExecDir = filepath.Join(rootdir, "/usr/lib/snapd")
++		DistroLibExecDir = filepath.Join(rootdir, "@out@/libexec/snapd")
+ 	}
+ 
+ 	XdgRuntimeDirBase = filepath.Join(rootdir, "/run/user")
+diff --git a/interfaces/system_key.go b/interfaces/system_key.go
+index d6595154b3..52df93e914 100644
+--- a/interfaces/system_key.go
++++ b/interfaces/system_key.go
+@@ -107,7 +107,7 @@ func generateSystemKey() (*systemKey, error) {
+ 	sk := &systemKey{
+ 		Version: systemKeyVersion,
+ 	}
+-	snapdPath, err := snapdtool.InternalToolPath("snapd")
++	snapdPath, err := snapdtool.InternalToolPath("snapd-unwrapped")
+ 	if err != nil {
+ 		return nil, err
+ 	}
+@@ -274,7 +274,7 @@ func SystemKeyMismatch(extraData SystemKeyExtraData) (bool, error) {
+ 	if mockedSystemKey == nil {
+ 		if exe, err := os.Readlink("/proc/self/exe"); err == nil {
+ 			// detect running local local builds
+-			if !strings.HasPrefix(exe, "/usr") && !strings.HasPrefix(exe, dirs.SnapMountDir) {
++			if !strings.HasPrefix(exe, "/usr") && !strings.HasPrefix(exe, dirs.SnapMountDir) && !strings.HasPrefix(exe, "@out@") {
+ 				logger.Noticef("running from non-installed location %s: ignoring system-key", exe)
+ 				return false, ErrSystemKeyVersion
+ 			}
+diff --git a/snap/info.go b/snap/info.go
+index 96b7356e30..f481e94f8e 100644
+--- a/snap/info.go
++++ b/snap/info.go
+@@ -1501,9 +1501,9 @@ func (app *AppInfo) launcherCommand(command string) string {
+ 		command = " " + command
+ 	}
+ 	if app.Name == app.Snap.SnapName() {
+-		return fmt.Sprintf("/usr/bin/snap run%s %s", command, app.Snap.InstanceName())
++		return fmt.Sprintf("@out@/bin/snap run%s %s", command, app.Snap.InstanceName())
+ 	}
+-	return fmt.Sprintf("/usr/bin/snap run%s %s.%s", command, app.Snap.InstanceName(), app.Name)
++	return fmt.Sprintf("@out@/bin/snap run%s %s.%s", command, app.Snap.InstanceName(), app.Name)
+ }
+ 
+ // LauncherCommand returns the launcher command line to use when invoking the
+diff --git a/systemd/systemd.go b/systemd/systemd.go
+index a6ad62a771..e5ea856068 100644
+--- a/systemd/systemd.go
++++ b/systemd/systemd.go
+@@ -616,6 +616,14 @@ func (s *systemd) EnableNoReload(serviceNames []string) error {
+ 	if len(serviceNames) == 0 {
+ 		return nil
+ 	}
++	for _, serviceName := range serviceNames {
++		servicePath := filepath.Join(dirs.SnapServicesDir, serviceName)
++		serviceRuntimePath := filepath.Join(dirs.SnapRuntimeServicesDir, serviceName)
++		os.Remove(serviceRuntimePath)
++		if err := os.Symlink(servicePath, serviceRuntimePath); err != nil {
++			return err
++		}
++	}
+ 	var args []string
+ 	if s.rootDir != "" {
+ 		// passing root already implies no reload
+@@ -623,6 +631,7 @@ func (s *systemd) EnableNoReload(serviceNames []string) error {
+ 	} else {
+ 		args = append(args, "--no-reload")
+ 	}
++	args = append(args, "--runtime")
+ 	args = append(args, "enable")
+ 	args = append(args, serviceNames...)
+ 	_, err := s.systemctl(args...)
+@@ -643,6 +652,14 @@ func (s *systemd) DisableNoReload(serviceNames []string) error {
+ 	if len(serviceNames) == 0 {
+ 		return nil
+ 	}
++	for _, serviceName := range serviceNames {
++		servicePath := filepath.Join(dirs.SnapServicesDir, serviceName)
++		serviceRuntimePath := filepath.Join(dirs.SnapRuntimeServicesDir, serviceName)
++		os.Remove(serviceRuntimePath)
++		if err := os.Symlink(servicePath, serviceRuntimePath); err != nil {
++			return err
++		}
++	}
+ 	var args []string
+ 	if s.rootDir != "" {
+ 		// passing root already implies no reload
+@@ -650,6 +667,7 @@ func (s *systemd) DisableNoReload(serviceNames []string) error {
+ 	} else {
+ 		args = append(args, "--no-reload")
+ 	}
++	args = append(args, "--runtime")
+ 	args = append(args, "disable")
+ 	args = append(args, serviceNames...)
+ 	_, err := s.systemctl(args...)
+diff --git a/usersession/userd/launcher.go b/usersession/userd/launcher.go
+index 830ed9995c..843f628730 100644
+--- a/usersession/userd/launcher.go
++++ b/usersession/userd/launcher.go
+@@ -206,7 +206,7 @@ func (s *Launcher) OpenURL(addr string, sender dbus.Sender) *dbus.Error {
+ 	// this code must not add directories from the snap
+ 	// to XDG_DATA_DIRS and similar, see
+ 	// https://ubuntu.com/security/CVE-2020-11934
+-	if err := exec.Command("xdg-open", addr).Run(); err != nil {
++	if err := exec.Command("@out@/libexec/xdg-open", addr).Run(); err != nil {
+ 		return dbus.MakeFailedError(fmt.Errorf("cannot open supplied URL"))
+ 	}
+ 
+@@ -292,7 +292,7 @@ func (s *Launcher) OpenFile(parentWindow string, clientFd dbus.UnixFD, sender db
+ 		return dbus.MakeFailedError(fmt.Errorf("permission denied"))
+ 	}
+ 
+-	if err = exec.Command("xdg-open", filename).Run(); err != nil {
++	if err = exec.Command("@out@/libexec/xdg-open", filename).Run(); err != nil {
+ 		return dbus.MakeFailedError(fmt.Errorf("cannot open supplied URL"))
+ 	}
+ 
+diff --git a/wrappers/binaries.go b/wrappers/binaries.go
+index 5f88b3aff8..ca2c187b87 100644
+--- a/wrappers/binaries.go
++++ b/wrappers/binaries.go
+@@ -220,7 +220,7 @@ func EnsureSnapBinaries(s *snap.Info) (err error) {
+ 		}
+ 
+ 		appBase := filepath.Base(app.WrapperPath())
+-		binariesContent[appBase] = &osutil.SymlinkFileState{Target: "/usr/bin/snap"}
++		binariesContent[appBase] = &osutil.SymlinkFileState{Target: "@out@/bin/snap"}
+ 
+ 		if completionVariant != noCompletion && app.Completer != "" {
+ 			completersContent[appBase] = &osutil.SymlinkFileState{Target: completeSh}
+diff --git a/wrappers/internal/service_unit_gen.go b/wrappers/internal/service_unit_gen.go
+index 7f066942fb..4a014ca981 100644
+--- a/wrappers/internal/service_unit_gen.go
++++ b/wrappers/internal/service_unit_gen.go
+@@ -157,6 +157,8 @@ TimeoutStopSec={{.StopTimeout.Seconds}}
+ TimeoutStartSec={{.StartTimeout.Seconds}}
+ {{- end}}
+ Type={{.App.Daemon}}
++# NIX PATCH: This is needed because nixpkgs's chrootenv runs the code in a child process
++NotifyAccess=all
+ {{- if .Remain}}
+ RemainAfterExit={{.Remain}}
+ {{- end}}
+</file>
+
+<file path="src/nixos-module.nix">
+self:
+
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
+
+let
+  cfg = config.services.snap;
+  snap = self.packages.${pkgs.stdenv.system}.default;
+in
+{
+  options.services.snap = {
+    enable = lib.mkEnableOption "snap service";
+
+    snapBinInPath = lib.mkOption {
+      default = true;
+      example = false;
+      description = "Include /snap/bin in PATH.";
+      type = lib.types.bool;
+    };
+
+    desktopFiles = lib.mkOption {
+      default = true;
+      example = false;
+      description = "Add desktop files for opening snaps in desktop environments.";
+      type = lib.types.bool;
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ snap ];
+
+    environment.extraInit = ''
+      ${lib.optionalString cfg.snapBinInPath ''
+        export PATH="/snap/bin:$PATH"
+      ''}
+
+      ${lib.optionalString cfg.desktopFiles ''
+        export XDG_DATA_DIRS="/var/lib/snapd/desktop:$XDG_DATA_DIRS"
+      ''}
+    '';
+
+    systemd = {
+      packages = [ snap ];
+      sockets.snapd.wantedBy = [ "sockets.target" ];
+      services.snapd.wantedBy = [ "multi-user.target" ];
+    };
+
+    security.wrappers.snap-confine-setuid-wrapper = {
+      setuid = true;
+      owner = "root";
+      group = "root";
+      source = "${snap}/libexec/snapd/snap-confine-stage-1";
+    };
+  };
+}
+</file>
+
+<file path="src/package.nix">
+{
+  pkgs,
+  lib,
+  stdenv,
+  python3,
+  xdg-utils,
+  writeTextDir,
+  fetchFromGitHub,
+  buildGoModule,
+  buildFHSEnvBubblewrap,
+  bubblewrap,
+}:
+
+let
+  version = "2.67";
+
+  src = fetchFromGitHub {
+    owner = "canonical";
+    repo = "snapd";
+    rev = version;
+    hash = "sha256-WiUgLV8/Luxb3T9u1nT/rCk8YduzyyjPaCuiJszuEZU=";
+  };
+
+  goModules =
+    (buildGoModule {
+      pname = "snap-go-mod";
+      inherit version src;
+      vendorHash = "sha256-A/L4Bnx0MIvOUedF8MojXwyE09i0cImrz5fR4zqRWxM=";
+    }).goModules;
+
+  insecureBubblewrap = bubblewrap.overrideAttrs (o: {
+    patches = (o.patches or [ ]) ++ [ ./bubblewrap-insecure.patch ];
+  });
+
+  buildFHSEnvInsecureBubblewrap = buildFHSEnvBubblewrap.override {
+    bubblewrap = insecureBubblewrap;
+  };
+
+  env = buildFHSEnvInsecureBubblewrap {
+    name = "snap-env";
+    extraBwrapArgs = [
+      "--ro-bind /etc/pam.d /etc/pam.d"
+      "--ro-bind /etc/pam /etc/pam"
+    ];
+    targetPkgs =
+      pkgs:
+      (with pkgs; [
+        # Snapd calls
+        util-linux.mount
+        squashfsTools
+        systemd
+        openssh
+        gnutar
+        gzip
+        # TODO: xdelta
+
+        # Snap hook calls
+        bash
+        sudo
+        gawk
+
+        # Mount wrapper calls
+        coreutils
+      ]);
+  };
+in
+stdenv.mkDerivation {
+  pname = "snap";
+  inherit version src;
+
+  nativeBuildInputs = with pkgs; [
+    makeWrapper
+    autoconf
+    automake
+    autoconf-archive
+  ];
+
+  buildInputs = with pkgs; [
+    go
+    glibc
+    glibc.static
+    pkg-config
+    libseccomp
+    libxfs
+    libcap
+    glib
+    udev
+    libapparmor
+  ];
+
+  patches = [ ./nixify.patch ];
+
+  configurePhase = ''
+    substituteInPlace $(grep -rl '@out@') --subst-var 'out'
+
+    export GOCACHE=$TMPDIR/go-cache
+
+    ln -s ${goModules} vendor
+
+    ./mkversion.sh $version
+
+    (
+      cd cmd
+      autoreconf -i -f
+      ./configure \
+        --prefix=$out \
+        --libexecdir=$out/libexec/snapd \
+        --with-snap-mount-dir=/snap \
+        --enable-apparmor \
+        --enable-nvidia-biarch \
+        --enable-merged-usr
+    )
+
+    mkdir build
+    cd build
+  '';
+
+  makeFlagsPackaging = [
+    "--makefile=../packaging/snapd.mk"
+    "SNAPD_DEFINES_DIR=${writeTextDir "snapd.defines.mk" ""}"
+    "snap_mount_dir=$(out)/snap"
+    "bindir=$(out)/bin"
+    "sbindir=$(out)/sbin"
+    "libexecdir=$(out)/libexec"
+    "mandir=$(out)/share/man"
+    "datadir=$(out)/share"
+    "localstatedir=$(TMPDIR)/localstatedir"
+    "sharedstatedir=$(TMPDIR)/sharedstatedir"
+    "unitdir=$(out)/unitdir"
+    "builddir=."
+    "with_testkeys=1"
+    "with_apparmor=1"
+    "with_core_bits=0"
+    "with_alt_snap_mount_dir=0"
+  ];
+
+  makeFlagsData = [
+    "--directory=../data"
+    "BINDIR=$(out)/bin"
+    "LIBEXECDIR=$(out)/libexec"
+    "DATADIR=$(out)/share"
+    "SYSTEMDSYSTEMUNITDIR=$(out)/lib/systemd/system"
+    "SYSTEMDUSERUNITDIR=$(out)/lib/systemd/user"
+    "ENVD=$(out)/etc/profile.d"
+    "DBUSDIR=$(out)/share/dbus-1"
+    "APPLICATIONSDIR=$(out)/share/applications"
+    "SYSCONFXDGAUTOSTARTDIR=$(out)/etc/xdg/autostart"
+    "ICON_FOLDER=$(out)/share/snapd"
+  ];
+
+  makeFlagsCmd = [
+    "--directory=../cmd"
+    "SYSTEMD_SYSTEM_GENERATOR_DIR=$out/lib/systemd/system-generators"
+  ];
+
+  buildPhase = ''
+    make $makeFlagsPackaging all
+    make $makeFlagsData all
+    make $makeFlagsCmd all
+  '';
+
+  installPhase = ''
+    make $makeFlagsPackaging install
+    make $makeFlagsData install
+    make $makeFlagsCmd install
+    rm -rf $out/var
+  '';
+
+  postFixup = ''
+    mv $out/libexec/snapd/snap-confine{,-unwrapped}
+
+    cat > $out/libexec/snapd/snap-confine << EOL
+    #!${python3}/bin/python3
+    import sys, os
+    setuid_wrapper = "/run/wrappers/bin/snap-confine-setuid-wrapper"
+    path = (
+      setuid_wrapper
+      if os.path.exists(setuid_wrapper)
+      else "@out@/libexec/snapd/snap-confine-stage-1"
+    )
+    os.execv(path, [path] + sys.argv[1:])
+    EOL
+    substituteInPlace $out/libexec/snapd/snap-confine --subst-var 'out'
+    chmod +x $out/libexec/snapd/snap-confine
+
+    cat > $out/libexec/snapd/snap-confine-stage-1 << EOL
+    #!${python3}/bin/python3
+    import sys, os, json
+    os.environ["NIX_SNAP_CONFINE_DATA"] = json.dumps(dict(
+      uid=os.getuid(),
+      gid=os.getgid(),
+      args=sys.argv[1:],
+    ))
+    try:
+      os.setuid(0)
+      os.setgid(0)
+    except PermissionError:
+      raise PermissionError(" ".join((
+        "Snap-confine wasn't run as root.",
+        "Either re-run this command as root or use the NixOS module.",
+      )))
+    os.execv(
+      "${env}/bin/snap-env",
+      [
+        "${env}/bin/snap-env",
+        "-c",
+        "exec @out@/libexec/snapd/snap-confine-stage-2",
+      ],
+    )
+    EOL
+    substituteInPlace $out/libexec/snapd/snap-confine-stage-1 --subst-var 'out'
+    chmod +x $out/libexec/snapd/snap-confine-stage-1
+
+    cat > $out/libexec/snapd/snap-confine-stage-2 << EOL
+    #!${python3}/bin/python3
+    import sys, os, json
+    data = json.loads(os.environ.pop("NIX_SNAP_CONFINE_DATA"))
+    os.setresuid(data["uid"], 0, 0)
+    os.setresgid(data["gid"], 0, 0)
+    os.environ["PATH"] += ":@out@/bin"
+    unwrapped = "@out@/libexec/snapd/snap-confine-unwrapped"
+    os.execv(unwrapped, [unwrapped] + data["args"])
+    EOL
+    substituteInPlace $out/libexec/snapd/snap-confine-stage-? --subst-var 'out'
+    chmod +x $out/libexec/snapd/snap-confine-stage-2
+
+    # Make xdg-open wrapper for io.snapcraft.Launcher so it can run xdg-open to
+    # open with any installed program, even if it isn't a dependency
+    makeWrapper ${xdg-utils}/bin/xdg-open $out/libexec/xdg-open \
+      --suffix PATH : /run/current-system/sw/bin
+
+    wrapProgram $out/libexec/snapd/snapd \
+      --set SNAPD_DEBUG 1 \
+      --set PATH $out/bin:${
+        lib.makeBinPath (
+          with pkgs;
+          [
+            # Snapd calls
+            util-linux.mount
+            shadow
+            squashfsTools
+            systemd
+            openssh
+            gnutar
+            gzip
+            # TODO: xdelta
+
+            # Snap hook calls
+            bash
+            sudo
+            gawk
+
+            # Mount wrapper calls
+            coreutils
+          ]
+        )
+      } \
+      --run ${lib.escapeShellArg ''
+        set -uex
+        shopt -s nullglob
+
+        # Pre-create directories
+        install -dm755 /var/lib/snapd/snaps
+        install -dm111 /var/lib/snapd/void
+
+        # Upstream snapd writes unit files to /etc/systemd/system, which is
+        # immutable on NixOS. This package works around that by patching snapd
+        # to write the unit files to /var/lib/snapd/nix-systemd-system
+        # instead, and enables them as transient runtime units. However, this
+        # means they won't automatically start on boot, which breaks snapd.
+        # To solve this, the next block of code starts all the unit files in
+        # /var/lib/snapd/nix-systemd-system.
+
+        for path in /var/lib/snapd/nix-systemd-system/*; do
+          name="$(basename "$path")"
+          if ! systemctl is-active --quiet "$name"; then
+            rtpath="/run/systemd/system/$name"
+            ln -fs "$path" "$rtpath"
+            systemctl start "$name"
+            rm -f "$rtpath"
+          fi
+        done
+
+        # Make /snap/bin symlinks not point inside /nix/store,
+        # so they don't point to an old version of snap
+        for f in /snap/bin/*; do
+          if [[ "$(readlink "$f")" = /nix/store/* ]]; then
+            rm -f "$f"
+            ln -s /run/current-system/sw/bin/snap "$f"
+          fi
+        done
+      ''}
+  '';
+}
+</file>
+
+<file path=".gitignore">
+/result
+/.nixos-test-history
+</file>
+
+<file path="default.nix">
+(import (
+  let
+    lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+  in
+  fetchTarball {
+    url =
+      lock.nodes.flake-compat.locked.url
+        or "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+    sha256 = lock.nodes.flake-compat.locked.narHash;
+  }
+) { src = ./.; }).defaultNix
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "flake-compat": {
+      "locked": {
+        "lastModified": 1696426674,
+        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
+        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
+        "revCount": 57,
+        "type": "tarball",
+        "url": "https://api.flakehub.com/f/pinned/edolstra/flake-compat/1.0.1/018afb31-abd1-7bff-a5e4-cff7e18efb7a/source.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz"
+      }
+    },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib"
+      },
+      "locked": {
+        "lastModified": 1733312601,
+        "narHash": "sha256-4pDvzqnegAfRkPwO3wmwBhVi/Sye1mzps0zHWYnP88c=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "205b12d8b7cd4802fbcb8e8ef6a0f1408781a4f9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1734226574,
+        "narHash": "sha256-SpQzOuXA3/UmbhRu49DRjmtr0zL9yYUVleN3nW16oIE=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "0acb5f0924d1cf0af70b0f9f518be2bee98c7e54",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1733096140,
+        "narHash": "sha256-1qRH7uAUsyQI7R1Uwl4T+XvdNv778H0Nb5njNrqvylY=",
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5487e69da40cbd611ab2cadee0b4637225f7cfae.tar.gz"
+      },
+      "original": {
+        "type": "tarball",
+        "url": "https://github.com/NixOS/nixpkgs/archive/5487e69da40cbd611ab2cadee0b4637225f7cfae.tar.gz"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-parts": "flake-parts",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  description = "Snap package for Nix and NixOS";
+
+  inputs = {
+    nixpkgs.url = "github:nixos/nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    flake-compat.url = "https://flakehub.com/f/edolstra/flake-compat/1.tar.gz";
+  };
+
+  outputs =
+    inputs@{ self, flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      flake.nixosModules.default = import ./src/nixos-module.nix self;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+      ];
+      perSystem =
+        { pkgs, ... }:
+        {
+          packages.default = pkgs.callPackage ./src/package.nix { };
+          checks.test = import ./src/test { inherit self pkgs; };
+        };
+    };
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2023 Benjamin Levy
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="README.md">
+# nix-snapd
+
+Snap package for Nix and NixOS
+
+## Installation
+
+### Flakes
+
+Example minimal `/etc/nixos/flake.nix`:
+
+``` nix
+{
+  description = "NixOS configuration";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nix-snapd.url = "github:nix-community/nix-snapd";
+    nix-snapd.inputs.nixpkgs.follows = "nixpkgs";
+  };
+
+  outputs = { nixpkgs, nix-snapd }: {
+    nixosConfigurations.my-hostname = nixpkgs.lib.nixosSystem {
+      system = "x86_64-linux";
+      modules = [
+        nix-snapd.nixosModules.default
+        {
+          services.snap.enable = true;
+        }
+      ];
+    };
+  };
+}
+```
+
+### Channels
+
+Add a `nix-snapd` channel with
+
+``` sh
+sudo nix-channel --add https://github.com/nix-community/nix-snapd/archive/main.tar.gz nix-snapd
+sudo nix-channel --update
+```
+
+Then make the following modification to `/etc/nixos/configuration.nix`:
+
+``` nix
+{ ... }:
+
+{
+  imports = [ (import <nix-snapd>).nixosModules.default ];
+  
+  services.snap.enable = true;
+}
+```
+</file>
+
+</files>

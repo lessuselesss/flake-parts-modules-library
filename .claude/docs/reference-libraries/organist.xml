@@ -1,0 +1,4670 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  actions/
+    common-setup/
+      action.yml
+  workflows/
+    templates.yml
+  dependabot.yml
+doc/
+  bootstrap-no-flake.md
+  dependency-management.md
+  filegen.md
+  migrate-from-0.1.md
+  services.md
+examples/
+  c-hello-world/
+    flake.nix
+    hello.c
+    hello.h
+    main.c
+    nickel.lock.ncl
+    project.ncl
+    README.md
+    test.sh
+  direnv/
+    flake.nix
+    nickel.lock.ncl
+    project.ncl
+    test.sh
+  filegen/
+    flake.nix
+    nickel.lock.ncl
+    project.ncl
+    test.sh
+  raw_nix_expression/
+    flake.nix
+    nickel.lock.ncl
+    project.ncl
+    test.sh
+  services/
+    flake.nix
+    nickel.lock.ncl
+    project.ncl
+    test.sh
+future/
+  playground/
+    acpilight.ncl
+    hello2.ncl
+    nickelpkgs.ncl
+  prototype/
+    pkgs/
+      hello-world.ncl
+    builders.ncl
+    nickelpkgs.ncl
+    nix_builtins.ncl
+  constraints.md
+  roadmap.md
+  use-cases.md
+lib/
+  modules/
+    main.ncl
+  nix-interop/
+    shells/
+      bash.ncl
+      haskell.ncl
+      rust-targets.ncl
+      rust.ncl
+    builders.ncl
+    builtins.ncl
+    derivation.ncl
+    nix-string.ncl
+    nix.ncl
+    shells.ncl
+    utils.ncl
+  direnv.ncl
+  editorconfig.ncl
+  files.ncl
+  lib.nix
+  lockfile.ncl
+  organist.ncl
+  schema.ncl
+  services.ncl
+  shell-tests.ncl
+notes/
+  builder-draft.ncl
+templates/
+  default/
+    flake.nix
+    nickel.lock.ncl
+    project.ncl
+tests/
+  lsp/
+    template/
+      nickel.lock.ncl
+    .gitignore
+    conftest.py
+    test_completion.py
+    test_hover.py
+    testlib.py
+  hello.sh
+  main.ncl
+  ShellApplication.ncl
+  to_file.ncl
+.gitignore
+default.nix
+flake.lock
+flake.nix
+LICENSE
+nickel.lock.ncl
+project.ncl
+README.ideal.md
+README.md
+RELEASES.md
+roadmap.md
+run-test.sh
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/actions/common-setup/action.yml">
+name: Setup Environment
+inputs:
+  SECRET_GITHUB_TOKEN:
+    required: true
+    description: 'Github Secret Token'
+  CACHIX_TOKEN:
+    required: true
+    description: 'Cachix Secret Token'
+runs:
+  using: "composite"
+  steps:
+
+    - name: Installing Nix
+      uses: cachix/install-nix-action@v23
+      with:
+        nix_path: nixpkgs=channel:nixpkgs-unstable
+        github_access_token: ${{ inputs.SECRET_GITHUB_TOKEN }}
+        extra_nix_config: |
+          substituters = https://tweag-nickel.cachix.org https://cache.nixos.org/
+          trusted-public-keys = tweag-nickel.cachix.org-1:GIthuiK4LRgnW64ALYEoioVUQBWs0jexyoYVeLDBwRA= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+
+    - name: Configure Cachix
+      uses: cachix/cachix-action@v12
+      with:
+        name: organist
+        authToken: ${{ inputs.CACHIX_TOKEN }}
+</file>
+
+<file path=".github/workflows/templates.yml">
+name: Templates
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  merge_group:
+
+jobs:
+
+  enter-devshells:
+    name: Test devshells
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v5
+      with:
+        fetch-depth: 0
+
+    - name: Setup
+      uses: ./.github/actions/common-setup
+      with:
+        SECRET_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CACHIX_TOKEN: ${{ secrets.ORGANIST_CACHIX_TOKEN }}
+
+    - name: Run flake checks
+      run: |
+        nix flake check -L
+
+    - name: Check flake.lock
+      run: |
+        if git status --porcelain | grep flake.lock; then
+          echo "flake.lock was changed:"
+          git diff
+          exit 1
+        fi
+
+    - name: Test devshells
+      run: |
+        nix run .#run-test template
+        nix run .#run-test template -- --full Bash
+        find examples -maxdepth 1 -mindepth 1 -type d -print0 -exec nix run .#run-test example {} \;
+</file>
+
+<file path=".github/dependabot.yml">
+version: 2
+updates:
+
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: daily
+    time: '00:00'
+    timezone: UTC
+  open-pull-requests-limit: 10
+  commit-message:
+      prefix: "chore"
+      include: "scope"
+
+- package-ecosystem: github-actions
+  directory: ".github/actions"
+  schedule:
+    interval: daily
+    time: '00:00'
+    timezone: UTC
+  open-pull-requests-limit: 10
+  commit-message:
+      prefix: "chore"
+      include: "scope"
+</file>
+
+<file path="doc/bootstrap-no-flake.md">
+## Using without flakes
+
+While Organist is focused on usage with flakes, you can use it without them like this:
+
+```nix
+# shell.nix
+let
+  pkgs = import <nixpkgs> {};
+  organistSrc = builtins.fetchTarball "https://github.com/nickel-lang/organist/archive/main.tar.gz";
+  organist = pkgs.callPackage "${organistSrc}/lib/lib.nix" {inherit organistSrc;};
+in
+  (organist.importNcl {baseDir = ./.;}).shells.default
+```
+
+And then use `nix develop -f shell.nix` as usual. Note that this will not use nixpkgs and Nickel from Organist's flake.lock.
+You can use flake-compat to use them:
+
+```nix
+# shell.nix
+let
+  flake-compat = builtins.fetchTarball "https://github.com/edolstra/flake-compat/archive/master.tar.gz";
+  organistSrc = builtins.fetchTarball "https://github.com/nickel-lang/organist/archive/main.tar.gz";
+  organist = ((import flake-compat) {src = organistSrc;}).defaultNix.lib.${builtins.currentSystem};
+in
+  (organist.importNcl {baseDir = ./.;}).shells.default
+```
+</file>
+
+<file path="doc/dependency-management.md">
+# Managing your dependencies with Organist
+
+Organist can be used to manage your development dependencies, and the whole environment.
+
+## Getting started
+
+After running `nix flake init`, you should end-up with a `project.ncl` looking like:
+
+```nickel
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.contracts.OrganistExpression
+& {
+  Schema,
+  config | Schema = {
+    shells = organist.shells.Bash,
+
+    shells.build = {
+      packages = {},
+    },
+
+    shells.dev = {
+      packages.hello = organist.lib.import_nix "nixpkgs#hello",
+    },
+  },
+} | organist.modules.T
+```
+
+This defines two variants of the shell: `build` and `dev`, both of which inherit from `organist.shells.Bash` (more precisely, `build` inherits from `organist.shells.Bash.build` and `dev` inherits from `organist.shells.Bash.dev`).
+
+You can enter the `dev` shell by running `nix develop` or `nix develop .#dev` and the build shell with `nix develop .#build`.
+
+## Customizing the base shell
+
+You can use a different base for your shell by replacing `shells = organist.shells.Bash` but something else, like `shells = organist.shells.Rust`.
+You can even depend on multiple ones at the same time with
+
+```ncl
+  shells = organist.shells.Nickel,
+  shells = organist.shells.Rust,
+```
+
+The merging system will take care of combining their definitions.
+
+## Adding new Nix dependencies
+
+Beyond these predefined generic environments, you can also customize the shells by adding some extra dependencies to them in the `packages` attribute.
+
+Most of the time, these packages will come from `nixpkgs` through the `nix_import` function.
+
+You can find the packages you need on https://search.nixos.org.
+
+## Setting environment variables
+
+The shell options also take an `env` setting that can be used to declare arbitrary environment variables to be set. For instance setting
+
+```nickel
+shells.dev.env.FASTBUILD = 1,
+```
+
+will make sure that the `dev` shells will have the `FASTBUILD` environment variable set to `1`.
+
+These variables can also refer to Nix inputs by using the special `nix-s%" "%` [symbolic string].
+For instance, if you want your dev environment to use `jemalloc` as its `malloc` implementation, you can hook it with:
+
+```nickel
+shells.build.env.LD_PRELOAD = nix-s%"%{organist.import_nix "nixpkgs#jemalloc"}/lib/libjemalloc.so}"%
+```
+
+[symbolic strings]: https://nickel-lang.org/user-manual/syntax#symbolic-strings
+
+## Exposed options
+
+## `flake`
+
+- `flake | FlakeOutputs`
+
+The raw flake outputs that will be passed to Nix.
+
+These should follow the Nix flake outputs schema.
+
+## `shells`
+
+- `shells | OrganistShells`
+
+The shells that will be entered by `nix develop`.
+
+### `build`
+
+- `build | nix.derivation.NickelDerivation`
+
+Build shell.
+
+Only contains the required dependencies to build the project.
+
+Can be entered with `nix develop .#build`.
+
+### `default`
+
+- `default | nix.derivation.NickelDerivation`
+
+Default shell.
+
+This is the shell that gets entered by `nix develop` without any argument.
+
+Defaults to the `dev` shell.
+
+### `dev`
+
+- `dev | nix.derivation.NickelDerivation`
+
+Development shell.
+
+Contains everything needed to build and work on the project.
+
+Can be entered with `nix develop .#dev`.
+</file>
+
+<file path="doc/filegen.md">
+# Generating files with Organist
+
+Organist can be used to manage configuration files on the repository through the `files` option.
+
+For instance:
+
+```nickel
+let schema = import "devcontainer-schema.ncl" in
+{
+  files.".containers.json".content = 
+    let listen_port : Number = 3000 in
+    let config | schema = {
+      image = "ghcr.io/nixos/nix:latest",
+      forwardPorts = [listen_port],
+      containerEnv.MY_APP_LISTEN_PORT = std.to_string listen_port,
+    }
+    in
+    std.serialize 'Toml config,
+}
+```
+
+(where `devcontainer-schema.ncl` is generated from https://raw.githubusercontent.com/devcontainers/spec/main/schemas/devContainer.base.schema.json using https://github.com/nickel-lang/json-schema-to-nickel).
+
+This has two main advantages:
+
+1. It allows keeping everything under control (compared to a bunch of dotfiles everywhere that are easy to loose track of)
+2. It is now possible to benefit from the flexibility and safety of Nickel in these files.
+    In the example above, being able to specify a schema for the devcontainer config means that it's possible to get some early check and not have to wait for the CI to fail to detect a typo.
+
+## Usage
+
+The files specified in `files.*` are regenerated automatically when entering
+the devshell (unless `filegen_hook` is set to false).
+
+They can also be regenerated manually with:
+
+```bash
+nix run .#regenerate-files
+```
+
+## Exposed options
+
+### `files`
+
+`{ _ : File }`
+
+Set of files that should be generated in the project's directory.
+
+### `files.*.content`
+
+- `NixString`
+
+The content of the file.
+
+### `files.*.materialisation_method`
+
+- `[| 'Symlink, 'Copy |]`
+
+How the file should be materialized on-disk.
+
+Symlinking makes it easier to track where the files are coming from,
+but their target only exists after a first call to Organist, which
+might be undesirable.
+
+### `files.*.target`
+
+- `String`
+
+The file to write to.
+If unset, defaults to the attribute name of the file.
+</file>
+
+<file path="doc/migrate-from-0.1.md">
+# Migrating from 0.1
+
+Since 0.2, Organist uses a [module system] for the configuration.
+This means that the `project.ncl` is now a module, with a slightly different interface.
+
+## Migrating `project.ncl`
+
+In the vast majority of cases, the migration consists of three things:
+
+1. Declare a new `Schema` field;
+2. Move all the options under a `config` field;
+3. Replace the schema by `organist.module.T`, and instead merge the config with the previous schema.
+
+As an example is probably more eloquent, this means rewriting:
+
+```nickel
+{
+  shells = …,
+  foo = bar,
+  …
+} | (organist.OrganistExpression & organist.something.Schema & organist.somethingElse.Schema)
+```
+
+into:
+
+```nickel
+organist.OrganistExpression
+& organist.something
+& organist.somethingElse
+& {
+  Schema,
+  config | Schema = {
+    shells = …,
+    foo = bar,
+    …
+  },
+} | organist.module.T
+```
+
+## Migrating custom modules
+
+Migrating custom modules is similar, except that
+1. The module system now separates the _declaration_ of options from their _definition_ (respectively the `Schema` and `config` fields)
+2. Modules must now merge with all of their dependencies (the modules whose option they use).
+
+For instance, an hypothetical module like the one below:
+
+```nickel
+{
+  readme.content
+    | doc "Content of the README file"
+    | String,
+  files."foo".content = readme.content,
+}
+```
+
+should be rewritten to
+
+```nickel
+(import organist.files) # Because we set the `files` option which is defined there
+& {
+  # New options defined by the module
+  Schema = {
+    readme.content
+      | doc "Content of the README file"
+      | String,
+  },
+  # Implementation of the module, setting options from other modules
+  config | Schema = {
+    readme,
+    files."foo".content = readme.content,
+  },
+}
+```
+</file>
+
+<file path="doc/services.md">
+# Managing services with Organist
+
+Organist allows you to declare a set of services that need to be running when developing your project, through the `services` option, exposed by `organist.services`.
+
+These can then be started with `nix run .#start-services start`.
+
+For instance, if the `project.ncl` contains:
+
+```nickel
+let redis_listen_port = 64442 in
+organist.OrganistExpression
+& organist.services
+& {
+  config.services.redis = nix-s%"%{organist.import_nix "nixpkgs#redis"}/bin/redis-server --port %{std.to_string redis_listen_port}"%,
+}
+```
+
+then running `nix run .#start-services start` will run a local `redis` instance listening on port 64442.
+
+A more complete example can be found [here](../examples/services/project.ncl).
+
+## Exposed options
+
+### `services`
+
+ - `{ _ : NixString }`
+
+Services required for development.
+</file>
+
+<file path="examples/c-hello-world/flake.nix">
+{
+  description = "A basic flake with a shell";
+
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="examples/c-hello-world/hello.c">
+#include <stdio.h>
+#include "hello.h"
+
+void hello() {
+    printf("Hello, world!");
+}
+</file>
+
+<file path="examples/c-hello-world/hello.h">
+void hello();
+</file>
+
+<file path="examples/c-hello-world/main.c">
+#include <hello.h>
+
+int main() {
+  hello();
+  return 0;
+}
+</file>
+
+<file path="examples/c-hello-world/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="examples/c-hello-world/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& {
+  Schema,
+  config | Schema
+    = {
+      flake.packages."default" = flake.packages.hello,
+      flake.packages.hello =
+        organist.nix.builders.NixpkgsPkg
+        & {
+          name = "hello",
+          version = "0.1",
+          structured_env.buildInputs = {
+            gcc = organist.import_nix "nixpkgs#gcc",
+            coreutils = organist.import_nix "nixpkgs#coreutils",
+            bash = organist.import_nix "nixpkgs#bash",
+          },
+          env.src = organist.nix.builtins.import_file ".",
+          env.buildCommand =
+            nix-s%"
+          cp $src/* .
+          mkdir -p $out/{include,lib}
+          gcc -shared hello.c -o libhello.so
+          cp *.so $out/lib/
+          cp hello.h $out/include/hello.h
+        "%
+              | organist.nix.derivation.NixString,
+        },
+
+      shells = organist.shells.Bash,
+      shells.build.packages.hello = flake.packages.hello,
+    },
+} | organist.modules.T
+</file>
+
+<file path="examples/c-hello-world/README.md">
+# C hello world
+
+This example builds a simple C hello world program through organist.
+
+## Usage
+
+```console
+$ nix run .#regenerate-lockfile
+$ nix build --impure
+[..]
+$ ./result/bin/hello
+Hello, world!
+```
+
+If you're using this example in a standalone way, outside of the `organist`
+repository, comment the following line inside `flake.nix`:
+
+```diff
+-  inputs.organist.url = "path:../../";
++  # inputs.organist.url = "path:../../";
+```
+
+and uncomment the line just before:
+
+```diff
+-  # inputs.organist.url = "github:nickel-lang/organist";
++  inputs.organist.url = "github:nickel-lang/organist";
+```
+
+## Additional context
+
+This example uses the special `sources` input type to import the `hello.c` file.
+Moreover, as opposed to idiomatic Nix, we have to repeat `bash`, `coreutils`,
+`gcc` and `hello` in the `dependencies` field.
+
+Those issues are alleviated thanks to a Nickel feature called symbolic string.
+See the [C hello world with string
+context](../c-hello-world-string-ctxt/README.md) example for more details.
+</file>
+
+<file path="examples/c-hello-world/test.sh">
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+gcc -lhello main.c -o hello
+./hello
+</file>
+
+<file path="examples/direnv/flake.nix">
+{
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="examples/direnv/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="examples/direnv/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& organist.tools.direnv
+& {
+  Schema,
+  config | Schema
+    = {
+      shells = organist.shells.Bash,
+
+      shells.build = {
+        packages = {},
+      },
+
+      shells.dev = {
+        packages.direnv = organist.import_nix "nixpkgs#direnv"
+      },
+    },
+} | organist.modules.T
+</file>
+
+<file path="examples/direnv/test.sh">
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "export FOO=from-direnv" >> .envrc.private
+
+direnv allow
+[[ $(direnv exec . sh -c 'echo $DIRENV_FILE') == "$PWD/.envrc" ]]
+[[ $(direnv exec . sh -c 'echo $FOO') == "from-direnv" ]]
+</file>
+
+<file path="examples/filegen/flake.nix">
+{
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="examples/filegen/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="examples/filegen/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& organist.tools.editorconfig
+& {
+  Schema,
+  config | Schema
+    = {
+      shells = organist.shells.Bash,
+
+      shells.build = {
+        packages = {},
+      },
+
+      shells.dev = {
+        packages.hello = organist.import_nix "nixpkgs#hello",
+      },
+
+      editorconfig.sections = {
+        "*".indent_style = 'space,
+        "*".indent_size = 2,
+        "*".insert_final_newline = true,
+        "Makefile".indent_style = 'tab,
+        "*.py" = {
+          indent_style = 'space,
+          indent_size = 4,
+        },
+      },
+    },
+}
+  | organist.modules.T
+</file>
+
+<file path="examples/filegen/test.sh">
+#!/usr/bin/env bash
+
+cat <<EOF > .editorconfig.expected
+root = true
+
+[*]
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+
+[*.py]
+indent_size = 4
+indent_style = space
+
+[Makefile]
+indent_style = tab
+EOF
+
+diff .editorconfig.expected .editorconfig
+</file>
+
+<file path="examples/raw_nix_expression/flake.nix">
+{
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="examples/raw_nix_expression/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="examples/raw_nix_expression/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& {
+  Schema,
+  config | Schema
+    = {
+      shells = organist.shells.Bash,
+
+      shells.build = {
+        packages = {},
+      },
+
+      shells.dev = {
+        packages.python =
+          organist.nix.derivation.CallNix
+          & {
+            function = m%"
+          { python }: python.withPackages (p: [p.pyyaml])
+        "%,
+            args = {
+              python = organist.import_nix "nixpkgs#python3"
+            },
+          },
+      },
+    },
+} | organist.modules.T
+</file>
+
+<file path="examples/raw_nix_expression/test.sh">
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+python3 <<<'import yaml; print(yaml.dump({"message": "Hello from python in Organist"}))'
+</file>
+
+<file path="examples/services/flake.nix">
+{
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="examples/services/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="examples/services/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+let postgres_listen_port = 64441 in
+let redis_listen_port = 64442 in
+
+organist.OrganistExpression
+& organist.tools.editorconfig
+& organist.services
+& {
+
+  Schema,
+  config | Schema
+    = {
+      shells = organist.shells.Bash,
+
+      shells.build = {
+        packages = {},
+      },
+
+      shells.dev = {
+        packages = {
+          postgresql = organist.import_nix "nixpkgs#postgresql",
+          redis = organist.import_nix "nixpkgs#redis",
+          honcho = organist.import_nix "nixpkgs#honcho",
+        },
+        env.POSTGRES_PORT = "%{std.to_string postgres_listen_port}",
+        env.REDIS_URI = "redis://localhost:%{std.to_string redis_listen_port}",
+      },
+
+      services = {
+        postgres =
+          let start_script =
+            {
+              name = "start-postgres",
+              runtime_inputs.postgres = organist.import_nix "nixpkgs#postgresql",
+              content.text = nix-s%"
+          mkdir -p ./.postgres-data
+          initdb ./.postgres-data
+          postgres -D ./.postgres-data -k "$PWD/.postgres-data" -p %{std.to_string postgres_listen_port}
+
+        "%
+            } | organist.nix.builders.ShellApplication
+          in
+          nix-s%"%{start_script}/bin/start-postgres"%,
+        redis = nix-s%"%{organist.import_nix "nixpkgs#redis"}/bin/redis-server --port %{std.to_string redis_listen_port}"%,
+      },
+    },
+}
+  | organist.modules.T
+</file>
+
+<file path="examples/services/test.sh">
+#!/usr/bin/env bash
+
+set -euo pipefail
+set -x
+
+# cat Procfile
+
+nix run .#start-services -- check
+nix run .#start-services -- start&
+START_SERVICES_PID=$!
+trap "kill $START_SERVICES_PID; wait" EXIT
+
+sleep 2
+pg_isready -h localhost -p "$POSTGRES_PORT" -t 10
+redis-cli -u "$REDIS_URI" ping
+</file>
+
+<file path="future/playground/acpilight.ncl">
+# express "configurable" or "partial" builders thanks to merging, by just
+# accumulating stuff in e.g. prebuildHooks
+# would need `| merge (@)`
+let DerivationDef = {
+  name,
+  builder,
+  args,
+  env,
+  system,
+} in
+let PackageDef = DerivationDef & {
+  version,
+  derivation = builtin.derivation ...
+  phases = {},
+} in
+
+PkgConfigBuilder = { phases = { packageConfigStuff = { script =
+doPkgConfigStuff, before = ["configurePhase"], }, } }
+
+
+
+let MyBuilder = PackageDef & PkgConfigBuilder in
+let BuilderInterface = { .. } in 
+
+let data = { .. } & Builder1
+let Builder = {
+  #w ..BuilderInterface,
+  derivation = null,
+} in
+
+{
+  name = "acpilight",
+  version = "1.2",
+
+  inputs = {
+    lib,
+    coreutils,
+  },
+
+  build_inputs = {
+    python3,
+    python_packages_configargparse,
+    pyenv = python3 & { with_packages = [ build_inputs.python_packages_configargparse ] },
+  },
+
+  src = {
+     url = "https://gitlab.com/wavexx/acpilight.git",
+     rev = "v%{version}",
+     sha256 = "1r0r3nx6x6vkpal6vci0zaa1n9dfacypldf6k8fxg7919vzxdn1w",
+     fetchType = 'Git,
+  },
+
+  vars = {
+    src_fetched = inputs.lib.fetch src,
+  },
+
+  unpack_phase = m%"
+    cp %{vars.src_fetched} source
+  "%m,
+
+  post_configure = m%"
+    substituteInPlace 90-backlight.rules --replace /bin %{inputs.coreutils}/bin
+    substituteInPlace Makefile --replace udevadm true
+  "%m,
+ 
+  make_flags = [ "DESTDIR=$(out) prefix=" ],
+ 
+  meta = let {platforms, licenses, maintainers, ..} = inputs.lib in {
+    homepage = "https://gitlab.com/wavexx/acpilight",
+    description = "ACPI backlight control",
+    license = licenses.gpl3,
+    maintainers = [ maintainers.msmakarov ],
+    platforms = platforms.linux,
+    mainProgram = "xbacklight",
+  },
+} & Builder
+
+
+# { lib, stdenv, fetchgit, python3, coreutils }:
+# 
+# stdenv.mkDerivation rec {
+#   pname = "acpilight";
+#   version = "1.2";
+# 
+#   src = fetchgit {
+#     url = "https://gitlab.com/wavexx/acpilight.git";
+#     rev = "v${version}";
+#     sha256 = "1r0r3nx6x6vkpal6vci0zaa1n9dfacypldf6k8fxg7919vzxdn1w";
+#   };
+# 
+#   pyenv = python3.withPackages (pythonPackages: with pythonPackages; [
+#     configargparse
+#   ]);
+# 
+#   postConfigure = ''
+#     substituteInPlace 90-backlight.rules --replace /bin ${coreutils}/bin
+#     substituteInPlace Makefile --replace udevadm true
+#   '';
+# 
+#   buildInputs = [ pyenv ];
+# 
+#   makeFlags = [ "DESTDIR=$(out) prefix=" ];
+# 
+#   meta = with lib; {
+#     homepage = "https://gitlab.com/wavexx/acpilight";
+#     description = "ACPI backlight control";
+#     license = licenses.gpl3;
+#     maintainers = with maintainers; [ smakarov ];
+#     platforms = platforms.linux;
+#     mainProgram = "xbacklight";
+#   };
+# }
+</file>
+
+<file path="future/playground/hello2.ncl">
+let {Package, ..} = import "nickelpkgs.ncl" in
+
+# inputs | {_: Package}
+
+(%assume% Bar {
+  foo,
+  bar = 1,
+} | Bar)
+
+& { }
+$dyn_record Package {foo, bar = 1}
+record.map
+
+(record1 | RecContract1) & record2
+~= (record1 | RecContract1) &! (check RecContract record2)
+
+{
+  foo | Contract
+      | default = bar,
+}
+
+({ x = 1 } | { x | Dyn }) & {}
+
+
+fields RecContract ==/(<= if open) fields record2
+builtin.is_record record2
+
+(    ) & record2
+{foo | Package, bar | Package = 1} | & { }
+
+let default_pkg = { name = "", version = "", drv = null, inputs = {}} in
+
+({
+  name = "hello",
+  version = "1.0.0",
+
+  some_flag = [inputs.gcc],
+  drv = null,
+
+  inputs = {
+    gcc | Package,
+  },
+
+  build_inputs = {
+    foo_pkg | Dyn,
+  },
+} | Package) & {
+  inputs.gcc = default_pkg,
+  build_inputs.foo_pkg = default_pkg,
+}
+
+# (foo | A) & (bar | B) => ((foo | A) | B) & ((bar | B) | A)
+#                       => (foo & bar) | A | B
+# ((foo | A) &! (bar | B)) | (A \ fields foo) | (B \ fields bar)
+
+foo = { }
+A = { .. }
+bar | { x = 1 }
+B = { x | Dyn }
+
+nickel> ({} | {..}) & ({ x = 1 } | { x | Dyn })
+{ x = <contract,value=1>}
+
+nickel> (({} | {..}) & ({ x = 1 } | { x | Dyn })).x
+1
+</file>
+
+<file path="future/playground/nickelpkgs.ncl">
+let PackageDef = {..} in
+let Drv = Dyn in
+let Unit = Dyn in
+let Effect = fun x => x in
+let derivation = fun _x = {} in
+
+let lib = {
+  fetch : Str -> Drv = fun s => {path = "dummy"},
+} in
+
+let Drv = {
+  name | Str,
+  # ...,
+  derivation = %derivation% name ....,
+  ..
+} in
+
+{
+  name = "acpiligh",
+  version = "..",
+  src = ".",
+}
+|> Drv
+{
+  ..,
+  derivation = %derivation% name version src ...
+}
+
+let InputBinder = fun res => {
+  inputs = res,
+  build_inputs = res,
+  
+} in
+
+{
+  # Rok: all packages should be in the same dir (flat structure) with names
+  # matching their `name` field
+  get_all_pkgs | Effect Unit -> Array PackageDef,
+  # can we have different names? probably simpler to require names to be unique
+  to_record | Array PackageDef -> {_ : PackageDef},
+  combine | {_: PackageDef} -> {_ : Drv} = fun pkgs =>
+    # Problem: record.map doesn't allow further overriding
+    let res = pkgs | {_ : Drv} in
+
+
+    # Fixpoint, but not sure
+    record.fixpoint (fun self =>
+      record.map (fun _k pkg => pkg & {inputs = self, build_inputs = self}) res)
+
+    # But when do we apply "overlays"/override?
+    # we can't really do it after the fact without additional machinery,
+    # because inputs and build_inputs wouldn't be bound.
+
+    (combine foo) & bar =~= (combine (foo & bar))
+
+    # (r | [foo, .., ])
+    # res & { fixed = record.map (fun _k x => x & {inputs = res, build_inputs = res} }
+    res | (fun lbl x -> x & …)
+
+    #record.fixpoint (fun self => { })
+    #(foo | A | B) & (bar | C | D) ~ (foo | A | B | C | D) & (bar | C | D | A | B)
+    #(foo & bar) | A | B | C | D
+    #res & ...
+    #something_else & ...
+    
+    n1 & n2 = n1 if n1 == n2 or _|_
+    booleans
+    strings
+    arrays must both empty [] - arr1 if arr1 == arr2 or _|_
+    
+{ } | { foo | Num, bar | Num} ~ {foo | Num, bar | Num}
+
+(acpilight | Drv) & { inputs.gcc = myGcc } ===> ((acpilight | Drv) & ({ inputs.gcc = myGcc } | Drv)).derivation
+
+StaticAccess "derivation" (..)
+& merge
+op1 = (inner_op1) | Drv ~ (inner_op1 @ %assume% acpilight Drv label) | Drv
+op2 = { inputs.gcc = myGcc}
+
+let op2_app = contract.apply Drv label {inputs.gcc = myGcc}
+
+(inner_op1 & op2_app) | Drv
+
+(inner_op1 & op2_app)
+
+inner_op1 = acpilight &ctr Drv 
+{ name | Str = "acpiligh", .., derivation = %derivation% ... }
+
+{ name | Str, .., derivation = ... } 
+
+{ name | Str = "acipilight", ..., inputs = { ... }, derivation = (%derivation%
+...) & (%derivation% ...) }
+
+{
+  foo,
+  bar = foo + 1,
+}
+
+x & { foo = self.bar }
+
+fun self => { bar = self.foo + 1 }
+    let rec res = pkgs 
+    |> record.map (fun _k x => x & {derivation = %derivation% x})
+    |> record.fix (fun self => )
+    # |> record.rec_map (fun _k x self => let super = self in x & {inputs = super@{1}, build_inputs = super}
+  ,
+    # Instead, contract approach: define this derivation = in the Builder
+    # contract itself. Sounds like abusing contracts, but ok as long as
+    # idempotent?
+    # Then, all we need to do is to "tie the knot"
+}
+
+{
+  foo = "this",
+  bar = foo + 1,
+  baz = self."%{foo}",
+  inputs = self,
+}
+
+# nickelpkgs @ [let py = import "python.ncl" in py & { version = "3", name =
+# "%{py.name}3"}]
+</file>
+
+<file path="future/prototype/pkgs/hello-world.ncl">
+let { BinShBuilder, .. } = import "../builders.ncl" in
+{
+  name = "hello-world",
+  version = "1.0",
+
+  build_script =
+    m%"
+    echo "Hello, world" > $out
+  "%
+      m,
+} | BinShBuilder
+</file>
+
+<file path="future/prototype/builders.ncl">
+let nix_builtins = import "nix_builtins.ncl" in
+let Drv = Dyn in
+
+# let some_function = fun {args1, .., argsn} => (ret_value : Foo)
+# let x = {args1, .., argsn, ret_value = some_function {args1, .., argns}}
+# SomeFuncInterface = {args1, .., argsn}
+# SomeFunc = {args1, .., argsn, ret_value}
+# Drv == Foo
+{
+  BinShBuilder =
+    DerivationInterface
+    & {
+      build_script | String,
+      build_command = [
+        "/bin/sh",
+        ((import "nix_builtins.ncl").write_text "builder" build_script).path,
+      ],
+    },
+
+  GenericCargoBuilder =
+    BinShBuilder
+    & {
+      cargo | Derivation,
+
+      build_script = "%{cargo}/bin/cargo build",
+    },
+
+  Cargo5Builder =
+    GenericCargoBuilder
+    & {
+      build_inputs = { cargo5 },
+      cargo = build_inputs.cargo5,
+    },
+
+  Drv = { out, drv_path },
+
+  drv_builder = {
+    name | String,
+    version | String,
+    system | String,
+    build_command | Array String,
+    derivation | Drv = nix_builtins.derivation name version system build_command,
+  },
+
+  PackageDef =
+    BinShBuilder
+    & {
+      inputs | default = {},
+      build_inputs | default = {},
+      install_phase | String | default = "",
+      build_phase | String | default = "",
+      build_script | String
+        = m%"
+      %{build_phase}
+      %{install_phase}
+    "%,
+      ..
+    },
+
+  DerivationInterface = {
+    name | String,
+    version | String,
+    system
+      | { arch | String, os | String }
+      | default
+      = { arch = "x86_64", os = "linux" },
+    build_command | Array String,
+    ..
+  },
+
+  # Do we want a syntax like ..DerivationInterface?
+  Derivation = {
+    name | String,
+    version | String,
+    system | { .. },
+    build_command | Array String,
+    derivation | { .. },
+  },
+
+  Package =
+    PackageDef
+    & {
+      derivation | Drv,
+    },
+
+  Unit = Dyn,
+  Effect = fun contract => Dyn,
+}
+</file>
+
+<file path="future/prototype/nickelpkgs.ncl">
+let builders = import "builders.ncl" in
+let { drv_builder, Effect, Unit, Derivation, .. } = builders in
+let PackageDef = builders.PackageDef in
+
+# Can't implement this function in a satisfying way (i.e. that preserves
+# recursive fields and all). Binding everything like a brute for now
+let record =
+  record
+  & {
+    project = fun sub_record r =>
+      sub_record
+      |> record.fields
+      |> array.foldl (fun acc field => record.insert field r."%{field}" acc) {}
+  }
+in
+
+{
+  get_all_defs | Effect (Array PackageDef) = [ import "pkgs/hello-world.ncl"],
+  defs_with_name | Array PackageDef -> { _ : PackageDef }
+    = fun _pkgs =>
+      {
+        hello-world = import "pkgs/hello-world.ncl",
+      },
+  combine | { _ : PackageDef } -> { _ : Package }
+    = fun pkgs =>
+      # Bind the derivation field to the others. Using merging and not a contract
+      # to avoid redoing the computation again and again
+      let base = record.map (fun _k pkg => pkgs & drv_builder) in
+
+      # bind the inputs and build_inputs
+      let rec res =
+        record.map
+          (
+            fun _k pkg =>
+              pkg
+              & {
+                inputs = record.project pkg.inputs res,
+                build_inputs = record.project pkg.build_inputs res,
+              }
+          )
+          base
+      in
+      res,
+  make | Effect { _ : Derivation }
+    =
+      get_all_defs
+      |> defs_with_name
+      |> combine,
+}
+</file>
+
+<file path="future/prototype/nix_builtins.ncl">
+{
+  derivation | String -> String -> { .. } -> String -> { .. }
+    = fun name_ version_ system_ build_command_ =>
+      {
+        name = name_,
+        version = version_,
+        system = system_,
+        build_command = build_command_,
+        path = "dummy"
+      },
+  # we should return a derivation, but let's avoid circular imports for now, and
+  # restructure contracts/functions later.
+  write_text | String -> String -> { .. }
+    = fun name_ text =>
+      {
+        name = name_,
+        version = "1.0",
+        system = { arch = "x86_64", os = "linux" },
+        # what build command?
+        build_command = "",
+        path = "dummy",
+      },
+}
+</file>
+
+<file path="future/constraints.md">
+# Constraints
+
+What needs to be in Nickel to be usable for Nix.
+
+- string context
+
+## Primitive / effect
+
+- derivation. JSON interchange. Loose of lazyness. Not a problem for the
+  direction Nickel -> Nix because it morally takes JSON.
+- Nickel-specific
+- Module system OS
+
+Transpiling Nix to Nickel. String context.
+
+Simply add a way of nix builtins. Look at what other implementations of Nix lang
+do. `rnix`, `hnix` parser e.g. `rnix-lsp`.
+
+Transpiling Nix on the fly, or sync Nixpkgs. In any case the transpiler could be
+separate, so that you can importFromDerivation when needed without polluting the
+interpreter.
+
+Other possibilities: FFI Nickel with Nix. Idea: using the same system for
+caching flakes in Nix. Each Nix record is converted to a Nickel record, where
+each field is a builtin effect to get the Nix value.
+
+Is lazyness important for this kind of call this function ? Not sure, but in
+general can't be ruled out.
+
+And transpiling Nickel to Nix? Complex: contracts, merging.
+
+## String context
+
+G-exp. Or just special delimiters to do that. We would have to reimplement basic
+operators on string. And the symbolic representation of a string.
+
+Context could also be metadata. And basic operator would be able to see that and
+merge the context.
+</file>
+
+<file path="future/roadmap.md">
+# Roadmap for nickel-nix/future
+
+1. Write a few basic package definitions, from simplest:
+    1. hello world
+    2. shell script calling to hello.
+    3. shell script calling to hello with different greeting.
+   With a function combining this into an overridable set of derivations
+   (`combine`).
+   Each a package has discoverable configuration options.
+2. Actually build one package.
+3. Use one package from Nixpkgs.
+n. Having a modular replacement for stdenv. Do we want the bash? If we want to
+   support Windows, probably not. Choosing the right shell is important.
+</file>
+
+<file path="future/use-cases.md">
+- Write all of Nixpkgs
+- Write hello package
+- Write a random packages
+- Local and global overriding a packages
+
+Having an example to write in this new format.
+
+output or result instead of drv
+
+how do we teach it
+
+Evaluating some parts of the stuff with placeholders to inspect the builder or
+whatever.
+</file>
+
+<file path="lib/modules/main.ncl">
+# A library defining some kind of module system for Nickel
+{
+  T
+    | doc m%"
+      The type of a module.
+    "%
+    = {
+      config | Schema = {},
+      Schema
+        | { .. }
+        | not_exported
+        = {},
+      "$__organist_type" | force = "module",
+    },
+
+  submodules
+    | { _ : T } -> T
+    | doc m%"
+      Joins all the given modules into a single one, prefixing all the keys of
+      their options with the key of the corresponding module.
+
+      # Example
+
+      ```nickel
+      submodules {
+          mod1 = { Schema.foo | Number, config.foo = 1 },
+          mod2 = { Schema.foo | String, config.foo = "bar" },
+        }
+
+        => {
+          Schema = { mod1.foo | Number, mod2.foo | String },
+          config = { mod1.foo = 1, mod2.bar = "bar" }
+        }
+      ```
+    "%
+    = fun modules =>
+      let configs = modules |> std.record.map (fun k v => v.config) in
+      let schemas = modules |> std.record.map (fun k v => v.Schema) in
+      {
+        Schema = schemas,
+        config | Schema = configs,
+      } | T,
+}
+</file>
+
+<file path="lib/nix-interop/shells/bash.ncl">
+let builders = import "../builders.ncl" in
+let nix_builtins = import "../builtins.ncl" in
+{
+  build =
+    builders.Shell
+    & {
+      packages = {
+        bash = nix_builtins.import_nix "nixpkgs#bash",
+      },
+    },
+  dev.packages.nickel | default = nix_builtins.import_nix "organist#nickel",
+  dev.packages.nls | default = nix_builtins.import_nix "organist#nls",
+}
+</file>
+
+<file path="lib/nix-interop/shells/haskell.ncl">
+let builders = import "../builders.ncl" in
+let derivation = import "../derivation.ncl" in
+let nix_builtins = import "../builtins.ncl" in
+let Bash = import "./bash.ncl" in
+
+let
+# Haskell Language Server (HLS) uses a different Ormolu version than the default one, and it's difficult to change it for now.
+# See https://github.com/haskell/haskell-language-server/issues/411
+# So we do the opposite: retrieve the Ormolu package transitively pulled by HLS.
+# Note that Ormolu is a level 2 transitive dependency of HLS: `haskell-language-server` -> `hls-ormolu-plugin` -> `ormolu`
+ormoluFromHls = fun hls =>
+  derivation.CallNix
+  & {
+    function = m%"
+      hls:
+        let
+          # Build the attrset of dependency packages of `p`
+          getDependencies = p: builtins.listToAttrs
+            (map (dependency: { name = dependency.pname; value = dependency; }) p.passthru.getBuildInputs.haskellBuildInputs);
+
+          hlsDependencies = getDependencies hls;
+
+          noOrmoluFound =
+            builtins.trace
+              "Couldn't find `ormolu` in the dependencies of `haskell-language-server`. It won't be available in the shell"
+              null;
+        in
+        if hlsDependencies ? ormolu then
+          hlsDependencies.ormolu.bin or noOrmoluFound
+        else if hlsDependencies ? hls-ormolu-plugin then
+          let hlsOrmoluPluginDependencies = getDependencies hlsDependencies.hls-ormolu-plugin; in
+          hlsOrmoluPluginDependencies.ormolu.bin or noOrmoluFound
+        else
+          noOrmoluFound
+    "%,
+    args = hls,
+  }
+in
+
+Bash
+& {
+  build.ghcVersion
+    | doc m%"
+            The GHC version used in the build.
+            Must be kept in sync with the one expected by Stack.
+          "%
+    | String
+    | default
+    = "default",
+  build.packages =
+    let stack-wrapped =
+      {
+        name = "stack-wrapped",
+        version = "1.0",
+        build_command = {
+          cmd = nix-s%"%{nix_builtins.import_nix "nixpkgs#bash"}/bin/bash"%,
+          args = [
+            "-c",
+            nix-s%"
+                  source .attrs.sh
+                  export PATH='%{nix_builtins.import_nix "nixpkgs#coreutils"}/bin'":$PATH"
+                  mkdir -p ${outputs[out]}/bin
+                  echo "$0" > ${outputs[out]}/bin/stack
+                  chmod a+x ${outputs[out]}/bin/*
+                "%,
+            nix-s%"
+                  #!%{nix_builtins.import_nix "nixpkgs#bash"}/bin/bash
+                  %{nix_builtins.import_nix "nixpkgs#stack"}/bin/stack \
+                    --nix \
+                    --no-nix-pure \
+                    --nix-path="nixpkgs=%{nix_builtins.import_nix "nixpkgs#path"}" \
+                    "$@"
+                "%,
+          ],
+        },
+      }
+        | builders.NickelPkg
+    in
+    {
+      stack = stack-wrapped,
+      stack' = nix_builtins.import_nix "nixpkgs#stack",
+      nix = nix_builtins.import_nix "nixpkgs#nix",
+      git = nix_builtins.import_nix "nixpkgs#git",
+    },
+  dev.ghcVersion | force = build.ghcVersion,
+  dev.packages =
+    let ghcPackageSet =
+      if dev.ghcVersion == "default" then
+        "haskellPackages"
+      else
+        "haskell.packages.ghc%{dev.ghcVersion}"
+    in
+    {
+      ormolu = ormoluFromHls haskell-language-server,
+      haskell-language-server = nix_builtins.import_nix "nixpkgs#%{ghcPackageSet}.haskell-language-server",
+    },
+}
+</file>
+
+<file path="lib/nix-interop/shells/rust-targets.ncl">
+{
+  "aarch64-apple-darwin" | default = false,
+  "aarch64-apple-ios" | default = false,
+  "aarch64-apple-ios-sim" | default = false,
+  "aarch64-linux-android" | default = false,
+  "aarch64-pc-windows-msvc" | default = false,
+  "aarch64-unknown-fuchsia" | default = false,
+  "aarch64-unknown-linux-gnu" | default = false,
+  "aarch64-unknown-linux-musl" | default = false,
+  "aarch64-unknown-none" | default = false,
+  "aarch64-unknown-none-softfloat" | default = false,
+  "aarch64-unknown-uefi" | default = false,
+  "arm-linux-androideabi" | default = false,
+  "arm-unknown-linux-gnueabi" | default = false,
+  "arm-unknown-linux-gnueabihf" | default = false,
+  "arm-unknown-linux-musleabi" | default = false,
+  "arm-unknown-linux-musleabihf" | default = false,
+  "armebv7r-none-eabi" | default = false,
+  "armebv7r-none-eabihf" | default = false,
+  "armv5te-unknown-linux-gnueabi" | default = false,
+  "armv5te-unknown-linux-musleabi" | default = false,
+  "armv7-linux-androideabi" | default = false,
+  "armv7-unknown-linux-gnueabi" | default = false,
+  "armv7-unknown-linux-gnueabihf" | default = false,
+  "armv7-unknown-linux-musleabi" | default = false,
+  "armv7-unknown-linux-musleabihf" | default = false,
+  "armv7a-none-eabi" | default = false,
+  "armv7r-none-eabi" | default = false,
+  "armv7r-none-eabihf" | default = false,
+  "asmjs-unknown-emscripten" | default = false,
+  "i586-pc-windows-msvc" | default = false,
+  "i586-unknown-linux-gnu" | default = false,
+  "i586-unknown-linux-musl" | default = false,
+  "i686-linux-android" | default = false,
+  "i686-pc-windows-gnu" | default = false,
+  "i686-pc-windows-msvc" | default = false,
+  "i686-unknown-freebsd" | default = false,
+  "i686-unknown-linux-gnu" | default = false,
+  "i686-unknown-linux-musl" | default = false,
+  "i686-unknown-uefi" | default = false,
+  "loongarch64-unknown-linux-gnu" | default = false,
+  "loongarch64-unknown-none" | default = false,
+  "loongarch64-unknown-none-softfloat" | default = false,
+  "mips-unknown-linux-musl" | default = false,
+  "mips64-unknown-linux-muslabi64" | default = false,
+  "mips64el-unknown-linux-muslabi64" | default = false,
+  "mipsel-unknown-linux-musl" | default = false,
+  "nvptx64-nvidia-cuda" | default = false,
+  "powerpc-unknown-linux-gnu" | default = false,
+  "powerpc64-unknown-linux-gnu" | default = false,
+  "powerpc64le-unknown-linux-gnu" | default = false,
+  "riscv32i-unknown-none-elf" | default = false,
+  "riscv32imac-unknown-none-elf" | default = false,
+  "riscv32imc-unknown-none-elf" | default = false,
+  "riscv64gc-unknown-linux-gnu" | default = false,
+  "riscv64gc-unknown-none-elf" | default = false,
+  "riscv64imac-unknown-none-elf" | default = false,
+  "s390x-unknown-linux-gnu" | default = false,
+  "sparc64-unknown-linux-gnu" | default = false,
+  "sparcv9-sun-solaris" | default = false,
+  "thumbv6m-none-eabi" | default = false,
+  "thumbv7em-none-eabi" | default = false,
+  "thumbv7em-none-eabihf" | default = false,
+  "thumbv7m-none-eabi" | default = false,
+  "thumbv7neon-linux-androideabi" | default = false,
+  "thumbv7neon-unknown-linux-gnueabihf" | default = false,
+  "thumbv8m.base-none-eabi" | default = false,
+  "thumbv8m.main-none-eabi" | default = false,
+  "thumbv8m.main-none-eabihf" | default = false,
+  "wasm32-unknown-emscripten" | default = false,
+  "wasm32-unknown-unknown" | default = false,
+  "wasm32-wasi" | default = false,
+  "wasm32-wasi-preview1-threads" | default = false,
+  "x86_64-apple-darwin" | default = false,
+  "x86_64-apple-ios" | default = false,
+  "x86_64-fortanix-unknown-sgx" | default = false,
+  "x86_64-linux-android" | default = false,
+  "x86_64-pc-solaris" | default = false,
+  "x86_64-pc-windows-gnu" | default = false,
+  "x86_64-pc-windows-msvc" | default = false,
+  "x86_64-sun-solaris" | default = false,
+  "x86_64-unknown-freebsd" | default = false,
+  "x86_64-unknown-fuchsia" | default = false,
+  "x86_64-unknown-illumos" | default = false,
+  "x86_64-unknown-linux-gnu" | default = false,
+  "x86_64-unknown-linux-gnux32" | default = false,
+  "x86_64-unknown-linux-musl" | default = false,
+  "x86_64-unknown-netbsd" | default = false,
+  "x86_64-unknown-none" | default = false,
+  "x86_64-unknown-redox" | default = false,
+  "x86_64-unknown-uefi" | default = false
+}
+</file>
+
+<file path="lib/nix-interop/shells/rust.ncl">
+let derivation = import "../derivation.ncl" in
+let nix_builtins = import "../builtins.ncl" in
+let Targets = import "./rust-targets.ncl" in
+let Bash = import "./bash.ncl" in
+let RustShell = {
+  channel
+    | [| 'stable, 'beta, 'nightly |]
+    | doc "The rust channel"
+    | default
+    = 'stable,
+  extraTargets | doc "Extra targets to install, for cross-compilation"
+    = Targets,
+
+  components | doc "Rust components to install"
+    = {
+      rustc | default = true,
+      cargo | default = true,
+      rust-std | default = true,
+      rust-docs | default = false,
+      rustfmt | default = false,
+      rust-analyzer | default = false,
+      clippy | default = false,
+      miri | default = false,
+      rust-src | default = false,
+    },
+
+  packages.rustc =
+    # Maybe we should default to "complete" instead of "latest"? Tier 2 targets only
+    # have "latest", though...
+    let toolchain = if channel == 'nightly then "latest" else std.string.from_enum channel in
+    let targetNames = std.record.filter (fun n v => v) extraTargets |> std.record.fields in
+    let targets = std.array.map (fun x => nix_builtins.import_nix "fenix#targets.%{x}.%{toolchain}.rust-std") targetNames in
+    let componentNames =
+      std.record.filter (fun name value => value) components
+      |> std.record.fields
+    in
+    derivation.CallNix
+    & {
+      function = "{ withComponents, components }: withComponents components",
+      args = {
+        withComponents = nix_builtins.import_nix "fenix#combine",
+        components =
+          componentNames
+          |> std.array.map (fun x => nix_builtins.import_nix "fenix#%{toolchain}.%{x}")
+          |> std.array.concat targets,
+      },
+    },
+}
+in
+Bash
+& {
+  build = RustShell,
+  dev =
+    RustShell
+    & {
+      # This should probably have the default priority, but it gets merged with
+      # build.components and if it's default then they clash.
+      components = {
+        rust-docs = true,
+        rustfmt = true,
+        clippy = true,
+        rust-analyzer = true,
+      }
+    },
+}
+</file>
+
+<file path="lib/nix-interop/builders.ncl">
+let { NickelDerivation, Derivation, NixEnvironmentVariable, NullOr, .. } = import "derivation.ncl" in
+let nix_string = import "nix-string.ncl" in
+
+let nix_builtins = import "builtins.ncl" in
+
+let MutExclusiveWith = fun other name other_name label value =>
+  if value == null && other == null then
+    std.fail_with "You must specify either %{name} or %{other_name} field"
+  else if value != null && other != null then
+    std.fail_with "You can set only one of %{name} or %{other_name} fields"
+  else
+    value
+in
+{
+  NickelPkg
+  # we should only need two '%%', but a current Nickel bug (#XXX) bug makes the example being
+  # recognized as actual interpolation. For the time being, we thus use a
+  # three '%' delimiter.
+    | doc m%%%"
+      The most basic builder. Simply alias to `NickelDerivation`.
+
+      Example:
+
+      Here is a simple example of a function producing a Nickel derivation
+      using the `NickelPkg` builder.
+
+      ```nickel
+      output = fun { inputs, nix, .. } =>
+      {
+        name = "hello",
+        version = "0.1",
+        build_command = {
+          cmd = nix-s%"%{inputs.bash}/bin/bash"%,
+          args = [ "-c",
+            nix-s%"
+              %{inputs.gcc}/bin/gcc %{nix.import_file "hello.c"} -o hello
+              %{inputs.coreutils}/bin/mkdir -p $out/bin
+              %{inputs.coreutils}/bin/cp hello $out/bin/hello
+             "%
+          ]
+        },
+      } | nix.builders.NickelPkg
+      ```
+      "%%%
+    = NickelDerivation,
+
+  NixpkgsPkg
+    | doc m%"
+      Makes a derivation that runs all the build phases from nixpkgs' stdenv as the `build_command`.
+      Can be controlled with environment variables in the same way as `stdenv.mkDerivation`.
+    "%
+    =
+      {
+        name,
+        version,
+        build_command = {
+          cmd = nix-s%"%{nix_builtins.import_nix "nixpkgs#bash"}/bin/bash"%,
+          args = ["-c", "set -euo pipefail; source \"${NIX_ATTRS_SH_FILE:-.attrs.sh}\"; source $stdenv/setup; genericBuild"],
+        },
+        structured_env = {},
+        env
+          | doc "Environment variables that will be set in the derivation"
+          | { _ : NixEnvironmentVariable }
+          = {
+            stdenv | default = nix_builtins.import_nix "nixpkgs#stdenv",
+          },
+        nix_drv =
+          let env' = env in
+          env' & structured_env & { env = env' },
+      }
+        | NickelPkg,
+
+  Shell
+    | doc m%"
+      A derivation that is to be used as a shell, e.g. with `nix develop`.
+      Analogous to `mkShell`.
+    "%
+    =
+      NixpkgsPkg
+      & {
+        hooks | doc "Bash scripts to run when entering the shell" = {},
+
+        name | default = "shell",
+        version | default = "dev",
+        packages | doc "Packages to be added to the shell, setting PATH, LD_LIBRARY_PATH and other variables as needed" = {},
+
+        env.buildCommand = nix-s%"
+          echo "This derivation is not supposed to be built" 1>&2 1>/dev/null
+          exit 1
+        "%,
+        env.shellHook = nix_string.join "\n" (std.record.values hooks),
+        structured_env.nativeBuildInputs = packages,
+      }
+        | NickelPkg,
+
+  ShellApplication
+    | doc m%"
+      A derivation that writes contents of `content.file` to `bin/$name` in the output and makes it executable.
+      `content.file` defaults to a file with text from `content.text`.
+      The script is prepended with:
+      - #! line that points to `shell_binary` (defaults to `nixpkgs#runtimeShell`)
+      - sane shell configuration
+      - if `runtime_inputs` is specified, `/bin` directories of those inputs are added to PATH
+      The result is verified with `bash -n` and `shellcheck`.
+    "%
+    =
+      NixpkgsPkg
+      & {
+        name,
+        version | default = "0.0.0",
+        content
+          | doc m%"
+            The body of the script. Can be either passed directly as a string,
+            or read from a file
+          "%,
+        content.text
+          | doc "A string representing the body of the script"
+          | NullOr nix_string.NixString
+          | default
+          = null,
+        content.file
+          | doc "File from which to read the body of the script"
+          | NullOr nix_string.NixString
+          | default
+          =
+            if content.text == null then
+              null
+            else
+              nix_builtins.to_file name content.text,
+        runtime_inputs
+          | doc m%"
+            Packages which will be added to the `PATH` of the script when
+            it runs.
+
+            # Example
+
+            ```nickel
+            {
+              jq = import_nix "nixpkgs#jq",
+              nickel = import_nix "nixpkgs#awk",
+            }
+            ```
+          "%
+          | { _ : Derivation }
+          = {},
+        shell_binary
+          | doc m%"
+            The binary that will be run to execute the script.
+            Needs to be bash-compatible.
+          "%
+          | nix_string.NixString
+          | default
+          = nix_builtins.import_nix "nixpkgs#runtimeShell",
+
+        env.buildInputs.coreutils = nix_builtins.import_nix "nixpkgs#coreutils",
+        env.buildCommand = nix-s%"
+          mkdir -p "${outputs[out]}/bin"
+          target="${outputs[out]}/bin/${name}"
+          (cat <<<"$scriptHeader"; cat "%{content.file}") > "$target"
+          chmod +x "$target"
+          %{nix_builtins.import_nix "nixpkgs#stdenv.shellDryRun"} "$target"
+          "%{nix_builtins.import_nix "nixpkgs#shellcheck"}/bin/shellcheck" "$target"
+        "%,
+        env.scriptHeader =
+          let path_line =
+            if std.record.is_empty runtime_inputs then
+              ""
+            else
+              let paths =
+                runtime_inputs
+                |> std.record.values
+                |> std.array.map (fun s => nix-s%"%{s}/bin"%)
+                |> nix_string.join ":"
+              in
+              nix-s%"export PATH="%{paths}:$PATH""%
+          in
+          nix-s%"
+            #!%{shell_binary}
+            set -o errexit
+            set -o nounset
+            set -o pipefail
+            %{path_line}
+          "%,
+      }
+        | NickelPkg,
+}
+</file>
+
+<file path="lib/nix-interop/builtins.ncl">
+let derivations = import "derivation.ncl" in
+let nix_string = import "nix-string.ncl" in
+{
+  import_file
+    | String -> derivations.NixPath
+    | doc m%%"
+          Take a path as a string and produce a Nix path, which will be
+          interpreted as a path on the Nix side and added to the store.
+
+          # Example
+
+          ```nickel
+          cmd = s%"
+              %{inputs.gcc}/bin/gcc %{import_file "hello.c"} -o hello
+              %{inputs.coreutils}/bin/mkdir -p $out/bin
+              %{inputs.coreutils}/bin/cp hello $out/bin/hello
+             "%,
+          ```
+        "%%
+    = fun filepath => { path = filepath },
+  import_nix
+    | doc m%%"
+      Import a Nix value from one of the flake inputs.
+      The value should be passed in a flakeref-like format
+      `input_name#attribute_path`.
+
+      # Example
+
+      ```nickel
+      cmd = nix-s%"%{import_nix "nixpkgs#hello"}/bin/hello > $out"%
+      ```
+    "%%
+    | derivations.NixInputSugar -> derivations.NixInput
+    = fun x => x,
+  placeholder
+    | doc m%"
+      Return a placeholder string for the specified output that will be
+      substituted by the corresponding output path at build time.
+
+      Wrapper around the Nix
+      [placeholder](https://nixos.org/manual/nix/stable/language/builtins.html#builtins-placeholder)
+      builtin.
+    "%
+    | String -> derivations.NixPlaceholder
+    = fun _output => { output = _output },
+  to_file
+    | doc m%"
+      Store the string s in a file in the Nix store and return its path.
+      The file has suffix name.
+
+      Wrapper around the Nix
+      [toFile](https://nixos.org/manual/nix/stable/language/builtins.html#builtins-toFile)
+      builtin.
+    "%
+    | String -> nix_string.NixString -> derivations.NixToFile
+    = fun _name _text => { name = _name, text = _text },
+}
+</file>
+
+<file path="lib/nix-interop/derivation.ncl">
+let type_field = "$__organist_type" in
+
+let nix_string = import "./nix-string.ncl" in
+
+let NixString = nix_string.NixString in
+
+{
+  # Nix may require name, version, etc. to have a certain format, but we're not sure.
+  # TODO: refine those contracts
+  Name = String,
+  Version = String,
+  # TODO: For now, we use String, but should we have enums tags for arch and os
+  # instead?
+  System = { arch | String, os | String },
+
+  NullOr
+    | doc "Make a contract nullable"
+    = fun contract label value =>
+      if value == null then value else std.contract.apply contract label value,
+
+  # TODO: more precise contract
+  Derivation
+    | doc m%"
+      Contract representing either a Nix derivation (evaluated and imported
+      from the Nix world) or a derivation defined in Nickel.
+      "%
+    = Dyn,
+
+  NixDerivation
+    | doc m%"
+        The basic, low-level interface for a symbolic derivation. A
+        NixDerivations is intended to be passed (exported) to the Nix side,
+        which will take care of actually building it.
+
+        The fields directly map to the corresponding
+        [builtins.derivation](https://nixos.org/manual/nix/stable/language/derivations.html)
+        attribute on the Nix side
+      "%
+    = {
+      name | Name,
+      builder | NixString,
+      args | Array NixString,
+      system | NullOr String,
+      outputs | Array String | optional,
+      "__structuredAttrs" | Bool | default = true,
+      ..
+    },
+
+  NickelDerivation
+    | doc m%"
+    The representation of a symbolic derivation on the Nickel side.
+    This record is extensible as the different layers involved might add new attributes to this derivation.
+    The important part eventually is the `nix_drv` field which is computed from the rest and sent to Nix
+"%
+    = {
+      "%{type_field}" | force = "nickelDerivation",
+      nix_drv
+        | doc "The raw derivation sent to Nix"
+        | NixDerivation
+        =
+          let _name = name in
+          let _system = system in
+          let _version = version in
+          {
+            name = _name,
+            system = _system,
+            version = _version,
+            builder = build_command.cmd,
+            args = build_command.args
+          },
+      name
+        | doc "The name of the package."
+        | Name,
+      version
+        | doc "The version of the package."
+        | optional
+        | Version,
+      system
+        | doc "The system to build the package on. Defaults to the system used by importNcl."
+        | NullOr System
+        | default
+        = null,
+      build_command
+        | doc "The build command to execute."
+        | {
+          cmd | NixString,
+          args | Array NixString
+        },
+      ..
+    },
+
+  Params | doc "The parameters provided to the Nickel expression"
+    = {
+      system | System,
+    },
+
+  InputPath
+    | doc " The path of a package in an input (usually nixpkgs)"
+    = Array String,
+
+  NixInput
+    | doc m%"
+      The specification of a Nix input in a Nickel expression.
+    "%
+    = {
+      "%{type_field}" | force = "nixInput",
+      input
+        | doc "The flake input from which we'll resolve this input"
+        | String
+        | default
+        = "nixpkgs",
+      attr_path
+        | doc m%"
+            The path to look for in the given flake input.
+
+            This follows the same search rules as the `nix build` cli, namely
+            that the library will consider the first valid values within:
+            - InputPath
+            - "packages".system.InputPath
+            - "legacyPackages".system.InputPath
+          "%
+        | InputPath
+        | optional,
+    },
+
+  NixInputSugar
+    | doc m%"
+        Syntactic sugar for defining a `NixInput` to allow writing inputs
+        directly as strings of the form `{inputName}#{path}`
+      "%
+    = fun label value =>
+      if std.is_string value then
+        let hashPosition = (std.string.find "#" value).index in
+        let value' =
+          if hashPosition == -1 then
+            { input = value, attr_path = [] }
+          else
+            {
+              input = std.string.substring 0 hashPosition value,
+              attr_path =
+                std.string.split
+                  "."
+                  (
+                    std.string.substring
+                      (hashPosition + 1)
+                      (std.string.length value)
+                      value
+                  ),
+            }
+        in
+        value' |> std.contract.apply NixInput label
+      else
+        std.contract.apply NixInput label value,
+
+  NixPath
+    | doc "A path to be imported in the Nix store"
+    = {
+      "%{type_field}" | force = "nixPath",
+      path | String,
+    },
+
+  NixPlaceholder
+    | doc "A path to the given output resolved later in the Nix store"
+    = {
+      "%{type_field}" | force = "nixPlaceholder",
+      output | String,
+    },
+
+  NixEnvironmentVariable
+    | doc m%"
+        Covers all types that are allowed in Nix derivation's environment variables:
+        - strings
+        - arrays of strings
+        - records with string values
+      "%
+    = fun label value =>
+      let Contract =
+        if std.is_string value then
+          NixString
+        else if std.is_record value then
+          if std.record.has_field type_field value
+          || (
+            std.record.has_field "tag" value
+            && value.tag == 'SymbolicString
+            && std.record.has_field "prefix" value
+            && value.prefix == 'nix
+          ) then
+            NixString
+          else
+            { _ | NixString }
+        else if std.is_array value then
+          Array NixString
+        else
+          std.contract.blame_with_message "Must be string, array of strings or record with string values" label
+      in
+      std.contract.apply Contract label value,
+
+  NixToFile
+    | doc "A path to the given output resolved later in the Nix store"
+    = {
+      "%{type_field}" | force = "nixToFile",
+      name | String,
+      text | NixString,
+    },
+  CallNix
+    | doc m%%"
+      Call a raw Nix expression as a function.
+
+      This will be interpreted as
+
+      ```nix
+      ${function} ${importFromNickel args}
+      ```
+
+      on the Nix side.
+
+      ## Example
+
+      ```nickel
+      organist.nix.derivation.CallNix
+      & {
+        function = m%"
+          { python }: python.withPackages (p: [p.pyyaml])
+        "%,
+        args = {
+          python = organist.import_nix "nixpkgs#python3"
+        },
+      ```
+    "%%
+    = {
+      "%{type_field}" | force = "callNix",
+      function
+        | doc m%"
+          Plain Nix expression that will be passed verbatim to the Nix evaluator.
+        "%
+        | String,
+      args
+        | doc m%"
+          Arguments that will be passed to the Nix expression.
+
+          Can be an arbitrary serializable value.
+        "%
+        | Dyn,
+    },
+}
+</file>
+
+<file path="lib/nix-interop/nix-string.ncl">
+let type_field = "$__organist_type" in
+
+let predicate = {
+  is_nix_string = fun value =>
+    std.is_record value
+    && std.record.has_field type_field value
+    && value."%{type_field}" == "nixString",
+  is_nix_path = fun x =>
+    std.is_record x
+    && std.record.has_field type_field x
+    && x."%{type_field}" == "nixPath",
+  is_nix_placeholder = fun x =>
+    std.is_record x
+    && std.record.has_field type_field x
+    && x."%{type_field}" == "nixPlaceholder",
+  is_nix_to_file = fun x =>
+    std.is_record x
+    && std.record.has_field type_field x
+    && x."%{type_field}" == "nixToFile",
+  is_nix_input = fun x =>
+    std.is_record x
+    && std.record.has_field type_field x
+    && x."%{type_field}" == "nixInput",
+  is_nickel_derivation = fun x =>
+    std.is_record x
+    && std.record.has_field type_field x
+    && x."%{type_field}" == "nickelDerivation",
+  is_derivation = fun x =>
+    is_nickel_derivation x
+    || is_nix_input x,
+  is_nix_call = fun value =>
+    std.is_record value
+    && std.record.has_field type_field value
+    && value."%{type_field}" == "callNix",
+  is_string_fragment = fun x =>
+    is_derivation x
+    || std.is_string x
+    || is_nix_path x
+    || is_nix_placeholder x
+    || is_nix_to_file x
+    || is_nix_call x
+}
+in
+
+let mk_nix_string = fun fs =>
+  {
+    "%{type_field}" = "nixString",
+    fragments = fs,
+  }
+in
+{
+
+  NixStringFragment | doc "A fragment of a Nix string (or a string with context). See `NixString`"
+    = std.contract.from_predicate predicate.is_string_fragment,
+
+  NixSymbolicString
+    | doc m%"
+      A symbolic string with the `'nix` prefix, as output by the Nickel
+      parser. Used as a subcontract for `NixString`.
+      "%
+    = {
+      prefix | [| 'nix |],
+      tag | [| 'SymbolicString |],
+      fragments | Array NixString,
+    },
+
+  NixString
+    | doc m%%"
+      Nix string with a
+      [context](https://shealevy.com/blog/2018/08/05/understanding-nixs-string-context/)
+      tracking the dependencies that need to be built before the string can make
+      sense.
+
+      Anything expecting a `NixString` accepts a pure Nickel string as well. A
+      `NixString` also accepts a Nix string fragment, which can be a Nickel
+      derivation, a Nickel derivation, a Nix path (built from `lib.import_file`), pure
+      Nickel strings, and maybe more in the future.
+
+      A `NixString` accepts any sequence of Nix string fragment as well.
+
+      A `NixString` is best constructed using the symbolic string syntax. See
+      the Nickel example below.
+
+      # Nix string context
+
+      In Nix, when one writes:
+
+      ```nix
+      shellHook = ''
+        echo "Development shell"
+        ${pkgs.hello}/bin/hello
+      ''
+      ```
+
+      Nix automatically deduces that this shell depends on the `hello`
+      package. Nickel doesn't have string contexts, and given the way values
+      are passed from and to Nix, this dependency information is just lost when
+      using bare strings.
+
+      Sometimes, you may not need the context: if `hello` is explicitly part
+      of the inputs, you can use a plain string in a Nickel
+      expression as well:
+
+      ```nickel
+      shellHook = m%"
+        echo "Development shell"
+        %{pkgs.hello.outputPath}/bin/hello
+      "%
+      ```
+
+      # Example
+
+      However, if you need the dependency to `hello` to be automatically
+      deduced, you can use symbolic strings whenever a field has a `NixString`
+      contract attached. The result will be elaborated as a richer structure,
+      carrying the context, and will be reconstructed on the Nix side.
+
+      To do so, juste use the multiline string syntax, but with an `s` prefix
+      instead (**Warning**: the `s` prefix is as of now temporary, and subject
+      to change in the future):
+
+      ```nickel
+      shellHook = nix-s%"
+        echo "Development shell"
+        %{pkgs.hello}/bin/hello
+      "%
+      ```
+
+      Note that:
+        - we've used the symbolic string syntax `nix-s%"`
+        - instead of `hello.outputPath`, we've interpolated `hello` directly,
+          which is a derivation, and not a string
+
+      Within a `NixString`, you can interpolate a Nix String, or a Nix string
+      fragment, that is a Nix derivation, a Nickel derivation, a Nix path (built from
+      `lib.import_file`), pure Nickel strings, and maybe more in the future.
+    "%%
+    = fun label value =>
+      # A contract must always be idempotent (be a no-op if applied a second
+      # time), so we accept something that is already a NixString
+      if predicate.is_nix_string value then
+        value
+        # We accept a single string fragment (a plain string, a derivation or a
+        # Nix path). We normalize it by wrapping it as a one-element array
+      else if predicate.is_string_fragment value then
+        mk_nix_string [value]
+      else
+        let { fragments, .. } = std.contract.apply NixSymbolicString label value in
+        mk_nix_string
+          (
+            std.array.flat_map
+              (fun elt => elt.fragments)
+              fragments
+          ),
+
+  join | NixString -> Array NixString -> NixString
+    = fun sep strings =>
+      mk_nix_string
+        (
+          std.array.map
+            (fun elt => elt.fragments)
+            strings
+          |> std.array.intersperse sep.fragments
+          |> std.array.flatten
+        ),
+}
+</file>
+
+<file path="lib/nix-interop/nix.ncl">
+{
+  derivation
+    | doc m%"
+      Low-level interface for interfacing with Nix values and constructing
+      derivations from Nickel.
+    "%
+    = import "derivation.ncl",
+  nix_string
+    | doc m%"
+      Strings with interpolated Nix values.
+    "%
+    = import "nix-string.ncl",
+  builders
+    | doc m%"
+      Library of standard builders used for writing derivations.
+    "%
+    = import "builders.ncl",
+  shells
+    | doc m%"
+      Library of standard development environments.
+    "%
+    = import "shells.ncl",
+  builtins
+    | doc m%"
+      Wrapper around Nix primops and built-in language features.
+    "%
+    = import "builtins.ncl",
+  utils
+    | doc m%"
+      Miscellaneous helper functions.
+    "%
+    = import "utils.ncl",
+
+  import_nix = builtins.import_nix,
+}
+</file>
+
+<file path="lib/nix-interop/shells.ncl">
+let builders = import "builders.ncl" in
+let nix_builtins = import "builtins.ncl" in
+
+let concat_strings_sep = fun sep values =>
+  if std.array.length values == 0 then
+    ""
+  else
+    std.array.reduce_left (fun acc value => nix-s%"%{acc}%{sep}%{value}"%) values
+in
+
+{
+  Bash = import "./shells/bash.ncl",
+  Rust = import "./shells/rust.ncl",
+
+  Go =
+    Bash
+    & {
+      build.packages.go = nix_builtins.import_nix "nixpkgs#go",
+      dev.packages.gopls = nix_builtins.import_nix "nixpkgs#gopls",
+    },
+
+  Clojure =
+    Bash
+    & {
+      build.packages.clojure = nix_builtins.import_nix "nixpkgs#clojure",
+      dev.packages.clojure-lsp = nix_builtins.import_nix "nixpkgs#clojure-lsp",
+    },
+
+  C =
+    Bash
+    & {
+      build.packages.clang = nix_builtins.import_nix "nixpkgs#clang",
+      dev.packages.clang-tools = nix_builtins.import_nix "nixpkgs#clang-tools",
+    },
+
+  # intelephense is currently broken in nixpkgs
+  Php =
+    Bash
+    & {
+      build.packages.php = nix_builtins.import_nix "nixpkgs#php",
+      # Not included because unfree
+      # dev.packages.intelephense = nix_builtins.import_nix "nixpkgs#nodePackages.intelephense",
+    },
+
+  Zig =
+    Bash
+    & {
+      build.packages.zig = nix_builtins.import_nix "nixpkgs#zig",
+      dev.packages.zls = nix_builtins.import_nix "nixpkgs#zls",
+    },
+
+  Javascript =
+    Bash
+    & {
+      build.packages.nodejs = nix_builtins.import_nix "nixpkgs#nodejs",
+      dev.packages.ts-lsp = nix_builtins.import_nix "nixpkgs#nodePackages_latest.typescript-language-server",
+    },
+
+  Racket =
+    Bash
+    & {
+      build.packages = {
+        racket = nix_builtins.import_nix "nixpkgs#racket",
+      },
+    },
+
+  Scala =
+    Bash
+    & {
+      build.packages.scala = nix_builtins.import_nix "nixpkgs#scala",
+      dev.packages.metals = nix_builtins.import_nix "nixpkgs#metals",
+    },
+
+  Python311 =
+    Bash
+    & {
+      build.packages.python = nix_builtins.import_nix "nixpkgs#python311",
+      dev.packages.python-lsp = nix_builtins.import_nix "nixpkgs#python311Packages.python-lsp-server",
+    },
+
+  Erlang =
+    Bash
+    & {
+      build.packages.erlang = nix_builtins.import_nix "nixpkgs#erlang",
+      dev.packages.erlang-lsp = nix_builtins.import_nix "nixpkgs#erlang-ls",
+    },
+
+  HaskellStack = import "./shells/haskell.ncl",
+
+  OCaml =
+    Bash
+    & {
+      build.packages.ocaml = nix_builtins.import_nix "nixpkgs#ocamlPackages.ocaml",
+      build.packages.dune = nix_builtins.import_nix "nixpkgs#dune_3",
+      build.packages.opam = nix_builtins.import_nix "nixpkgs#opam",
+      dev.packages.ocaml-lsp = nix_builtins.import_nix "nixpkgs#ocamlPackages.ocaml-lsp",
+
+      dev.hooks.enter_opam_env = m%"
+        echo "==> Reloading the OPAM environment."
+        echo "==> Set 'shells.dev.hooks.enter_opam_env' to false to disable."
+        eval $(opam env)
+      "%,
+    },
+}
+</file>
+
+<file path="lib/nix-interop/utils.ncl">
+{
+  escape_drv_name
+    : String -> String
+    | doc m%"
+      Escape the given string to make it an allowed derivation name
+    "%
+    = fun str =>
+      if std.string.is_match "^\\." str then
+        "-" ++ str
+      else
+        str
+}
+</file>
+
+<file path="lib/direnv.ncl">
+let files = import "files.ncl" in
+files
+& {
+  Schema = {
+    direnv = {
+      enable
+        | doc m%"
+          Whether to enable the [direnv](https://github.com/direnv/direnv) integration.
+        "%
+        | Bool
+        | default
+        = true,
+    },
+  },
+  config | Schema
+    = {
+      direnv,
+      files =
+        if direnv.enable then
+          {
+            ".envrc".content = m%"
+            if ! has nix_direnv_version || ! nix_direnv_version 3.0.6; then
+              source_url "https://raw.githubusercontent.com/nix-community/nix-direnv/3.0.6/direnvrc" "sha256-RYcUJaRMf8oF5LznDrlCXbkOQrywm0HDv1VjYGaJGdM="
+            fi
+            watch_file project.ncl nickel.lock.ncl
+            source_env_if_exists ".envrc.private"
+            use flake
+          "%,
+          }
+        else
+          {},
+    },
+}
+</file>
+
+<file path="lib/editorconfig.ncl">
+let files = import "./files.ncl" in
+let IndentSize = fun label value =>
+  if value == 'tab then
+    value
+  else
+    std.contract.apply Number label value
+in
+let ConfigEntry = {
+  indent_style | optional | [| 'tab, 'space |],
+  indent_size | optional | IndentSize,
+  tab_width | optional | Number,
+  insert_final_newline | optional | Bool,
+  end_of_line | optional | [| 'lf, 'cr, 'crlf |],
+  trim_trailing_whitespace | optional | Bool,
+  insert_final_newline | optional | Bool,
+}
+in
+let Config = { _ : ConfigEntry } in
+let showConfigEntry | String -> ConfigEntry -> String
+  = fun section_name entry =>
+    let content =
+      entry
+      |> std.record.map (fun key value => "%{key} = %{std.to_string value}")
+      |> std.record.values
+      |> std.string.join "\n"
+    in
+    m%"
+  [%{section_name}]
+  %{content}
+  "%
+  in
+let generate
+  | Bool -> {
+    _ : ConfigEntry
+  } -> String
+  = fun is_root cfg =>
+    m%"
+    root = %{std.to_string is_root}
+
+    %{std.record.map showConfigEntry cfg |> std.record.values |> std.string.join "\n\n"}
+
+    "%
+  in
+let EditorConfigSchema = {
+  is_root
+    | doc "Whether to stop searching for other editorconfig files above"
+    | Bool
+    | default
+    = true,
+  sections
+    | doc m%"
+        Sections of the editor configuration.
+        Keys are patterns defining the files that will be considered, and values are some specific settings for these files.
+
+        ## Example
+
+        ```nickel
+        {
+          "*" = {
+            indent_style = 'space,
+            indent_size = 2,
+          },
+
+          "Makefile".indent_size = 'tab,
+        }
+        ```
+      "%
+    | Config
+    | default
+    = {},
+}
+in
+files
+& {
+  Schema = {
+    editorconfig
+      | doc m%"
+        Editor configuration (from https://editorconfig.org/)
+      "%
+      | EditorConfigSchema
+      | default
+      = {},
+  },
+  config | Schema
+    = {
+      editorconfig,
+      files =
+        if editorconfig.sections != {} then
+          {
+            ".editorconfig" = {
+              content = generate editorconfig.is_root editorconfig.sections,
+            }
+          }
+        else
+          {},
+    },
+}
+</file>
+
+<file path="lib/files.ncl">
+let nix = import "./nix-interop/nix.ncl" in
+let RelativePath =
+  std.contract.from_predicate
+    (
+      fun x =>
+        x
+        |> std.string.characters
+        |> std.array.first != "/"
+    )
+in
+let NoParentTraversal =
+  std.contract.from_predicate
+    (
+      fun x =>
+        x
+        |> std.string.split "/"
+        |> std.array.all ((!=) "..")
+    )
+in
+let File = {
+  target
+    | doc m%"
+        The file to write to.
+        If null, defaults to the attribute name of the file.
+      "%
+    | std.string.NonEmpty # avoids ""
+    | RelativePath # avoids "/etc/passwd"
+    | NoParentTraversal # avoids "../../../../../../../etc/passwd"
+    | optional,
+  content
+    | doc m%"
+        The content of the file.
+      "%
+    | nix.derivation.NullOr nix.nix_string.NixString
+    | default
+    = null,
+  file
+    | doc "File from which to read the body of the script"
+    | nix.derivation.NullOr nix.nix_string.NixString
+    | default
+    =
+      if content == null then
+        null
+      else
+        nix.builtins.to_file "generated-content" content,
+  materialisation_method
+    : [| 'Symlink, 'Copy |]
+    | doc m%"
+        How the file should be materialized on-disk.
+
+        Symlinking makes it easier to track where the files are coming from,
+        but their target only exists after a first call to Organist, which
+        might be undesirable.
+      "%
+    | default
+    = 'Copy
+}
+in
+let Files = { _ : File }
+in
+let NormaliseTargets = fun label files =>
+  files
+  |> std.record.map (fun name file_descr => file_descr & { target | default = name })
+in
+let regenerate_files | Files -> nix.derivation.Derivation
+  = fun files_to_generate =>
+    let regenerate_function | String
+      = m%"
+        regenerate_function () {
+          COPY_COMMAND="$1"
+          SOURCE="$2"
+          TARGET="$3"
+          if [[ ! -f "$TARGET" ]] || [[ $(cat "$TARGET") != $(cat "$SOURCE") ]]; then
+            rm -f "$TARGET"
+            echo "Regenerating $TARGET"
+            target_dir=$(dirname "$TARGET")
+            test "${target_dir}" != "." && mkdir -p "${target_dir}"
+            # XXX: If `source.file` is set explicitely to a relative path
+            # and `materialisation_method` is `'Symlink`, this will link to the
+            # original file, not one in the store. Not sure that's what we want.
+            $COPY_COMMAND "$SOURCE" "$TARGET"
+          fi
+        }
+      "%
+      in
+    let regnerate_one | String -> File -> nix.nix_string.NixString
+      = fun key file_descr =>
+        let copy_command =
+          match {
+            'Symlink => "ln -s",
+            'Copy => "cp",
+          }
+            file_descr.materialisation_method
+        in
+        let shell_escape = fun path =>
+          path
+          |> std.string.replace "\\" "\\\\"
+          |> std.string.replace m%"'"% m%"\'"%
+        in
+        nix-s%"regenerate_function '%{copy_command}' '%{file_descr.file}' $'%{shell_escape file_descr.target}'"%
+      in
+    let regenerate_files = nix-s%"
+      %{regenerate_function}
+      %{
+        files_to_generate
+        |> std.record.map regnerate_one
+        |> std.record.values
+        |> nix.nix_string.join "\n"
+      }
+    "%
+    in
+    {
+      name = "regenerate-files",
+      content.text = regenerate_files,
+    }
+      | nix.builders.ShellApplication
+  in
+{
+  Schema = {
+    files
+      | Files
+      | NormaliseTargets
+      | doc m%"
+        Set of files that should be generated in the project's directory.
+      "%
+      = {},
+    filegen_hook.enable
+      | Bool
+      | doc m%"
+        Enable a hook that will automatically regenerate the files managed by
+        Nickel when entering the shell.
+      "%
+      | default
+      = true,
+    flake.apps, # Forward declaration. Not great but would need some refactor to fix
+    shells,
+  },
+  config | Schema
+    = {
+      files,
+      filegen_hook,
+      shells,
+      flake.apps.regenerate-files.program = nix-s%"%{regenerate_files files}/bin/regenerate-files"%,
+
+      shells.build.hooks =
+        if filegen_hook.enable then
+          {
+            filegen_hook = nix-s%"
+              %{regenerate_files files}/bin/regenerate-files
+            "%
+          }
+        else
+          {},
+    },
+}
+</file>
+
+<file path="lib/lib.nix">
+{
+  runCommand,
+  writeText,
+  writeShellApplication,
+  nickel,
+  pkgs,
+  system,
+  lib,
+  organistSrc,
+}: let
+  # Export a Nix value to be consumed by Nickel
+  typeField = "$__organist_type";
+
+  # Take a symbolic derivation (a datastructure representing a derivation), as
+  # produced by Nickel, and transform it into valid arguments to
+  # `derivation`
+  prepareDerivation = system: value:
+    value
+    // {
+      system =
+        if value.system != null
+        then value.system
+        else system;
+    };
+  # Helper function that generates contents for "nickel.lock.ncl", see buildLockFile.
+  buildLockFileContents = contents: let
+    getLinesOne = indent: name: thing:
+      if lib.isAttrs thing
+      then
+        [
+          (indent + (lib.optionalString (name != null) "${name} = ") + "{")
+        ]
+        ++ lib.mapAttrsToList (getLinesOne (indent + "  ")) thing
+        ++ [
+          (indent + "}" + (lib.optionalString (name != null) ","))
+        ]
+      else [''${indent}${name} = import "${builtins.toString thing}",''];
+  in
+    lib.concatLines (lib.flatten (getLinesOne "" null contents));
+
+  # A script that generates contents of "nickel.lock.ncl" file from a recursive attribute set of strings.
+  # Example inputs:
+  #   {
+  #     organist = {
+  #       builders = "/nix/store/...-source/builders.ncl";
+  #       contracts = "/nix/store/...-source/contracts.ncl";
+  #       nix = "/nix/store/...-source/organist.ncl";
+  #     };
+  #   }
+  # Result:
+  #   {
+  #     organist = {
+  #       builders = import "/nix/store/...-source/builders.ncl",
+  #       contracts = import "/nix/store/...-source/contracts.ncl",
+  #       nix = import "/nix/store/...-source/organist.ncl",
+  #     },
+  #   }
+  buildLockFile = contents:
+    writeShellApplication {
+      name = "regenerate-lockfile";
+      text = ''
+        cat > nickel.lock.ncl <${builtins.toFile "nickel.lock.ncl" (buildLockFileContents contents)}
+      '';
+    };
+  # Flake app to generate nickel.lock.ncl file. Example usage:
+  #   apps = {
+  #     regenerate-lockfile = organist.lib.${system}.regenerateLockFileApp {
+  #       organist = organist.lib.${system}.lockFileContents;
+  #     };
+  #   };
+  regenerateLockFileApp = contents: {
+    type = "app";
+    program = lib.getExe (buildLockFile contents);
+  };
+
+  # Import a Nickel value produced by the Organist DSL
+  importFromNickel = flakeInputs: system: baseDir: value: let
+    type = builtins.typeOf value;
+    isNickelDerivation = type: type == "nickelDerivation";
+    importFromNickel_ = importFromNickel flakeInputs system baseDir;
+  in
+    if (type == "set")
+    then
+      (
+        let
+          organistType = value."${typeField}" or "";
+        in
+          if organistType == "module"
+          then
+            assert value ? config;
+              importFromNickel_ value.config
+          else if isNickelDerivation organistType
+          then let
+            prepared = prepareDerivation system (builtins.mapAttrs (_:
+              importFromNickel_)
+            value.nix_drv);
+          in
+            derivation prepared
+          else if organistType == "nixString"
+          then builtins.concatStringsSep "" (builtins.map importFromNickel_ value.fragments)
+          else if organistType == "nixPath"
+          then baseDir + "/${value.path}"
+          else if organistType == "nixInput"
+          then let
+            attr_path = value.attr_path;
+            possibleAttrPaths = [
+              ([value.input] ++ attr_path)
+              ([value.input "packages" system] ++ attr_path)
+              ([value.input "legacyPackages" system] ++ attr_path)
+            ];
+            notFound = throw "Missing input \"${value.input}#${lib.strings.concatStringsSep "." attr_path}\"";
+            chosenAttrPath =
+              lib.findFirst
+              (path: lib.hasAttrByPath path flakeInputs)
+              notFound
+              possibleAttrPaths;
+          in
+            lib.getAttrFromPath chosenAttrPath flakeInputs
+          else if organistType == "nixPlaceholder"
+          then builtins.placeholder value.output
+          else if organistType == "nixToFile"
+          then writeText value.name (importFromNickel_ value.text)
+          else if organistType == "callNix"
+          then let
+            fileExpr = builtins.toFile "nickel-generated-expr" (importFromNickel_ value.function);
+            importedArgs = importFromNickel_ value.args;
+          in
+            import fileExpr importedArgs
+          else builtins.mapAttrs (_: importFromNickel_) value
+      )
+    else if (type == "list")
+    then builtins.map importFromNickel_ value
+    else value;
+
+  # Call Nickel on a given Nickel expression with the inputs declared in it.
+  # See importNcl for details about the flakeInputs parameter.
+  callNickel = {
+    nickelFile,
+    flakeInputs,
+    baseDir,
+    lockFileContents,
+  }: let
+    sources = builtins.path {
+      path = baseDir;
+      # TODO: filter .ncl files
+      # filter =
+    };
+
+    lockfilePath = "${sources}/nickel.lock.ncl";
+    expectedLockfileContents = buildLockFileContents lockFileContents;
+    needNewLockfile = !builtins.pathExists lockfilePath || (builtins.readFile lockfilePath) != expectedLockfileContents;
+
+    nickelWithImports = src: ''
+      let params = {
+        system = "${system}",
+      }
+      in
+      let organist = (import "${src}/nickel.lock.ncl").organist in
+
+      let nickel_expr =
+        import "${src}/${nickelFile}" in
+
+      nickel_expr & params
+    '';
+  in
+    runCommand "nickel-res.json" {
+      # If expectedLockfileContents references current flake in context, propagate it even if we don't need it.
+      inherit expectedLockfileContents;
+      passAsFile = ["expectedLockfileContents"];
+    } (
+      if needNewLockfile
+      then ''
+        cp -r "${sources}" sources
+        if [ -f sources/nickel.lock.ncl ]; then
+          chmod +w sources sources/nickel.lock.ncl
+        else
+          chmod +w sources
+        fi
+        cp $expectedLockfileContentsPath sources/nickel.lock.ncl
+        cat > eval.ncl <<EOF
+        ${nickelWithImports "sources"}
+        EOF
+        ${nickel}/bin/nickel export eval.ncl --field config.flake > $out
+      ''
+      else ''
+        cat > eval.ncl <<EOF
+        ${nickelWithImports sources}
+        EOF
+        ${nickel}/bin/nickel export eval.ncl --field config.flake > $out
+      ''
+    );
+
+  # Import a Nickel expression as a Nix value. flakeInputs are where the packages
+  # passed to the Nickel expression are taken from. If the Nickel expression
+  # declares an input hello from input "nixpkgs", then flakeInputs must have an
+  # attribute "nixpkgs" with a package "hello".
+  importNcl = {
+    baseDir,
+    nickelFile ? "project.ncl",
+    flakeInputs ? {
+      nixpkgs = pkgs;
+      organist = import organistSrc;
+    },
+    lockFileContents ? {
+      organist = "${organistSrc}/lib/organist.ncl";
+    },
+  }: let
+    nickelResult = callNickel {
+      inherit nickelFile baseDir flakeInputs lockFileContents;
+    };
+    enrichedFlakeInputs =
+      flakeInputs
+      // {
+        # Dummy “flake input” used to pass some data through the Nickel
+        # evaluation.
+        # We should ideally get rid of that and find another more principled
+        # way, but that will do for now.
+        "%%organist_internal".nickelLock = builtins.toFile "nickel.lock.ncl" (buildLockFileContents lockFileContents);
+      };
+  in
+    {rawNickel = nickelResult;}
+    // (importFromNickel enrichedFlakeInputs system baseDir (builtins.fromJSON
+        (builtins.unsafeDiscardStringContext (builtins.readFile nickelResult))));
+in {
+  inherit
+    importNcl
+    buildLockFile
+    buildLockFileContents
+    regenerateLockFileApp
+    ;
+}
+</file>
+
+<file path="lib/lockfile.ncl">
+let filegen = import "files.ncl" in
+let nix = import "nix-interop/nix.ncl" in
+{
+  Schema = filegen.Schema,
+  config | Schema
+    = {
+      files."nickel.lock.ncl".file = nix.import_nix "%%organist_internal#nickelLock",
+    }
+}
+</file>
+
+<file path="lib/organist.ncl">
+{
+  nix = import "./nix-interop/nix.ncl",
+  modules = import "./modules/main.ncl",
+  shells = nix.shells,
+  schema = import "./schema.ncl",
+  OrganistExpression = schema.OrganistExpression,
+  import_nix = nix.builtins.import_nix,
+
+  services = import "./services.ncl",
+
+  tools.editorconfig = import "./editorconfig.ncl",
+  tools.direnv = import "./direnv.ncl",
+}
+#TODO: currently, Nickel forbids doc at the toplevel. It's most definitely
+# temporary, as the implementation of RFC005 is ongoing. Once the capability is
+# restored, remove this message and uncomment the following lines.
+#
+# | doc m%"
+#     Nickel library for organist interoperability. Provide contracts used to
+#     serialize Nix inputs to Nickel, to define a Nickel expression, and helpers
+#     to build strings which preserves Nix string contexts.
+#   "%
+</file>
+
+<file path="lib/schema.ncl">
+let nix = import "./nix-interop/nix.ncl" in
+let filegen = import "files.ncl" in
+let lockfile = import "lockfile.ncl" in
+{
+  OrganistShells = {
+    dev
+      | doc m%"
+          Development shell.
+
+          Contains everything needed to build and work on the project.
+
+          Can be entered with `nix develop .#dev`.
+        "%
+      | nix.derivation.NickelDerivation
+      = build,
+    build
+      | doc m%"
+          Build shell.
+
+          Only contains the required dependencies to build the project.
+
+          Can be entered with `nix develop .#build`.
+        "%
+      | nix.derivation.NickelDerivation,
+    "default"
+      | doc m%"
+          Default shell.
+
+          This is the shell that gets entered by `nix develop` without any argument.
+
+          Defaults to the `dev` shell.
+        "%
+      | nix.derivation.NickelDerivation
+      = dev,
+  },
+
+  FlakeOutputs = {
+    packages | { _ | nix.derivation.Derivation } | optional,
+    checks | { _ | nix.derivation.Derivation } | optional,
+    devShells | { _ | nix.derivation.Derivation } | optional,
+    apps | { _ | { type = "app", program | nix.nix_string.NixString } } | optional,
+  },
+
+  # TODO: have the actual contract for the result of an expression. It's pretty
+  # open (could be an integer, a derivation, a record of derivations, etc.) but
+  # it still obeys some rules: if the `type` field is set to a known predefined
+  # value, then the record must have a certain shape.
+  #
+  # The contract must be: what the Nix side of the code can "parse" without
+  # erroring out.
+  OrganistExpression =
+    {
+      Schema = {
+        shells
+          | doc m%"
+            The shells that will be entered by `nix develop`.
+          "%
+          | OrganistShells,
+        flake
+          | doc m%"
+            The raw flake outputs that will be passed to Nix.
+
+            These should follow the Nix flake outputs schema.
+          "%
+          | FlakeOutputs
+          = {},
+      },
+      config | Schema
+        = {
+          shells,
+          flake.devShells = shells,
+        },
+    }
+    & filegen
+    & lockfile
+}
+</file>
+
+<file path="lib/services.ncl">
+let nix = import "./nix-interop/nix.ncl" in
+let ProcfileCommand = nix.nix_string.NixString
+in
+let ProcfileSchema = { _ : ProcfileCommand }
+in
+let generate_procfile | ProcfileSchema -> nix.nix_string.NixString
+  = fun schema =>
+    schema
+    |> std.record.map (fun field value => nix-s%"%{field}: %{value}"%)
+    |> std.record.values
+    |> nix.nix_string.join "\n"
+  in
+{
+  Schema = {
+    services
+      | doc m%%%"
+        Services required for development.
+
+        These can be started with `nix run .#start-services start`.
+
+        ## Example
+
+        ```nickel
+        {
+          redis = nix-s%"%{organist.import_nix "nixpkgs#redis"}/bin/redis-server --port %{std.to_string redis_listen_port}"%,
+          minio = nix-s%"%{organist.import_nix "nixpkgs#minio"}/bin/minio server ./.minio-data"%,
+        }
+        ```
+      "%%%
+      | { _ : nix.nix_string.NixString }
+      | default
+      = {},
+    flake.apps,
+  },
+  config | Schema
+    = {
+      services,
+      flake.apps =
+        if services != {} then
+          let procfile = nix.builtins.to_file "Procfile" (generate_procfile services) in
+          {
+            start-services.type = "app",
+            start-services.program | nix.nix_string.NixString
+              =
+                let run =
+                  nix.builders.ShellApplication
+                  & {
+                    name = "start-services",
+                    content.text = nix-s%"exec %{nix.import_nix "nixpkgs#honcho"}/bin/honcho -f %{procfile} "$@""%
+                  }
+                in nix-s%"%{run}/bin/start-services"%
+          }
+        else
+          {},
+    },
+}
+</file>
+
+<file path="lib/shell-tests.ncl">
+# By default simply call all package names with `--version` flag
+let test_command_for = fun package =>
+  package
+  |> std.string.to_enum
+  |> match {
+    'nls => "nls --help",
+    'go => "go version",
+    'gopls => "gopls version",
+    'clang-tools => "clangd --version",
+    'php => "php -v",
+    'zig => "zig version",
+    'nodejs => "node --version",
+    'ts-lsp => "typescript-language-server --version",
+    'python-lsp => "pylsp --version",
+    'erlang => "erl -version",
+    'erlang-lsp => "erlang_ls --version",
+    'stack => "",
+    'ocaml-lsp => "ocamllsp --version",
+    _ => "%{package} --version",
+  }
+in
+std.record.map
+  (
+    fun name shells =>
+      {
+        tests =
+          # Use fields => map => merge_all instead of plain std.records.map to set default priority on fields
+          shells.dev.packages
+          |> std.record.fields
+          |> (std.array.map (fun name => { "%{name}" = test_command_for name }))
+          |> std.record.merge_all,
+      }
+  )
+  (import "./organist.ncl").shells
+  | {
+    _ : {
+      script | String | default
+        =
+          # Enable all usual bash error handling options
+          # Also redirect stdout to stderr to avoid it interleaving when going through `parallel`
+          let lines = std.string.join "\n" (std.record.values tests) in
+          m%"
+            set -euxo pipefail
+            exec 1>&2
+            %{lines}
+          "%,
+      tests | { _ : String },
+    }
+  }
+</file>
+
+<file path="notes/builder-draft.ncl">
+# Draft notepad took during Nixel sessions, brainstorming about the interface
+# and the interface of Nickel devshell builders.
+{
+  BinShBuilder =
+    DerivationInterface
+    & {
+      build_script | Str,
+      build_command = [
+        "/bin/sh",
+        ((import "nix_builtins.ncl").write_text "builder" build_script).path,
+      ],
+    },
+
+  GenericCargoBuilder =
+    BinShBuilder
+    & {
+      cargo | Derivation,
+
+      build_script = "%{cargo}/bin/cargo build",
+    },
+
+  Cargo5Builder =
+    GenericCargoBuilder
+    & {
+      build_inputs = { cargo5 },
+      cargo = build_inputs.cargo5,
+    },
+
+  Drv = { out, drv_path },
+
+  drv_builder = {
+    name | Str,
+    version | Str,
+    system | Str,
+    build_command | Array Str,
+    derivation | Drv = nix_builtins.derivation name version system build_command,
+  },
+
+  PackageDef =
+    BinShBuilder
+    & {
+      inputs | default = {},
+      build_inputs | default = {},
+      install_phase | Str | default = "",
+      build_phase | Str | default = "",
+      build_script | Str
+        =
+          m%"
+            %{build_phase}
+            %{install_phase}
+          "%
+            m,
+      ..
+    },
+
+  DerivationInterface = {
+    name | Str,
+    version | Str,
+    system
+      | { arch | Str, os | Str }
+      | default
+      = { arch = "x86_64", os = "linux" },
+    build_command | Array Str,
+    ..
+  },
+
+  # Do we want a syntax like ..DerivationInterface?
+  Derivation = {
+    name | Str,
+    version | Str,
+    system | { .. },
+    build_command | Array Str,
+    derivation | { .. },
+  },
+
+  Package =
+    PackageDef
+    & {
+      derivation | Drv,
+    },
+
+  Unit = Dyn,
+  Effect = fun contract => Dyn,
+}
+</file>
+
+<file path="templates/default/flake.nix">
+{
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  inputs.fenix.url = "github:nix-community/fenix";
+  inputs.organist.url = "github:nickel-lang/organist";
+
+  nixConfig = {
+    extra-substituters = ["https://organist.cachix.org" "https://nix-community.cachix.org"];
+    extra-trusted-public-keys = ["organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw=" "nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs="];
+  };
+
+  outputs = {organist, ...} @ inputs:
+    organist.flake.outputsFromNickel ./. inputs {};
+}
+</file>
+
+<file path="templates/default/nickel.lock.ncl">
+{
+  organist = import "../../lib/organist.ncl",
+}
+</file>
+
+<file path="templates/default/project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& {
+  Schema,
+  config | Schema
+    = {
+      shells = organist.shells.Bash,
+
+      shells.build = {
+        packages = {},
+      },
+
+      shells.dev = {
+        packages.hello = organist.import_nix "nixpkgs#hello",
+      },
+    },
+}
+  | organist.modules.T
+</file>
+
+<file path="tests/lsp/template/nickel.lock.ncl">
+{ organist = import "../../../lib/organist.ncl" }
+</file>
+
+<file path="tests/lsp/.gitignore">
+__pycache__
+</file>
+
+<file path="tests/lsp/conftest.py">
+import testlib
+import asyncio
+import pytest
+import pytest_asyncio
+from lsprotocol import types as lsp
+
+@pytest_asyncio.fixture
+async def client():
+    # Setup
+    client = testlib.LanguageClient("organist-test-suite", "v1")
+    await client.start_io("nls")
+    response = await client.initialize_async(
+            lsp.InitializeParams(
+                capabilities=lsp.ClientCapabilities(),
+                root_uri="."
+            )
+        )
+    assert response is not None
+    client.initialized(lsp.InitializedParams())
+    return client
+</file>
+
+<file path="tests/lsp/test_completion.py">
+import pytest
+import pytest_asyncio
+from lsprotocol import types as lsp
+from testlib import LanguageClient, open_file
+
+async def complete(client: LanguageClient, file_uri: str, pos: lsp.Position):
+    """
+    Trigger an autocompletion in the given file at the given position
+    """
+    results = await client.text_document_completion_async(
+        params=lsp.CompletionParams(
+            text_document=lsp.TextDocumentIdentifier(file_uri),
+            position=pos,
+        )
+    )
+    assert results is not None
+
+    if isinstance(results, lsp.CompletionList):
+        items = results.items
+    else:
+        items = results
+    return items
+
+@pytest.mark.asyncio
+async def test_completion_at_toplevel(client):
+    """
+    Test that getting an autocompletion at toplevel shows the available fields
+    """
+
+    test_file = 'template/project.ncl'
+    with open('../../templates/default/project.ncl') as template_file:
+        test_file_content = template_file.read()
+
+    test_uri = open_file(client, test_file, test_file_content)
+
+    completion_items = await complete(
+        client,
+        test_uri,
+        lsp.Position(line=10, character=0) # Empty line in the `config` record
+    )
+
+    labels = [item.label for item in completion_items]
+    assert "files" in labels
+    files_item = [item for item in completion_items if item.label == "files"][0]
+    assert files_item.documentation.value != ""
+
+@pytest.mark.asyncio
+async def test_completion_sub_field(client: LanguageClient):
+    """
+    Test that completing on an option shows the available sub-options
+    """
+    test_file = 'template/projectxx.ncl'
+    test_file_content = """
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression
+& {
+    Schema,
+    config | Schema = {
+      files.foo.c
+    },
+}
+| organist.modules.T
+    """
+    test_uri = open_file(client, test_file, test_file_content)
+    completion_items = await complete(
+        client,
+        test_uri,
+        lsp.Position(line=8, character=17) # The `c` in `files.foo.c`
+    )
+
+    labels = [item.label for item in completion_items]
+    assert "content" in labels
+    content_item = [item for item in completion_items if item.label == "content"][0]
+    assert content_item.documentation.value != ""
+
+@pytest.mark.asyncio
+async def test_completion_with_custom_module(client: LanguageClient):
+    """
+    Test that completing takes into account extra modules
+    """
+    test_file = 'template/projectxx.ncl'
+    test_file_content = """
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression & organist.tools.direnv
+& {
+    Schema,
+    config | Schema = {
+
+    },
+}
+| organist.modules.T
+    """
+    test_uri = open_file(client, test_file, test_file_content)
+    completion_items = await complete(
+        client,
+        test_uri,
+        lsp.Position(line=8, character=0) # Empty line in the `config` record
+    )
+
+    labels = [item.label for item in completion_items]
+    assert "direnv" in labels
+
+    ## No documentation for direnv yet
+    # content_item = [item for item in completion_items if item.label == "direnv"][0]
+    # assert content_item.documentation.value != ""
+</file>
+
+<file path="tests/lsp/test_hover.py">
+import pytest
+import pytest_asyncio
+from lsprotocol import types as lsp
+from testlib import LanguageClient, open_file
+from dataclasses import dataclass
+from typing import Callable, List
+
+async def hover(client: LanguageClient, file_uri: str, pos: lsp.Position):
+    """
+    Trigger a hover in the given file at the given position
+    """
+    results = await client.text_document_hover_async(
+        params=lsp.HoverParams(
+            text_document=lsp.TextDocumentIdentifier(file_uri),
+            position=pos,
+        )
+    )
+    return results
+
+@dataclass
+class HoverTest:
+    file: str
+    position: lsp.Position
+    checks: Callable[[lsp.Hover], List[bool]]
+
+
+@pytest.mark.asyncio
+async def test_hover_on_option(client: LanguageClient):
+    """
+    Test that hovering over an option shows the right thing™
+    """
+    test_file = 'template/projectxx.ncl'
+    test_file_content = """
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+
+organist.OrganistExpression & organist.tools.direnv
+& {
+    Schema,
+    config | Schema = {
+        files."foo.ncl".content = "1",
+
+        shells = organist.shells.Bash,
+    },
+}
+| organist.modules.T
+    """
+    test_uri = open_file(client, test_file, test_file_content)
+
+    tests = [
+        HoverTest(
+            file=test_uri,
+            position=lsp.Position(line=8, character=11), # `files`
+            checks= lambda hover_info: [
+                lsp.MarkedString_Type1(language='nickel', value='Files') in hover_info.contents,
+                # Test that the contents contain a plain string (the documentation), and that it's non empty
+                next(content for content in hover_info.contents if type(content) is str) != "",
+            ]
+        ),
+        HoverTest(
+            file=test_uri,
+            position=lsp.Position(line=8, character=28), # `content`
+            checks= lambda hover_info: [
+                lsp.MarkedString_Type1(language='nickel', value='nix.derivation.NullOr nix.nix_string.NixString') in hover_info.contents,
+                # Test that the contents contain a plain string (the documentation), and that it's non empty
+                next(content for content in hover_info.contents if type(content) is str) != "",
+            ]
+        ),
+        HoverTest(
+            file=test_uri,
+            position=lsp.Position(line=10, character=11), # `shells( =)`
+            checks= lambda hover_info: [
+                lsp.MarkedString_Type1(language='nickel', value='OrganistShells') in hover_info.contents,
+                # Test that the contents contain a plain string (the documentation), and that it's non empty
+                next(content for content in hover_info.contents if type(content) is str) != "",
+            ]
+        ),
+    ]
+
+    for test in tests:
+        hover_info = await hover(
+            client,
+            test.file,
+            test.position,
+        )
+        print(hover_info.contents)
+        for check in test.checks(hover_info):
+            assert check
+</file>
+
+<file path="tests/lsp/testlib.py">
+from pygls.lsp.client import BaseLanguageClient
+from typing import Optional
+import os
+from lsprotocol import types as lsp
+
+class LanguageClient(BaseLanguageClient):
+    pass
+
+def open_file(client: LanguageClient, file_path: str, file_content: Optional[str] = None):
+    """
+    Open the given file in the LSP.
+
+    If `file_content` is non `None`, then it will be used as the content sent to the LSP.
+    Otherwise, the actual file content will be read from disk.
+    """
+    file_uri = f"file://{os.path.abspath(file_path)}"
+    actual_file_content = file_content
+    if file_content is None:
+        with open(file_path) as content:
+            actual_file_content = content.read()
+
+    client.text_document_did_open(
+        lsp.DidOpenTextDocumentParams(
+            text_document=lsp.TextDocumentItem(
+                uri=file_uri,
+                language_id="nickel",
+                version=1,
+                text=actual_file_content
+            )
+        )
+    )
+    return file_uri
+</file>
+
+<file path="tests/hello.sh">
+#!/bin/sh
+
+echo "Hello World"
+</file>
+
+<file path="tests/main.ncl">
+{
+  ShellApplication = import "ShellApplication.ncl",
+  to_file = import "to_file.ncl",
+}
+</file>
+
+<file path="tests/ShellApplication.ncl">
+let organist = import "../lib/organist.ncl" in
+let helloScriptFromText =
+  {
+    name = "hello",
+    content.text = m%"
+      #!/bin/sh
+
+      echo "Hello World"
+    "%,
+  }
+    | organist.nix.builders.ShellApplication
+in
+let helloScriptFromFile =
+  {
+    name = "hello",
+    content.file = organist.nix.builtins.import_file "tests/hello.sh",
+  }
+    | organist.nix.builders.ShellApplication
+in
+{
+  name = "test-shellapplication",
+  version = "0.1",
+  env.buildCommand = nix-s%"
+    [[ $(%{helloScriptFromText}/bin/hello) == "Hello World" ]]
+    [[ $(%{helloScriptFromFile}/bin/hello) == "Hello World" ]]
+    echo OK > $out
+  "%,
+}
+</file>
+
+<file path="tests/to_file.ncl">
+let organist = import "../lib/organist.ncl" in
+let file1 = organist.nix.builtins.to_file "file1" "important data" in
+let file2 = organist.nix.builtins.to_file "file2" nix-s%"see %{file1}"% in
+organist.nix.builders.NixpkgsPkg
+& {
+  name = "test-to_path",
+  version = "0.1",
+  env.buildCommand = nix-s%"
+    [[ $(cat %{file1}) == "important data" ]]
+    # Note that this line changes every time we update nixpkgs.
+    # Keep it pointing to x86_64-linux version to keep CI happy.
+    [[ $(cat %{file2}) == "see /nix/store/bzggifmjzdsyqffyvyn516p8rxhh609x-file1" ]]
+    echo OK > $out
+  "%,
+}
+</file>
+
+<file path=".gitignore">
+# This file is generated by Organist, please don't edit directly
+/examples/*/result
+/result
+</file>
+
+<file path="default.nix">
+(
+  import
+  (
+    let
+      lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+    in
+      fetchTarball {
+        url = "https://github.com/edolstra/flake-compat/archive/${lock.nodes.flake-compat.locked.rev}.tar.gz";
+        sha256 = lock.nodes.flake-compat.locked.narHash;
+      }
+  )
+  {src = ./.;}
+)
+.defaultNix
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1696426674,
+        "narHash": "sha256-kvjfFW7WAETZlt09AgDn1MrtKzP7t90Vf7vypd3OL1U=",
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "rev": "0f9255e01c2351cc7d116c072cb317785dd33b33",
+        "type": "github"
+      },
+      "original": {
+        "owner": "edolstra",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1710146030,
+        "narHash": "sha256-SZ5L6eA7HJ/nmkzGG7/ISclqe6oZdOZTNoesiInkXPQ=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "b1d9ab70662946ef0850d488da1c9019f3a9752a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1719075281,
+        "narHash": "sha256-CyyxvOwFf12I91PBWz43iGT1kjsf5oi6ax7CrvaMyAo=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "a71e967ef3694799d0c418c98332f7ff4cc5f6af",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "ref": "nixos-unstable",
+        "type": "indirect"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  description = "Nickel shim for Nix";
+  inputs.nixpkgs.url = "nixpkgs/nixos-unstable";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+  inputs.flake-compat.url = "github:edolstra/flake-compat";
+  inputs.flake-compat.flake = false;
+
+  nixConfig = {
+    extra-substituters = [
+      "https://organist.cachix.org"
+    ];
+    extra-trusted-public-keys = [
+      "organist.cachix.org-1:GB9gOx3rbGl7YEh6DwOscD1+E/Gc5ZCnzqwObNH2Faw="
+    ];
+  };
+
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    flake-compat,
+  } @ inputs: let
+    # Generate typical flake outputs from .ncl files in path for provided systems (default from flake-utils):
+    #
+    # apps.${system}.regenerate-lockfile generated from optional lockFileContents argument,
+    #   defaulting to `organist` pointing to this flake
+    # devShells.${system} and packages.${system} generated from project.ncl
+    #
+    # (to be extended with more features later)
+    outputsFromNickel = baseDir: flakeInputs: {
+      systems ? flake-utils.lib.defaultSystems,
+      lockFileContents ? {
+        organist = "${self}/lib/organist.ncl";
+      },
+    }:
+      flake-utils.lib.eachSystem systems (system: let
+        lib = self.lib.${system};
+        nickelOutputs = lib.importNcl {
+          inherit baseDir flakeInputs lockFileContents;
+        };
+      in
+        # Can't do just `{inherit nickelOutputs;} // nickelOutputs.flake` because of infinite recursion over self
+        if (! builtins.readDir baseDir ? "project.ncl")
+        then {}
+        else {
+          inherit nickelOutputs;
+          packages = nickelOutputs.packages or {};
+          checks = nickelOutputs.checks or {};
+          # Can't define this app in Nickel, yet
+          apps =
+            {
+              regenerate-lockfile = lib.regenerateLockFileApp lockFileContents;
+            }
+            // nickelOutputs.apps or {};
+          devShells = nickelOutputs.devShells or {};
+        });
+
+    computedOutputs = outputsFromNickel ./. (inputs // {organist = self;}) {
+      lockFileContents.organist = "./lib/organist.ncl";
+    };
+  in
+    {
+      templates.default = {
+        path = ./templates/default;
+        description = "A devshell using nickel.";
+        welcomeText = ''
+          You have just created an _Organist_-powered development shell.
+
+          - Enter the environment with `nix develop`
+          - Tweak it by modifying `project.ncl`
+
+          _Hint_: To be able to leverage the Nickel language server for instant feedback on your configuration, run `nix run .#regenerate-lockfile` first.
+        '';
+      };
+      flake.outputsFromNickel = outputsFromNickel;
+    }
+    // computedOutputs
+    // flake-utils.lib.eachDefaultSystem (
+      system: {
+        lib = nixpkgs.legacyPackages.${system}.callPackage ./lib/lib.nix {
+          organistSrc = self;
+          nickel = inputs.nixpkgs.legacyPackages."${system}".nickel;
+        };
+      }
+    );
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2022 Modus Create LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="nickel.lock.ncl">
+{
+  organist = import "./lib/organist.ncl",
+}
+</file>
+
+<file path="project.ncl">
+let inputs = import "./nickel.lock.ncl" in
+let organist = inputs.organist in
+let import_nix = organist.nix.import_nix in
+
+organist.OrganistExpression
+& {
+  Schema,
+  config | Schema
+    = {
+
+      shells =
+        organist.shells.Bash
+        & {
+          build.packages = {
+            nickel = import_nix "nixpkgs#nickel",
+            parallel = import_nix "nixpkgs#parallel",
+            gnused = import_nix "nixpkgs#gnused",
+          },
+        },
+
+      flake.apps.run-test =
+        let testScript | organist.nix.builders.ShellApplication
+          = {
+            name = "run-test.sh",
+            content.file = organist.nix.builtins.import_file "run-test.sh",
+            runtime_inputs = {
+              nickel = import_nix "nixpkgs#nickel",
+              parallel = import_nix "nixpkgs#parallel",
+              gnused = import_nix "nixpkgs#gnused",
+            },
+          }
+          in
+        {
+          type = "app",
+          program | organist.nix.nix_string.NixString = nix-s%"%{testScript}/bin/run-test.sh"%
+        },
+
+      flake.packages = {
+        # Re-exported to make it easy for downstream to depend on them
+        nickel = import_nix "nixpkgs#nickel",
+        nls = import_nix "nixpkgs#nls",
+      },
+
+      flake.checks
+        | { _ | organist.nix.builders.NixpkgsPkg }
+        = {
+          alejandra = {
+            name = "check-alejandra",
+            version = "0.0",
+            env.buildCommand = nix-s%"
+          %{import_nix "nixpkgs#alejandra"}/bin/alejandra --check %{import_nix "self"}
+          touch $out
+        "%,
+          },
+
+          nickel-format = {
+            name = "check-nickel-format",
+            version = "0.0",
+            env.buildInputs.nickel = import_nix "nixpkgs#nickel",
+            env.buildCommand = nix-s%"
+          cd %{import_nix "self"}
+          failed=""
+          for f in $(find . -name future -prune -or -name '*.ncl' -print); do
+            if ! diff -u "$f" <(nickel format < "$f"); then
+              failed="$failed $f"
+            fi
+          done
+          if [ "$failed" != "" ]; then
+            echo "Following files need to be formatted: $failed"
+            exit 1
+          fi
+          touch $out
+        "%,
+          },
+
+          lsp = {
+            name = "organist-lsp-integration",
+            version = "0.0",
+            env.buildInputs = {
+              nls = import_nix "nixpkgs#nls",
+              python3 = import_nix "nixpkgs#python3",
+              pygls = import_nix "nixpkgs#python3Packages.pygls",
+              pytest = import_nix "nixpkgs#python3Packages.pytest",
+              pytest-asyncio = import_nix "nixpkgs#python3Packages.pytest-asyncio",
+            },
+            env = {
+              src = import_nix "self",
+              phases = ["unpackPhase", "testPhase", "installPhase"],
+              testPhase = nix-s%"
+                  cd tests/lsp
+                  pytest | tee $out
+                "%,
+              installPhase = "touch $out",
+            },
+          },
+        },
+
+      flake.checks = import "tests/main.ncl",
+
+      files.".gitignore".materialisation_method = 'Copy,
+      files.".gitignore".content = m%"
+    # This file is generated by Organist, please don't edit directly
+    /examples/*/result
+    /result
+
+  "%,
+    },
+} | organist.modules.T
+</file>
+
+<file path="README.ideal.md">
+_Ni-Mh — batteries included environments with Nickel inside_.
+
+Managing a project's development environment involves configuring a lot of tools and occasionally getting to communicate with each other: one (or several) package managers, a CI system, a service manager (to run that local postgresql database without which you can't test anything), custom utility scripts that end up spawning everywhere, etc.
+Ni-Mh (called “nickel-nix” or “Nixel” at the moment, but I really like Ni-Mh) aims at being your main entrypoint for managaing all these different tools, so that you can get:
+
+1. A unified configuration framework for all of these
+2. A powerful and ergonomic language to allow you to easily abstract over these configurations, with discoverability and early error reporting
+
+## Getting started
+
+To start using `nickel-nix`, you need `Nix` to be installed and configured.
+If it isn't already the case, you can get it with:
+
+```console
+$ curl -L https://nixos.org/nix/install | bash
+# We also need a couple of experimental Nix features
+$ mkdir -p ~/.config/nix
+$ echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+```
+
+Then bootstrap a project with:
+
+```console
+$ nix flake init -t github:nickel-lang/nickel-nix
+# Edit the project file to fit your needs
+$ $EDITOR project.ncl
+# Enter the environment
+$ nix develop
+```
+
+## Managing your environment with Nixel
+
+### Dependencies
+
+Nixel can be used to declare the dependencies for your project.
+These can then be instantiated using [Nix](https://nixos.org/nix).
+
+More information on <./doc-ideal/dependency-management.md>.
+
+### CI configuration
+
+You can use Nixel to generate a CI configuration.
+This is extremely handy if you want to test some non-trivial matrix of platforms/configuration.
+
+> TODO: Document
+
+### Development services
+
+Nixel can also be used for some simple service management.
+In combination with the Nix integration, this allows you to quickly spawn any service that you might depend on.
+
+Once the services have been defined in your `project.ncl` file, you can run `nixel up` to start them.
+
+> TODO: Document
+
+### Deployment
+
+If you want to push things yet a bit further, Nixel can also be used to manage the deployment of your project, using for instance [tf-ncl](https://github.com/tweag/tf-ncl) or [nickel-kubernetes](https://github.com/tweag/nickel-kubernetes/).
+
+> TODO: Document
+
+## Structure of the `project.ncl` file
+
+`project.ncl` is the main entrypoint for `nickel-nix`.
+It describes the packages that should be included in your development environment, as well as the template for any file you'd like to generate:
+
+```nickel
+let Nixel = import ".nickel-nix/lock.ncl" in
+let inputs = Nixel.nix.import_flake "." in
+{
+  shells = Nixel.shells.Rust,
+  shells = Nixel.shells.Nickel,
+
+  shells.build = {
+    packages = [inputs.nixpkgs.pandoc],
+    scripts = {
+      build = nix-s%"
+                #!/usr/bin/env bash
+
+                %{inputs.nixpkgs.gnumake}/bin/make -j$(nproc) -l$(nproc)
+            "%,
+    },
+  },
+
+  shells.dev = {
+    env = {
+      DEV_ENDPOINT = "http://localhost:1234",
+    },
+    packages = [inputs.nixpkgs.nodePackages.prettier],
+  },
+  services = {
+    postgresql = Nixel.services.postgresql,
+    redis.start = nix-s%"
+            %{inputs.nixpkgs.redis}/bin/redis
+        "%,
+    # Optional, will do the right things by default
+    # redis.stop = "kill $PID",
+  },
+  ci.github_actions =
+    let CI = Nixel.CI.GithubActions in
+      {
+        jobs.build =
+          CI.matrix
+            {
+              system = [{ os : "ubuntu-latest" }, { os : "macos-latest" }],
+              configVariant = ["FOO=1", "FOO=2"],
+              config = [
+                {
+                  system | { os : String },
+                  steps =
+                    # The steps that you'll want in nearly any case: Checkout the repo,
+                    # check that the Nixel configuration is up-to-date, etc..
+                    CI.standardSteps
+                    + [
+                      (
+                        CI.steps.runInEnv
+                          m%"
+                %{configVariant} build
+                make check
+                "%
+                      )
+                      & { name = "test" }
+                    ],
+                }
+              ],
+            }.config,
+      },
+}
+```
+
+## Local overrides
+
+If a file `project.local.ncl` is present, then it will be merged with `project.ncl`. This allows locally overriding some parts of the development environment.
+
+For instance, a `project.local.ncl` like the below will add [hyperfine](https://github.com/sharkdp/hyperfine) to the development shell:
+
+```nickel
+let Nixel = import ".nickel-nix/lock.ncl" in
+{
+  shells.dev.packages = [ Nixel.nix.inputs.nixpkgs.hyperfine ],
+}
+```
+</file>
+
+<file path="README.md">
+# Organist
+
+_Control all your tooling from a single console_
+
+Managing a project's development environment involves configuring a lot of tools and occasionally getting to communicate with each other: one (or several) package managers, a CI system, a service manager (to run that local postgresql database without which you can't test anything), custom utility scripts that end up spawning everywhere, etc.
+Organist aims at being your main entrypoint for managaing all these different tools, so that you can get:
+
+1. A unified configuration framework for all of these
+2. A powerful and ergonomic language to allow you to easily abstract over these configurations, with discoverability and early error reporting
+
+## Getting started
+
+To start using Organist, you need `Nix` to be installed and configured.
+If it isn't already the case, you can get it with:
+
+```console
+curl -L https://nixos.org/nix/install | bash
+# We also need a couple of experimental Nix features
+mkdir -p ~/.config/nix
+echo 'experimental-features = nix-command flakes' >> ~/.config/nix/nix.conf
+```
+
+Then bootstrap a project with:
+
+```console
+nix flake init -t github:nickel-lang/organist
+# Edit the project file to fit your needs
+$EDITOR project.ncl
+# Enter the environment
+nix develop
+```
+
+It is also possible to use Organist without flakes, see [doc/bootstrap-no-flake.md](doc/bootstrap-no-flake.md)
+
+## Managing your dependencies with organist
+
+Organist can be used to declare the dependencies for your project.
+These can then be instantiated using [Nix](https://nixos.org/nix).
+
+More information on [doc/dependency-management.md](doc/dependency-management.md).
+
+## Generating files
+
+Development projects tend to require a lot of boilerplaty files to configure
+all the tools involved.
+Organist can take care of these through the [`files` option](doc/filegen.md)
+
+## Managing services
+
+Organist also allows you to declare a set of services that need to be running when developing your project, through the [`services` option](doc/services.md)
+
+## How does this differ from {insert your favorite tool} ?
+
+- [Docker](https://docs.docker.com/desktop/).
+    Containers can be used for providing both a coherent development environment and an arbitrary set of services (via [docker-compose](https://docs.docker.com/compose/) for instance).
+    They provide a very strong isolation and are fairly easy to set up.
+    They tend to be quite rigid however, both when defining the environment (maintaining complex environments in a `Dockerfile` can be challenging) and when running it.
+- [Nix](https://github.com/nixos/nix), and in particular `nix-shell` and `nix develop`.
+    This is one of the main building blocks of Organist.
+    Nix itself acts at a lower level (it is strictly speaking a package manager), although a lot can be encoded in it.
+- [Devenv](https://devenv.sh).
+    This is arguably the main inspiration for Organist, with a fairly similar interface and many common principles.
+
+    The main difference between devenv and Organist is the choice of the surface language (Nix + some YAML for devenv, Nickel for Organist).
+    This has some non-trivial implications:
+    The first one is that Nickel being a more modern language, with more principled (and thus easier to grasp) semantics and a great tooling out-of-the-box makes it more approachable than Nix.
+    The second one is that using a different language means that we can break free from the usual Nix idioms when we know that there's a better way.
+
+    Another important difference is that Organist tries to not sacrifice on the compatibility with Nix (by reusing the Nix command-line and exposing Flake-style outputs), meaning that Organist packages can seamlessly be integrated in Nix-based workflows.
+- [Flox](https://flox.dev).
+    The tool is also leveraging Nix and improving its ability to manage development environments.
+    Its main focus however, is in facilitating the publishing and sharing of packages, which is orthogonal to Organist's goals.
+    In fact, it would probably be possible to use Organist with Flox and get the best of both worlds.
+    This is left as an exercise to the reader.
+- [Devbox](https://www.jetpack.io/devbox/) is another Nix-based development environment manager.
+    Like Organist, it builds beyond the “package management” aspect (to provide some service runner capability and integrate with jetpack.io amongst other things), and like Organist it replaces the Nix language by something else (JSON).
+    It chooses however to expose a more constrained (and not extensible) interface in a more constrained language.
+</file>
+
+<file path="RELEASES.md">
+## HEAD
+
+### Breaking changes
+
+- The overall structure has been reshaped to use a NixOS-modules-like interface.
+  XXX: Extend and explain how to migrate
+
+## Version 0.1 (2023-11-16)
+
+First release (🎉)
+</file>
+
+<file path="roadmap.md">
+## What's left to be done
+
+| Task                        | Priority | Sizing |
+|-----------------------------|----------|--------|
+| Restructure the config file |          |        |
+| Better import mechanism     |          |        |
+| CI integration              |          |        |
+| Services integration        |          |        |
+| Local overrides             |          |        |
+| Unified template            |          |        |
+| tf-ncl integration          |          |        |
+</file>
+
+<file path="run-test.sh">
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+usage() {
+  cat <<EOF
+Usage:
+
+$0 template [--full] <shellName> -- test instantiating the template using the given shell
+$0 template -- test instantiating all the templates
+$0 example <examplePath> -- Try running the example at <examplePath>
+EOF
+  exit 1
+}
+
+pushd_temp () {
+  WORKDIR=$(mktemp -d)
+  function clean() {
+    rm -rf "${WORKDIR}"
+  }
+  trap clean EXIT
+  pushd "${WORKDIR}"
+}
+
+prepare_shell() {
+  # Use a temporary file to pass data to `nix eval` because of https://github.com/NixOS/nix/issues/9330
+  nix flake metadata --json --inputs-from "path:$PROJECT_ROOT" nixpkgs > "${WORKDIR}/meta.json"
+  # Note that we cannot pass neither path nor JSON itself using --arg* because of https://github.com/NixOS/nix/issues/2678
+  NIXPKGS_PATH="$(nix eval --impure --raw --expr '(builtins.fromJSON (builtins.readFile "'"${WORKDIR}/meta.json"'")).path')"
+  # We test against the local version of `organist` not the one in main (hence the --override-input).
+  nix flake update \
+    --override-input organist "path:$PROJECT_ROOT" \
+    --override-input nixpkgs "path:$NIXPKGS_PATH" \
+    --accept-flake-config
+}
+
+# Note: running in a subshell (hence the parens and not braces around the function body) so that the trap-based cleanup happens whenever we exit
+test_one_template () (
+  local isFull=false
+  if [[ ${1:-""} == "--full" ]]; then
+    isFull=true
+    shift
+  fi
+  target="$1"
+  set -x
+  pushd_temp
+
+  nix flake new --template "path:$PROJECT_ROOT" example --accept-flake-config
+
+  pushd ./example
+  sed -i "s/shells\.Bash/shells.$target/" project.ncl
+  prepare_shell
+
+  TEST_SCRIPT="$(nickel export --format raw <<<'(import "'"$PROJECT_ROOT"'/lib/shell-tests.ncl").'"$target"'.script')"
+
+  echo "Running with incorrect nickel.lock.ncl" 1>&2
+  echo '{}' > nickel.lock.ncl
+  nix develop --accept-flake-config --print-build-logs --command bash <<<"$TEST_SCRIPT"
+
+  if [[ $isFull == false ]]; then
+    return
+  fi
+
+  echo "Running without nickel.lock.ncl" 1>&2
+  rm -f nickel.lock.ncl
+  nix develop --accept-flake-config --print-build-logs --command bash <<<"$TEST_SCRIPT"
+
+  echo "Run with proper nickel.lock.ncl" 1>&2
+  nix develop --accept-flake-config --print-build-logs --command bash <<<"$TEST_SCRIPT"
+
+  echo "Testing without flakes" 1>&2
+  # pretend it's not flake anymore
+  rm flake.*
+  cat > shell.nix <<EOF
+let
+  organist = import "$PROJECT_ROOT";
+in
+  (organist.flake.outputsFromNickel ./. {
+    inherit organist;
+    nixpkgs = import <nixpkgs> {};
+  } {}).devShells.\${builtins.currentSystem}.default
+EOF
+
+  echo "Running with incorrect nickel.lock.ncl" 1>&2
+  rm -f nickel.lock.ncl
+  echo '{}' > nickel.lock.ncl
+  nix develop --impure -f shell.nix -I nixpkgs="$NIXPKGS_PATH" --command bash <<<"$TEST_SCRIPT"
+
+  echo "Running without nickel.lock.ncl" 1>&2
+  rm -f nickel.lock.ncl
+  nix develop --impure -f shell.nix -I nixpkgs="$NIXPKGS_PATH" --command bash <<<"$TEST_SCRIPT"
+
+  echo "Run with proper nickel.lock.ncl" 1>&2
+  nix develop --impure -f shell.nix -I nixpkgs="$NIXPKGS_PATH" --command bash <<<"$TEST_SCRIPT"
+
+  popd
+  popd
+  clean
+)
+
+test_template () {
+  if [[ -n ${1+x} ]]; then
+    test_one_template "$@"
+  else
+    all_targets=$(nickel export --format raw <<<'std.record.fields ((import "lib/organist.ncl").shells) |> std.string.join "\n"')
+    # --line-buffer outputs one line at a time, as opposed to dumping all output at once when job finishes
+    # --keep-order makes sure that the order of the output corresponds to the job order, keeping output for each job together
+    # --tag prepends each line with the name of the job
+    echo "$all_targets" | parallel --line-buffer --keep-order --tag "$0" template
+  fi
+}
+
+test_example () (
+  set -x
+  examplePath=$(realpath "$1")
+  pushd_temp
+  cp -r "$examplePath" ./example
+  pushd ./example
+  prepare_shell
+  nix develop --print-build-logs --command bash test.sh
+  popd
+  popd
+)
+
+PROJECT_ROOT=$PWD
+
+if [[ -z ${1+x} ]]; then
+  usage
+elif [[ $1 == "template" ]]; then
+  shift
+  test_template "$@"
+elif [[ $1 == "example" ]]; then
+  shift
+  test_example "$@"
+else
+  usage
+fi
+</file>
+
+</files>

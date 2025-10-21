@@ -1,0 +1,1350 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    nix.yml
+  dependabot.yml
+examples/
+  check-utils/
+    flake.lock
+    flake.nix
+  each-system/
+    flake.nix
+  simple-flake/
+    flake.nix
+    overlay.nix
+    shell.nix
+.gitignore
+allSystems.nix
+check-utils.nix
+default.nix
+filterPackages.nix
+flake-utils.svg
+flake.lock
+flake.nix
+flattenTree.nix
+lib.nix
+LICENSE
+README.md
+simpleFlake.nix
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/nix.yml">
+name: Nix
+on: [ push ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v26
+      - run: nix flake check
+</file>
+
+<file path=".github/dependabot.yml">
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+</file>
+
+<file path="examples/check-utils/flake.lock">
+{
+  "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 0,
+        "narHash": "sha256-omjHh3LT883xERMxVEXH/oeAFI2pAAy30mhZb0eN5G4=",
+        "path": "../..",
+        "type": "path"
+      },
+      "original": {
+        "path": "../..",
+        "type": "path"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1685498995,
+        "narHash": "sha256-rdyjnkq87tJp+T2Bm1OD/9NXKSsh/vLlPeqCc/mm7qs=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "9cfaa8a1a00830d17487cb60a19bb86f96f09b27",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "type": "indirect"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="examples/check-utils/flake.nix">
+{
+  description = "Flake utils demo";
+
+  inputs.flake-utils.url = "path:../..";
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let
+        inherit (flake-utils.lib.check-utils system) isEqual hasKey;
+        testDataset = { key1 = "value1"; key2 = 123; key3 = "some>value with^invalid&characters"; };
+        mkHydraJobs = system: {
+          toplevel = derivation { name = "toplevel"; builder = "mybuilder"; inherit system; };
+          nested = {
+            attribute = derivation { name = "nested-attribute"; builder = "mybuilder"; inherit system; };
+          };
+        };
+      in
+      rec {
+        hydraJobs = mkHydraJobs system;
+        checks = {
+          # Successful cases
+          success_isEqual = isEqual testDataset.key1 "value1";
+          success_hasKey = hasKey testDataset "key2";
+          # ensure no special handling of hydraJobs
+          success_hydraJobs = isEqual self.hydraJobs (flake-utils.lib.eachDefaultSystemMap mkHydraJobs);
+
+          # Failing cases
+          failure_isEqual = isEqual testDataset.key1 "failing-data";
+          failure_hasKey = hasKey testDataset "failing-data";
+
+          # Formatting
+          formatting_number = isEqual testDataset.key2 123;
+          formatting_null = isEqual null null;
+          formatting_invalid_chars = isEqual testDataset.key3 "some>value with^invalid&characters";
+
+        };
+      }
+    );
+}
+</file>
+
+<file path="examples/each-system/flake.nix">
+{
+  description = "Flake utils demo";
+
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let pkgs = nixpkgs.legacyPackages.${system}; in
+      {
+        packages = rec {
+          hello = pkgs.hello;
+          default = hello;
+        };
+        apps = rec {
+          hello = flake-utils.lib.mkApp { drv = self.packages.${system}.hello; };
+          default = hello;
+        };
+      }
+    );
+}
+</file>
+
+<file path="examples/simple-flake/flake.nix">
+{
+  description = "Flake utils demo";
+
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.simpleFlake {
+      inherit self nixpkgs;
+      name = "simple-flake";
+      overlay = ./overlay.nix;
+      shell = ./shell.nix;
+    };
+}
+</file>
+
+<file path="examples/simple-flake/overlay.nix">
+final: prev:
+{
+  # this key should be the same as the simpleFlake name attribute.
+  simple-flake = {
+    # assuming that hello is a project-specific package;
+    hello = prev.hello;
+
+    # demonstrating recursive packages
+    terraform-providers = prev.terraform-providers;
+  };
+}
+</file>
+
+<file path="examples/simple-flake/shell.nix">
+{ pkgs ? import <nixpkgs> }:
+pkgs.mkShell {
+  buildInputs = [ pkgs.jq ];
+}
+</file>
+
+<file path=".gitignore">
+# Nix
+result
+result-*
+
+# Don't keep the example lockfile around
+/example/flake.lock
+</file>
+
+<file path="allSystems.nix">
+[
+  "aarch64-darwin"
+  "aarch64-genode"
+  "aarch64-linux"
+  "aarch64-netbsd"
+  "aarch64-none"
+  "aarch64_be-none"
+  "arm-none"
+  "armv5tel-linux"
+  "armv6l-linux"
+  "armv6l-netbsd"
+  "armv6l-none"
+  "armv7a-darwin"
+  "armv7a-linux"
+  "armv7a-netbsd"
+  "armv7l-linux"
+  "armv7l-netbsd"
+  "avr-none"
+  "i686-cygwin"
+  "i686-darwin"
+  "i686-freebsd13"
+  "i686-genode"
+  "i686-linux"
+  "i686-netbsd"
+  "i686-none"
+  "i686-openbsd"
+  "i686-windows"
+  "javascript-ghcjs"
+  "m68k-linux"
+  "m68k-netbsd"
+  "m68k-none"
+  "microblaze-linux"
+  "microblaze-none"
+  "microblazeel-linux"
+  "microblazeel-none"
+  "mips64el-linux"
+  "mipsel-linux"
+  "mipsel-netbsd"
+  "mmix-mmixware"
+  "msp430-none"
+  "or1k-none"
+  "powerpc-netbsd"
+  "powerpc-none"
+  "powerpc64-linux"
+  "powerpc64le-linux"
+  "powerpcle-none"
+  "riscv32-linux"
+  "riscv32-netbsd"
+  "riscv32-none"
+  "riscv64-linux"
+  "riscv64-netbsd"
+  "riscv64-none"
+  "rx-none"
+  "s390-linux"
+  "s390-none"
+  "s390x-linux"
+  "s390x-none"
+  "vc4-none"
+  "wasm32-wasi"
+  "wasm64-wasi"
+  "x86_64-cygwin"
+  "x86_64-darwin"
+  "x86_64-freebsd13"
+  "x86_64-genode"
+  "x86_64-linux"
+  "x86_64-netbsd"
+  "x86_64-none"
+  "x86_64-openbsd"
+  "x86_64-redox"
+  "x86_64-solaris"
+  "x86_64-windows"
+]
+</file>
+
+<file path="check-utils.nix">
+systemOrPkgs:
+let
+  inherit (builtins) foldl' unsafeDiscardStringContext elemAt match split concatStringsSep isList substring stringLength length attrNames;
+  system = systemOrPkgs.system or systemOrPkgs;
+  pipe = val: functions: foldl' (x: f: f x) val functions;
+  max = x: y: if x > y then x else y;
+
+  # Minimized copy-paste https://github.com/NixOS/nixpkgs/blob/master/lib/strings.nix#L746-L762
+  sanitizeDerivationName = string: pipe (toString string) [
+    # Get rid of string context. This is safe under the assumption that the
+    # resulting string is only used as a derivation name
+    unsafeDiscardStringContext
+    # Strip all leading "."
+    (x: elemAt (match "\\.*(.*)" x) 0)
+    # Split out all invalid characters
+    # https://github.com/NixOS/nix/blob/2.3.2/src/libstore/store-api.cc#L85-L112
+    # https://github.com/NixOS/nix/blob/2242be83c61788b9c0736a92bb0b5c7bbfc40803/nix-rust/src/store/path.rs#L100-L125
+    (split "[^[:alnum:]+._?=-]+")
+    # Replace invalid character ranges with a "-"
+    (map (s: if isList s then "-" else s))
+    (concatStringsSep "")
+    # Limit to 211 characters (minus 4 chars for ".drv")
+    (x: substring (max (stringLength x - 207) 0) (-1) x)
+    # If the result is empty, replace it with "?EMPTY?"
+    (x: if stringLength x == 0 then "?EMPTY?" else x)
+  ];
+
+  # Minimized version of 'sanitizeDerivationName' function
+  str = it: if it == null then "null" else (sanitizeDerivationName it);
+
+  test = name: command: derivation {
+    inherit system;
+    name = str name;
+    builder = "/bin/sh";
+    args = [ "-c" command ];
+  };
+
+  success = test "SUCCESS" "echo success > $out";
+in
+{
+
+  isEqual = a: b:
+    if a == b
+    then success
+    else test "FAILURE__${str a}__NOT_EQUAL__${str b}" "exit 1";
+
+  hasKey = attrset: key:
+    if attrset ? ${str key}
+    then success
+    else test "FAILURE__${str key}__DOES_NOT_EXISTS_IN_ATTRSET_SIZE_${str(length (attrNames attrset))}" "exit 1";
+}
+</file>
+
+<file path="default.nix">
+# Used for back-compat
+import ./lib.nix { }
+</file>
+
+<file path="filterPackages.nix">
+{ allSystems }:
+system: packages:
+let
+  # Adopted from nixpkgs.lib
+  inherit (builtins) listToAttrs concatMap attrNames;
+  nameValuePair = name: value: { inherit name value; };
+  filterAttrs = pred: set:
+    listToAttrs (
+      concatMap
+        (name:
+          let v = set.${name}; in
+          if pred name v then [ (nameValuePair name v) ] else [ ]
+        )
+        (attrNames set)
+    );
+
+  # Everything that nix flake check requires for the packages output
+  sieve = n: v:
+    with v;
+    let
+      inherit (builtins) isAttrs;
+      isDerivation = x: isAttrs x && x ? type && x.type == "derivation";
+      isBroken = meta.broken or false;
+      platforms = meta.platforms or allSystems;
+      badPlatforms = meta.badPlatforms or [ ];
+    in
+    # check for isDerivation, so this is independently useful of
+      # flattenTree, which also does filter on derivations
+    isDerivation v && !isBroken && (builtins.elem system platforms) &&
+    !(builtins.elem system badPlatforms)
+  ;
+in
+filterAttrs sieve packages
+</file>
+
+<file path="flake-utils.svg">
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="svg16"
+   version="1.1"
+   viewBox="0 0 12.7 12.7"
+   height="48"
+   width="48"
+   xml:space="preserve"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/"><defs
+     id="defs10"><linearGradient
+       id="linearGradient5562"><stop
+         style="stop-color:#699ad7;stop-opacity:1"
+         offset="0"
+         id="stop5564" /><stop
+         id="stop5566"
+         offset="0.24345198"
+         style="stop-color:#7eb1dd;stop-opacity:1" /><stop
+         style="stop-color:#7ebae4;stop-opacity:1"
+         offset="1"
+         id="stop5568" /></linearGradient><linearGradient
+       id="linearGradient5053"><stop
+         style="stop-color:#415e9a;stop-opacity:1"
+         offset="0"
+         id="stop5055" /><stop
+         id="stop5057"
+         offset="0.23168644"
+         style="stop-color:#4a6baf;stop-opacity:1" /><stop
+         style="stop-color:#5277c3;stop-opacity:1"
+         offset="1"
+         id="stop5059" /></linearGradient><linearGradient
+       id="linearGradient5960"><stop
+         id="stop5962"
+         offset="0"
+         style="stop-color:#637ddf;stop-opacity:1" /><stop
+         style="stop-color:#649afa;stop-opacity:1"
+         offset="0.23168644"
+         id="stop5964" /><stop
+         id="stop5966"
+         offset="1"
+         style="stop-color:#719efa;stop-opacity:1" /></linearGradient><linearGradient
+       id="linearGradient5867"><stop
+         style="stop-color:#7363df;stop-opacity:1"
+         offset="0"
+         id="stop5869" /><stop
+         id="stop5871"
+         offset="0.23168644"
+         style="stop-color:#6478fa;stop-opacity:1" /><stop
+         style="stop-color:#719efa;stop-opacity:1"
+         offset="1"
+         id="stop5873" /></linearGradient><linearGradient
+       y2="515.97058"
+       x2="282.26105"
+       y1="338.62445"
+       x1="213.95642"
+       gradientTransform="translate(-197.75174,-337.1451)"
+       gradientUnits="userSpaceOnUse"
+       id="linearGradient5855-8"
+       xlink:href="#linearGradient5867" /><linearGradient
+       y2="247.58188"
+       x2="-702.75317"
+       y1="102.74675"
+       x1="-775.20807"
+       gradientTransform="translate(983.36076,601.38885)"
+       gradientUnits="userSpaceOnUse"
+       id="linearGradient4544"
+       xlink:href="#linearGradient5960" /><clipPath
+       id="clipPath4501"
+       clipPathUnits="userSpaceOnUse"><circle
+         r="241.06563"
+         cy="686.09473"
+         cx="335.13995"
+         id="circle4503"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#adadad;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" /></clipPath><clipPath
+       id="clipPath5410"
+       clipPathUnits="userSpaceOnUse"><circle
+         r="241.13741"
+         cy="340.98975"
+         cx="335.98114"
+         id="circle5412"
+         style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#ffffff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:3;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;marker:none;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate" /></clipPath><linearGradient
+       xlink:href="#linearGradient5053"
+       id="linearGradient5137"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(864.55062,-2197.497)"
+       x1="-584.19934"
+       y1="782.33563"
+       x2="-496.29703"
+       y2="937.71399" /><linearGradient
+       xlink:href="#linearGradient5562"
+       id="linearGradient5162"
+       gradientUnits="userSpaceOnUse"
+       gradientTransform="translate(70.505061,-1761.3076)"
+       x1="200.59668"
+       y1="351.41116"
+       x2="290.08701"
+       y2="506.18814" /></defs><metadata
+     id="metadata13"><rdf:RDF><cc:Work
+         rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><g
+     id="g14"
+     transform="matrix(0.20110848,0,0,0.20110848,19.474332,-5.3665187)"><g
+       id="g8"
+       style="display:inline;opacity:1;stroke:#ffffff"
+       transform="translate(3.0583597,-20.952346)"><rect
+         style="opacity:1;fill:#929497;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect2"
+         width="26.205942"
+         height="8.7236834"
+         x="-112.36734"
+         y="63.469101" /><rect
+         style="opacity:1;fill:#929497;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect4"
+         width="25.476097"
+         height="14.747858"
+         x="-86.1614"
+         y="60.457012" /><rect
+         style="opacity:1;fill:#929497;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect5"
+         width="12.302079"
+         height="9.5148468"
+         x="-60.889412"
+         y="63.169197" /><rect
+         style="opacity:1;fill:#929497;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect6"
+         width="5.1707268"
+         height="3.072418"
+         x="-74.118935"
+         y="55.223225" /><rect
+         style="opacity:1;fill:#727acf;fill-opacity:1;stroke:#ffffff;stroke-width:0.589394;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect7"
+         width="18.982008"
+         height="8.7340975"
+         x="-83.12635"
+         y="63.463894" /><path
+         style="opacity:1;fill:#5d5e64;fill-opacity:1;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         d="m -60.693749,58.71795 v 45.50651 l -5.273818,-3.04484 -5.258715,-22.395937 V 60.457012 h 6.423993 l 0.03208,-4.635163 z"
+         id="path7" /><path
+         style="opacity:1;fill:#5d5e64;fill-opacity:1;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         d="m -49.088182,58.229269 v 45.674511 l 4.880753,-2.87679 5.520504,-22.659924 V 60.616729 h -6.021422 v -5.2256 z"
+         id="path8" /><rect
+         style="opacity:1;fill:#000000;fill-opacity:1;stroke:#ffffff;stroke-width:0.59981;stroke-linecap:round;stroke-linejoin:round;paint-order:fill markers stroke"
+         id="rect14"
+         width="1.4872955"
+         height="1.8125205"
+         x="-72.323875"
+         y="58.33213" /></g><g
+       id="g2"
+       clip-path="none"
+       transform="matrix(0.3683143,0.3683143,-0.3683143,0.3683143,-79.169319,73.168432)"
+       style="display:inline;opacity:1"><g
+         id="g3"
+         style="display:none"
+         transform="matrix(2.9292921,0,0,2.9292921,-9.4710101,-9.9495361)"><rect
+           style="display:inline;fill:#d0041c;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1"
+           width="0.93638152"
+           height="0.93638122"
+           x="0.45286971"
+           y="-0.23547961"
+           clip-path="none" /><rect
+           style="fill:#ee7f01;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-6"
+           width="0.93638152"
+           height="0.93638122"
+           x="1.7822026"
+           y="-0.23547961" /><rect
+           style="fill:#f7ad20;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-5"
+           width="0.93638152"
+           height="0.93638122"
+           x="3.1115355"
+           y="-0.23547961" /><rect
+           style="fill:#5d5e64;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-6-6"
+           width="0.93638152"
+           height="0.93638122"
+           x="4.4408684"
+           y="-0.23547961" /><rect
+           style="fill:#929497;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-9"
+           width="0.93638152"
+           height="0.93638122"
+           x="5.7702017"
+           y="-0.23547961" /><rect
+           style="fill:#16d24d;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-6-1"
+           width="0.93638152"
+           height="0.93638122"
+           x="7.099535"
+           y="-0.23547961" /><rect
+           style="fill:#727acf;fill-opacity:1;stroke:none;stroke-width:0.121952;stroke-linejoin:round;stroke-dasharray:none;stroke-dashoffset:0;paint-order:fill markers stroke"
+           id="rect1-6-1-7"
+           width="0.93638152"
+           height="0.93638122"
+           x="8.4288683"
+           y="-0.23547961" /></g><g
+         id="g11"
+         transform="matrix(4.6184515,-2.5635348,2.5618766,4.5973244,-16.022286,-59.492566)"
+         style="display:inline;opacity:1;fill:#ffffff;stroke:#ffffff;stroke-width:0.13172;stroke-dasharray:none;stroke-dashoffset:0"><path
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#f7ad20;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           d="m 309.40365,-710.2521 122.19683,211.6751 -56.15706,0.5268 -32.6236,-56.8692 -32.85645,56.5653 -27.90237,-0.011 -14.29086,-24.6896 46.81047,-80.4902 -33.22946,-57.8256 z"
+           id="path4861"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,-4.2498833,16.66452)" /><path
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;opacity:1;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#d0041c;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           d="m 362.88537,-628.243 244.41439,0.012 -27.62229,48.8968 -65.56199,-0.1817 32.55876,56.7371 -13.96098,24.1585 -28.52722,0.032 -46.3013,-80.7841 -66.69317,-0.1353 z"
+           id="use4865"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,-4.2498833,16.66452)" /><path
+           id="use3449-5"
+           d="M 348.94973,212.06577 226.7529,0.39065 l 56.15706,-0.5268 32.6236,56.8692 32.85645,-56.5653 27.90237,0.011 14.29086,24.6896 -46.81047,80.4901 33.22946,57.8257 z"
+           style="display:inline;fill:#d0041c;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,2.6784178,1.1343292)" /><path
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#f7ad20;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           d="m 294.9633,129.57046 -244.41444,-0.012 27.62231,-48.89684 65.56197,0.18174 -32.55876,-56.73718 13.96071,-24.15866 28.52725,-0.0314 46.30123,80.7841 66.69317,0.13525 z"
+           id="use4354-5"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,2.6784178,1.1343292)" /><path
+           style="color:#000000;clip-rule:nonzero;display:inline;overflow:visible;visibility:visible;isolation:auto;mix-blend-mode:normal;color-interpolation:sRGB;color-interpolation-filters:linearRGB;solid-color:#000000;solid-opacity:1;fill:#f7ad20;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1;color-rendering:auto;image-rendering:auto;shape-rendering:auto;text-rendering:auto;enable-background:accumulate"
+           d="m 304.56645,299.22444 122.21762,-211.66312 28.53475,48.37004 -32.93837,56.68746 65.41521,0.17187 13.94166,24.16966 -14.23639,24.72105 -93.11171,-0.294 -33.46371,57.69035 z"
+           id="use4362-2"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,2.6784178,1.1343292)" /><path
+           id="use3439-6"
+           d="M 197.31588,135.61103 75.09826,347.27415 46.56351,298.90411 79.50188,242.21664 14.08667,242.04477 0.14501,217.87511 14.3814,193.15406 l 93.11171,0.29401 33.4638,-57.69041 z"
+           style="display:inline;fill:#d0041c;fill-opacity:1;fill-rule:evenodd;stroke:#ffffff;stroke-width:7.32898;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+           transform="matrix(0.01739755,0.00450968,-0.00450968,0.01739755,2.6784178,1.1343292)" /></g></g></g></svg>
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "root": {
+      "inputs": {
+        "systems": "systems"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  description = "Pure Nix flake utility functions";
+
+  # Externally extensible flake systems. See <https://github.com/nix-systems/nix-systems>.
+  inputs.systems.url = "github:nix-systems/default";
+
+  outputs = { self, systems }: {
+    lib = import ./lib.nix {
+      defaultSystems = import systems;
+    };
+    templates = {
+      default = self.templates.each-system;
+      simple-flake = {
+        path = ./examples/simple-flake;
+        description = "A flake using flake-utils.lib.simpleFlake";
+      };
+      each-system = {
+        path = ./examples/each-system;
+        description = "A flake using flake-utils.lib.eachDefaultSystem";
+      };
+      check-utils = {
+        path = ./examples/check-utils;
+        description = "A flake with tests";
+      };
+    };
+  };
+}
+</file>
+
+<file path="flattenTree.nix">
+tree:
+let
+  op = sum: path: val:
+    let
+      pathStr = builtins.concatStringsSep "/" path;
+    in
+    if (builtins.typeOf val) != "set" then
+    # ignore that value
+    # builtins.trace "${pathStr} is not of type set"
+      sum
+    else if val ? type && val.type == "derivation" then
+    # builtins.trace "${pathStr} is a derivation"
+    # we used to use the derivation outPath as the key, but that crashes Nix
+    # so fallback on constructing a static key
+      (sum // {
+        "${pathStr}" = val;
+      })
+    else if val ? recurseForDerivations && val.recurseForDerivations == true then
+    # builtins.trace "${pathStr} is a recursive"
+    # recurse into that attribute set
+      (recurse sum path val)
+    else
+    # ignore that value
+    # builtins.trace "${pathStr} is something else"
+      sum
+  ;
+
+  recurse = sum: path: val:
+    builtins.foldl'
+      (sum: key: op sum (path ++ [ key ]) val.${key})
+      sum
+      (builtins.attrNames val)
+  ;
+in
+recurse { } [ ] tree
+</file>
+
+<file path="lib.nix">
+{
+  # The list of systems supported by nixpkgs and hydra
+  defaultSystems ? [
+    "aarch64-linux"
+    "aarch64-darwin"
+    "x86_64-darwin"
+    "x86_64-linux"
+  ]
+}:
+let
+  inherit defaultSystems;
+
+  # List of all systems defined in nixpkgs
+  # Keep in sync with nixpkgs wit the following command:
+  # $ nix-instantiate --json --eval --expr "with import <nixpkgs> {}; lib.platforms.all" | jq 'sort' | sed 's!,!!' > allSystems.nix
+  allSystems = import ./allSystems.nix;
+
+  # A map from system to system. It's useful to detect typos.
+  #
+  # Instead of typing `"x86_64-linux"`, type `flake-utils.lib.system.x86_64-linux`
+  # and get an error back if you used a dash instead of an underscore.
+  system =
+    builtins.listToAttrs
+      (map (system: { name = system; value = system; }) allSystems);
+
+  # eachSystem using defaultSystems
+  eachDefaultSystem = eachSystem defaultSystems;
+
+  # eachSystemPassThrough using defaultSystems
+  eachDefaultSystemPassThrough = eachSystemPassThrough defaultSystems;
+
+  # Builds a map from <attr>=value to <attr>.<system>=value for each system.
+  eachSystem = eachSystemOp (
+    # Merge outputs for each system.
+    f: attrs: system:
+    let
+      ret = f system;
+    in
+    builtins.foldl' (
+      attrs: key:
+      attrs
+      // {
+        ${key} = (attrs.${key} or { }) // {
+          ${system} = ret.${key};
+        };
+      }
+    ) attrs (builtins.attrNames ret)
+  );
+
+  # Applies a merge operation accross systems.
+  eachSystemOp =
+    op: systems: f:
+    builtins.foldl' (op f) { } (
+      if
+        !builtins ? currentSystem || builtins.elem builtins.currentSystem systems
+      then
+        systems
+      else
+        # Add the current system if the --impure flag is used.
+        systems ++ [ builtins.currentSystem ]
+    );
+
+  # Merely provides the system argument to the function.
+  #
+  # Unlike eachSystem, this function does not inject the `${system}` key.
+  eachSystemPassThrough = eachSystemOp (
+    f: attrs: system:
+    attrs // (f system)
+  );
+
+  # eachSystemMap using defaultSystems
+  eachDefaultSystemMap = eachSystemMap defaultSystems;
+
+  # Builds a map from <attr>=value to <system>.<attr> = value.
+  eachSystemMap = systems: f: builtins.listToAttrs (builtins.map (system: { name = system; value = f system; }) systems);
+
+  # Nix flakes insists on having a flat attribute set of derivations in
+  # various places like the `packages` and `checks` attributes.
+  #
+  # This function traverses a tree of attributes (by respecting
+  # recurseIntoAttrs) and only returns their derivations, with a flattened
+  # key-space.
+  #
+  # Eg:
+  #
+  #   flattenTree { hello = pkgs.hello; gitAndTools = pkgs.gitAndTools };
+  #
+  # Returns:
+  #
+  #   {
+  #      hello = «derivation»;
+  #      "gitAndTools/git" = «derivation»;
+  #      "gitAndTools/hub" = «derivation»;
+  #      # ...
+  #   }
+  flattenTree = tree: import ./flattenTree.nix tree;
+
+  # Nix check functionality validates packages for various conditions, like if
+  # they build for any given platform or if they are marked broken.
+  #
+  # This function filters a flattend package set for conditinos that
+  # would *trivially* break `nix flake check`. It does not flatten a tree and it
+  # does not implement advanced package validation checks.
+  #
+  # Eg:
+  #
+  #   filterPackages "x86_64-linux" {
+  #     hello = pkgs.hello;
+  #     "gitAndTools/git" = pkgs.gitAndTools // {meta.broken = true;};
+  #    };
+  #
+  # Returns:
+  #
+  #   {
+  #      hello = «derivation»;
+  #   }
+  filterPackages = import ./filterPackages.nix { inherit allSystems; };
+
+  # Meld merges subflakes using common inputs.  Useful when you want
+  # to split up a large flake with many different components into more
+  # manageable parts.
+  #
+  # For example:
+  #
+  #   {
+  #     inputs = {
+  #       flutils.url = "github:numtide/flake-utils";
+  #       nixpkgs.url = "github:nixos/nixpkgs";
+  #     };
+  #     outputs = inputs@{ flutils, ... }: flutils.lib.meld inputs [
+  #       ./nix/packages
+  #       ./nix/hardware
+  #       ./nix/overlays
+  #       # ...
+  #     ];
+  #   }
+  #
+  # Where ./nix/packages/default.nix looks like just the output
+  # portion of a flake.
+  #
+  #   { flutils, nixpkgs, ... }: flutils.lib.eachDefaultSystem (system:
+  #     let pkgs = import nixpkgs { inherit system; }; in
+  #     {
+  #       packages = {
+  #         foo = ...;
+  #         bar = ...;
+  #         # ...
+  #       };
+  #     }
+  #   )
+  #
+  # You can also use meld within the subflakes to further subdivide
+  # your flake into a tree like structure.  For example,
+  # ./nix/hardware/default.nix might look like:
+  #
+  #  inputs@{ flutils, ... }: flutils.lib.meld inputs [
+  #    ./foobox.nix
+  #    ./barbox.nix
+  #  ]
+  meld = let
+    # Pulled from nixpkgs.lib
+    recursiveUpdateUntil =
+      # Predicate, taking the path to the current attribute as a list of strings for attribute names, and the two values at that path from the original arguments.
+      pred:
+      # Left attribute set of the merge.
+      lhs:
+      # Right attribute set of the merge.
+      rhs:
+      let
+        f = attrPath:
+          builtins.zipAttrsWith (n: values:
+            let here = attrPath ++ [ n ];
+            in if builtins.length values == 1
+            || pred here (builtins.elemAt values 1) (builtins.head values) then
+              builtins.head values
+            else
+              f here values);
+      in f [ ] [ rhs lhs ];
+
+    # Pulled from nixpkgs.lib
+    recursiveUpdate =
+      # Left attribute set of the merge.
+      lhs:
+      # Right attribute set of the merge.
+      rhs:
+      recursiveUpdateUntil (path: lhs: rhs: !(builtins.isAttrs lhs && builtins.isAttrs rhs)) lhs
+      rhs;
+  in inputs:
+  builtins.foldl' (output: subflake:
+    recursiveUpdate output (import subflake inputs)) { };
+
+  # Returns the structure used by `nix app`
+  mkApp =
+    { drv
+    , name ? drv.pname or drv.name
+    , exePath ? drv.passthru.exePath or "/bin/${name}"
+    }:
+    {
+      type = "app";
+      program = "${drv}${exePath}";
+    };
+
+  # This function tries to capture a common flake pattern.
+  simpleFlake = import ./simpleFlake.nix { inherit lib defaultSystems; };
+
+  # Helper functions for Nix evaluation
+  check-utils = import ./check-utils.nix;
+
+  lib = {
+    inherit
+      allSystems
+      check-utils
+      defaultSystems
+      eachDefaultSystem
+      eachDefaultSystemMap
+      eachDefaultSystemPassThrough
+      eachSystem
+      eachSystemMap
+      eachSystemPassThrough
+      filterPackages
+      flattenTree
+      meld
+      mkApp
+      simpleFlake
+      system
+      ;
+  };
+in
+lib
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2020 zimbatm
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="README.md">
+<div align="center">
+
+# flake-utils
+
+<img src="flake-utils.svg" height="150"/>
+
+**Pure Nix flake utility functions.**
+
+*A <a href="https://numtide.com/">numtide</a> project.*
+
+<p>
+<a href="https://github.com/numtide/flake-utils/actions/workflows/nix.yml"><img src="https://github.com/numtide/flake-utils/actions/workflows/nix.yml/badge.svg"/></a>
+<a href="https://app.element.io/#/room/#home:numtide.com"><img src="https://img.shields.io/badge/Support-%23numtide-blue"/></a>
+</p>
+
+</div>
+
+The goal of this project is to build a collection of pure Nix functions that don't
+depend on nixpkgs, and that are useful in the context of writing other Nix
+flakes.
+
+## Usage
+
+### `system :: { system = system, ... }`
+
+A map from system to system built from `allSystems`:
+```nix
+system = {
+  x86_64-linux = "x86_64-linux";
+  x86_64-darwin = "x86_64-darwin";
+  ...
+}
+```
+It's mainly useful to
+detect typos and auto-complete if you use [rnix-lsp](https://github.com/nix-community/rnix-lsp).
+
+Eg: instead of typing `"x86_64-linux"`, use `system.x86_64-linux`.
+
+
+### `allSystems :: [<system>]`
+
+A list of all systems defined in nixpkgs. For a smaller list see `defaultSystems`.
+
+### `defaultSystems :: [<system>]`
+
+The list of systems to use in `eachDefaultSystem` and `simpleFlake`.
+
+The default values are `["x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin"]`.
+
+It's possible to override and control that list by changing the `systems` input of this flake.
+
+Eg (in your `flake.nix`):
+
+```nix
+{
+  # 1. Defined a "systems" inputs that maps to only ["x86_64-linux"]
+  inputs.systems.url = "github:nix-systems/x86_64-linux";
+
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+  # 2. Override the flake-utils default to your version
+  inputs.flake-utils.inputs.systems.follows = "systems";
+
+  outputs = { self, flake-utils, ... }:
+    # Now eachDefaultSystem is only using ["x86_64-linux"], but this list can also
+    # further be changed by users of your flake.
+    flake-utils.lib.eachDefaultSystem (system: {
+      # ...
+    });
+}
+```
+
+For more details in this pattern, see: <https://github.com/nix-systems/nix-systems>.
+
+### `eachSystem :: [<system>] -> (<system> -> attrs)`
+
+A common case is to build the same structure for each system. Instead of
+building the hierarchy manually or per prefix, iterate over each systems and
+then re-build the hierarchy.
+
+Eg:
+
+```nix
+eachSystem [ system.x86_64-linux ] (system: { hello = 42; })
+# => { hello = { x86_64-linux = 42; }; }
+eachSystem allSystems (system: { hello = 42; })
+# => {
+   hello.aarch64-darwin = 42,
+   hello.aarch64-genode = 42,
+   hello.aarch64-linux = 42,
+   ...
+   hello.x86_64-redox = 42,
+   hello.x86_64-solaris = 42,
+   hello.x86_64-windows = 42
+}
+```
+
+### `eachSystemPassThrough :: [<system>] -> (<system> -> attrs)`
+
+Unlike `eachSystem`, this function does not inject the `${system}` key by merely
+providing the system argument to the function.
+
+### `eachDefaultSystem :: (<system> -> attrs)`
+
+`eachSystem` pre-populated with `defaultSystems`.
+
+#### Example
+
+[$ examples/each-system/flake.nix](examples/each-system/flake.nix) as nix
+```nix
+{
+  description = "Flake utils demo";
+
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.eachDefaultSystem (system:
+      let pkgs = nixpkgs.legacyPackages.${system}; in
+      {
+        packages = rec {
+          hello = pkgs.hello;
+          default = hello;
+        };
+        apps = rec {
+          hello = flake-utils.lib.mkApp { drv = self.packages.${system}.hello; };
+          default = hello;
+        };
+      }
+    );
+}
+```
+
+### `eachDefaultSystemPassThrough :: (<system> -> attrs)`
+
+`eachSystemPassThrough` pre-populated with `defaultSystems`.
+
+#### Example
+
+```nix
+inputs.flake-utils.lib.eachDefaultSystem (system: {
+  checks./*<SYSTEM>.*/"<CHECK>" = /* ... */;
+  devShells./*<SYSTEM>.*/"<DEV_SHELL>" = /* ... */;
+  packages./*<SYSTEM>.*/"<PACKAGE>" = /* ... */;
+})
+// inputs.flake-utils.lib.eachDefaultSystemPassThrough (system: {
+  homeConfigurations."<HOME_CONFIGURATION>" = /* ... */;
+  nixosConfigurations."<NIXOS_CONFIGURATION>" = /* ... */;
+})
+```
+
+### `meld :: attrs -> [ path ] -> attrs`
+
+Meld merges subflakes using common inputs.  Useful when you want to
+split up a large flake with many different components into more
+manageable parts.
+
+### `mkApp { drv, name ? drv.pname or drv.name, exePath ? drv.passthru.exePath or "/bin/${name}"`
+
+A small utility that builds the structure expected by the special `apps` and `defaultApp` prefixes.
+
+
+### `flattenTree :: attrs -> attrs`
+
+Nix flakes insists on having a flat attribute set of derivations in
+various places like the `packages` and `checks` attributes.
+
+This function traverses a tree of attributes (by respecting
+[recurseIntoAttrs](https://noogle.dev/f/lib/recurseIntoAttrs)) and only returns their derivations, with a flattened
+key-space.
+
+Eg:
+```nix
+flattenTree { hello = pkgs.hello; gitAndTools = pkgs.gitAndTools }
+```
+Returns:
+
+```nix
+{
+  hello = «derivation»;
+  "gitAndTools/git" = «derivation»;
+  "gitAndTools/hub" = «derivation»;
+  # ...
+}
+```
+
+### `simpleFlake :: attrs -> attrs`
+
+This function should be useful for most common use-cases where you have a
+simple flake that builds a package. It takes nixpkgs and a bunch of other
+parameters and outputs a value that is compatible as a flake output.
+
+Input:
+```nix
+{
+  # pass an instance of self
+  self
+, # pass an instance of the nixpkgs flake
+  nixpkgs
+, # we assume that the name maps to the project name, and also that the
+  # overlay has an attribute with the `name` prefix that contains all of the
+  # project's packages.
+  name
+, # nixpkgs config
+  config ? { }
+, # pass either a function or a file
+  overlay ? null
+, # use this to load other flakes overlays to supplement nixpkgs
+  preOverlays ? [ ]
+, # maps to the devShell output. Pass in a shell.nix file or function.
+  shell ? null
+, # pass the list of supported systems
+  systems ? [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
+}: null
+```
+
+#### Example
+
+Here is how it looks like in practice:
+
+[$ examples/simple-flake/flake.nix](examples/simple-flake/flake.nix) as nix
+```nix
+{
+  description = "Flake utils demo";
+
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+  outputs = { self, nixpkgs, flake-utils }:
+    flake-utils.lib.simpleFlake {
+      inherit self nixpkgs;
+      name = "simple-flake";
+      overlay = ./overlay.nix;
+      shell = ./shell.nix;
+    };
+}
+```
+
+## Commercial support
+
+Looking for help or customization?
+
+Get in touch with Numtide to get a quote. We make it easy for companies to
+work with Open Source projects: <https://numtide.com/contact>
+</file>
+
+<file path="simpleFlake.nix">
+{ lib
+, defaultSystems ? [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
+}:
+# This function returns a flake outputs-compatible schema.
+{
+  # pass an instance of self
+  self
+, # pass an instance of the nixpkgs flake
+  nixpkgs
+, # we assume that the name maps to the project name, and also that the
+  # overlay has an attribute with the `name` prefix that contains all of the
+  # project's packages.
+  name
+, # nixpkgs config
+  config ? { }
+, # pass either a function or a file
+  overlay ? null
+, # use this to load other flakes overlays to supplement nixpkgs
+  preOverlays ? [ ]
+, # maps to the devShell output. Pass in a shell.nix file or function.
+  shell ? null
+, # pass the list of supported systems
+  systems ? defaultSystems
+}:
+let
+  loadOverlay = obj:
+    if obj == null then
+      [ ]
+    else
+      [ (maybeImport obj) ]
+  ;
+
+  maybeImport = obj:
+    if (builtins.typeOf obj == "path") || (builtins.typeOf obj == "string") then
+      import obj
+    else
+      obj
+  ;
+
+  overlays = preOverlays ++ (loadOverlay overlay);
+
+  shell_ = maybeImport shell;
+
+  outputs = lib.eachSystem systems (system:
+    let
+      pkgs = import nixpkgs {
+        inherit
+          config
+          overlays
+          system
+          ;
+      };
+
+      packages = pkgs.${name} or { };
+    in
+    {
+      # Use the legacy packages since it's more forgiving.
+      legacyPackages = packages;
+    }
+    //
+    (
+      if packages ? defaultPackage then {
+        defaultPackage = packages.defaultPackage;
+      } else { }
+    )
+    //
+    (
+      if packages ? checks then {
+        checks = packages.checks;
+      } else { }
+    )
+    //
+    (
+      if shell != null then {
+        devShell = shell_ { inherit pkgs; };
+      } else if packages ? devShell then {
+        devShell = packages.devShell;
+      } else { }
+    )
+  );
+in
+outputs
+</file>
+
+</files>

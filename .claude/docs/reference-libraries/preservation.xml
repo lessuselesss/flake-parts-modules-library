@@ -1,0 +1,2552 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    render-options.yml
+    test.yml
+docs/
+  src/
+    examples.md
+    impermanence-comparison.md
+    impermanence-migration.md
+    impermanence.md
+    library-and-testing.md
+    SUMMARY.md
+  .gitignore
+  book.toml
+  custom.css
+  flake.lock
+  flake.nix
+tests/
+  appliance-image-verity.nix
+  basic.nix
+  firstboot.nix
+  flake.lock
+  flake.nix
+.gitignore
+flake.nix
+lib.nix
+LICENSE
+module.nix
+options.nix
+README.md
+TODO.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/render-options.yml">
+name: Docs
+on:
+  push:
+    branches:
+      - main
+jobs:
+  render:
+    name: Render and Deploy
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@ab6bcb2d5af0e904d04aea750e2089e9dc4cbfdd
+        with:
+          diagnostic-endpoint: ""
+
+      - run: nix build -L ./docs#packages.x86_64-linux.docs
+
+      - uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./result
+</file>
+
+<file path=".github/workflows/test.yml">
+name: Tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: Flake Check
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@ab6bcb2d5af0e904d04aea750e2089e9dc4cbfdd
+        with:
+          diagnostic-endpoint: ""
+          source-url: "https://install.lix.systems/lix/lix-installer-x86_64-linux"
+
+      - name: flake-check --no-build
+        run: nix flake check --log-format raw-with-logs --no-build ./tests
+      - name: default test
+        run: nix build --log-format raw-with-logs -L ./tests#checks.x86_64-linux.default
+      - name: firstboot test
+        run: nix build --log-format raw-with-logs -L ./tests#checks.x86_64-linux.firstboot
+
+env:
+  FORCE_COLOR: 1
+</file>
+
+<file path="docs/src/examples.md">
+# Examples
+
+See [Configuration Options](./configuration-options.md) for all available options.
+
+## Simple
+
+```nix
+# configuration.nix
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  preservation = {
+    enable = true;
+    preserveAt."/persistent" = {
+      files = [
+        # auto-generated machine ID
+        { file = "/etc/machine-id"; inInitrd = true; }
+      ];
+      directories = [
+        "/var/lib/systemd/timers"
+        # NixOS user state
+        "/var/lib/nixos"
+        "/var/log"
+      ];
+    };
+  };
+
+  # systemd-machine-id-commit.service would fail, but it is not relevant
+  # in this specific setup for a persistent machine-id so we disable it
+  #
+  # see the firstboot example below for an alternative approach
+  systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
+
+}
+```
+
+## Compatibility with systemd's `ConditionFirstBoot`
+
+In this example the machine-id is preserved on the persistent volume via symlink
+instead of a bind-mount. The option `configureParent` causes the parent directory
+of the symlink's target, i.e. `/persistent/etc/` to be created.
+Additionally, `systemd-machine-id-commit.service` is adapted to persist the tmpfs
+mount created by system to the persistent volume.
+
+```nix
+# configuration.nix
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  preservation = {
+    enable = true;
+    preserveAt."/persistent" = {
+      files = [
+        # auto-generated machine ID
+        { file = "/etc/machine-id"; inInitrd = true; how = "symlink"; configureParent = true; }
+        # ...
+      ];
+      directories = [
+        # ...
+      ];
+    };
+  };
+
+  # systemd-machine-id-commit.service would fail, but it is not relevant
+  # in this specific setup for a persistent machine-id so we disable it
+  #
+  # see the firstboot example below for an alternative approach
+  systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
+
+  # let the service commit the transient ID to the persistent volume
+  systemd.services.systemd-machine-id-commit = {
+    unitConfig.ConditionPathIsMountPoint = [
+      ""
+      "/persistent/etc/machine-id"
+    ];
+    serviceConfig.ExecStart = [
+      ""
+      "systemd-machine-id-setup --commit --root /persistent"
+    ];
+  };
+}
+```
+
+
+
+## Complex
+
+```nix
+# configuration.nix
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  preservation = {
+    # the module doesn't do anything unless it is enabled
+    enable = true;
+
+    preserveAt."/persistent" = {
+
+      # preserve system directories
+      directories = [
+        "/etc/secureboot"
+        "/var/lib/bluetooth"
+        "/var/lib/fprint"
+        "/var/lib/fwupd"
+        "/var/lib/libvirt"
+        "/var/lib/power-profiles-daemon"
+        "/var/lib/systemd/coredump"
+        "/var/lib/systemd/rfkill"
+        "/var/lib/systemd/timers"
+        "/var/log"
+        { directory = "/var/lib/nixos"; inInitrd = true; }
+      ];
+
+      # preserve system files
+      files = [
+        { file = "/etc/machine-id"; inInitrd = true; }
+        { file = "/etc/ssh/ssh_host_rsa_key"; how = "symlink"; configureParent = true; }
+        { file = "/etc/ssh/ssh_host_ed25519_key"; how = "symlink"; configureParent = true; }
+        "/var/lib/usbguard/rules.conf"
+
+        # creates a symlink on the volatile root
+        # creates an empty directory on the persistent volume, i.e. /persistent/var/lib/systemd
+        # does not create an empty file at the symlink's target (would require `createLinkTarget = true`)
+        { file = "/var/lib/systemd/random-seed"; how = "symlink"; inInitrd = true; configureParent = true; }
+      ];
+
+      # preserve user-specific files, implies ownership
+      users = {
+        butz = {
+          commonMountOptions = [
+            "x-gvfs-hide"
+          ];
+          directories = [
+            { directory = ".ssh"; mode = "0700"; }
+            ".config/syncthing"
+            ".config/Element"
+            ".local/state/nvim"
+            ".local/state/wireplumber"
+            ".local/share/direnv"
+            ".local/state/nix"
+            ".mozilla"
+          ];
+          files = [
+            ".histfile"
+          ];
+        };
+        root = {
+          # specify user home when it is not `/home/${user}`
+          home = "/root";
+          directories = [
+            { directory = ".ssh"; mode = "0700"; }
+          ];
+        };
+      };
+    };
+  };
+
+  # Create some directories with custom permissions.
+  #
+  # In this configuration the path `/home/butz/.local` is not an immediate parent
+  # of any persisted file, so it would be created with the systemd-tmpfiles default
+  # ownership `root:root` and mode `0755`. This would mean that the user `butz`
+  # could not create other files or directories inside `/home/butz/.local`.
+  #
+  # Therefore systemd-tmpfiles is used to prepare such directories with
+  # appropriate permissions.
+  #
+  # Note that immediate parent directories of persisted files can also be
+  # configured with ownership and permissions from the `parent` settings if
+  # `configureParent = true` is set for the file.
+  systemd.tmpfiles.settings.preservation = {
+    "/home/butz/.config".d = { user = "butz"; group = "users"; mode = "0755"; };
+    "/home/butz/.local".d = { user = "butz"; group = "users"; mode = "0755"; };
+    "/home/butz/.local/share".d = { user = "butz"; group = "users"; mode = "0755"; };
+    "/home/butz/.local/state".d = { user = "butz"; group = "users"; mode = "0755"; };
+  };
+
+}
+```
+</file>
+
+<file path="docs/src/impermanence-comparison.md">
+# How does Preservation compare to [impermanence](https://github.com/nix-community/impermanence)
+
+### Preservation does not attempt to be a very generic solution
+
+Preservation tries to fill a specific niche.
+For instance, Preservation does not support non-NixOS systems via home-manager, which is supported
+by impermanence. See [Migration](./impermanence-migration.md) for more technical details.
+
+### Preservation only generates static configuration
+
+That is configuration for [systemd-tmpfiles](https://www.freedesktop.org/software/systemd/man/latest/systemd-tmpfiles.html)
+and systemd [mount units](https://www.freedesktop.org/software/systemd/man/latest/systemd.mount.html).
+This makes Preservation a potential candidate for state management on interpreter-less NixOS systems.
+
+Impermanence makes use of NixOS activation scripts and custom systemd services with bash (at the point
+of writing this), to create files and directories, setup mounts and configure ownership and permissions (see next point).
+
+### Preservation must be precisely configured
+There is no [special runtime logic](https://github.com/nix-community/impermanence/blob/23c1f06316b67cb5dabdfe2973da3785cfe9c34a/mount-file.bash#L31-L42)
+  in place. This means that the user must define:
+  * when the preservation should be set up: either in the initrd, or after (the default)
+  * how the preservation should be set up: either by symlink, or bindmount (the default)
+  * whether or not parent directories of the persisted files require special permissions
+
+See [Migration](./impermanence-migration.md) for specifics that need to be considered when coming from an impermanence setup.
+
+### Similar configuration
+
+Preservation's configuration is based on, and very similar to that of impermanence. See [Migration](./impermanence-migration.md) for technical details.
+
+### Global `enable` option
+
+Preservation uses a global `enable` option, impermanence does not.
+
+For thoughts on the `enable` option, see the discussion at <https://github.com/nix-community/impermanence/pull/171> and for available configuration options see [Configuration Options](./configuration-options.md).
+
+### No generic `hideMounts` option
+
+Preservation does not provide the same `hideMounts` option as impermanence, which would set the mount option `x-gvfs-hide` for bind-mounts.
+Instead, preservation allows for the configuration of arbitrary mount options that are propagated to all bind-mounts, both on the top level
+of a preserved prefix, and on the per-user level. This can be done via `commonMountOptions` and would for example enable users to choose
+between `x-gvfs-hide` and `x-gdu.hide`.
+</file>
+
+<file path="docs/src/impermanence-migration.md">
+# Migration from impermanence to Preservation
+
+This section lists individual differences between impermanence and
+Preservation, to better understand them in context of a complete configuration
+[Examples](./examples.md) may be helpful.
+
+The following points need to be considered when migrating an existing
+impermanence configuration to Preservation:
+
+### Global `enable` switch
+
+The module must be explicitly enabled by setting `preservation.enable` to `true`.
+
+### Handling of existing state
+
+Coming from a setup with impermanence it is important to make sure existing persistent state is preserved
+correctly, meaning the ownership and mode of preservation remains the same. There is no exhaustive list
+of files and directories requiring special treatment but at least the following needs to be considered:
+
+**SSH host keys**
+
+Correct ownership and mode of SSH host keys is very important for sshd to accept connections.
+Getting this wrong, e.g. not restricted enough, may cause your host to become inaccessible via SSH, forcing
+you to use other means of logging into the machine.
+
+The following config may be used to preserve the RSA and Ed25519 host keys with preservation:
+
+```nix
+preservation.preserveAt."/persistent".files = [
+  { file = "/etc/ssh/ssh_host_rsa_key"; how = "symlink"; configureParent = true; }
+  { file = "/etc/ssh/ssh_host_ed25519_key"; how = "symlink"; configureParent = true; }
+];
+```
+
+The above config does not include access modes for the key files because the preservation
+mode is `symlink` and the link's target is not touched by preservation without an explicit
+`createLinkTarget = true`.
+
+**Secrets and other files requiring special access modes**
+
+Any files and directories that need to have a mode that differs from the default (`0644` for files
+and `0755` for directories) must be configured explicitly to avoid having the default mode applied.
+
+### When to persist
+
+Files and directories that need to be persisted early, must be explicitly configured. For example `/etc/machine-id`:
+
+This file needs to be persisted very early, by explicitly setting `inInitrd` to `true`:
+```nix
+preservation.preserveAt."/persistent".files = [
+  { file = "/etc/machine-id"; inInitrd = true; }
+];
+```
+
+### How to persist
+
+The mode of preservation must be set explicitly for some files and directories.
+This can be done by setting `how` to either `symlink` or `bindmount` (default).
+For most cases the default is sufficient but sometimes a symlink may be needed,
+for example `/var/lib/systemd/random-seed`.
+
+This file is expected to not exist before it is initialized. A symlink can be
+used to cause its creation to happen on the persistent volume:
+
+```nix
+preservation.preserveAt."/persistent".files = [
+  {
+    file = "/var/lib/systemd/random-seed";
+    # create a symlink on the volatile volume
+    how = "symlink";
+    # prepare the preservation early during startup
+    inInitrd = true;
+  }
+];
+```
+
+Note that no file is created at the symlink's target, unless `createLinkTarget` is set to `true`.
+
+### Intermediate path components
+
+Any directory that is not preserved itself but is a parent of a preserved file or directory
+is called an intermediate path component here. Regarding the ownership and permissions of these
+intermediate path components, the following needs to be considered.
+
+#### Intermediate path components of user-specific files and directories
+
+Parent directories of a preserved user-specific file or directory are created with the respective
+user as their owner and permissions `0755`. This is the case for all intermediate path components
+up to, but not including, the user's home directory.
+
+**Example**
+
+Consider the following preservation config:
+
+```nix
+preservation.preserveAt."/persistent".users.alice.directories = [
+  ".local/state/nvim"
+];
+```
+
+This config will cause preservation to configure a bind-mount for the subdirectory `nvim`, causing its
+contents to be preserved. The intermediate path components `.local` and `state` will be created if
+necessary, but their contents are not preserved. Owner is set to `alice`, group to alice's primary
+group, i.e. `users.users.alice.group` and the mode is set to `0755`.
+
+
+#### Intermediate path components of system-wide files and directories
+
+For system-wide files and directories, missing components of a preserved path that do not already exist,
+are created by systemd-tmpfiles with default ownership `root:root` and mode `0755`.
+
+Should such directories require different ownership or mode, the intended way to create and configure them
+is via systemd-tmpfiles directly.
+
+**Example**
+
+Consider a preserved file `/foo/bar/baz`:
+
+```nix
+preservation.preserveAt."/persistent".files = [
+  { file = "/foo/bar/baz"; user = "baz"; group = "baz"; };
+];
+```
+
+This would create the file with desired ownership on both the volatile and persistent volumes.
+However, the parent directories that did not exist before, i.e. `/foo` and `/foo/bar`, are
+created with ownership `root:root` and mode `0755`.
+
+Preservations allows the configuration of immediate parents, so the permissions for `/foo/bar`
+can be configured:
+```nix
+preservation.preserveAt."/persistent".files = [
+  {
+    file = "/foo/bar/baz"; user = "baz"; group = "baz";
+    configureParent = true;
+    parent.user = "baz";
+    parent.group = "bar";
+  };
+];
+```
+Now the parent directory `/foo/bar` is configured with ownership `baz:bar`. But the first
+path component `/foo` still has systemd-tmpfiles' default ownership and the configuration
+becomes quite convoluted.
+
+**Solution**
+
+To create or configure intermediate path components of a persisted path, systemd-tmpfiles
+may be used directly:
+
+```nix
+# configure preservation of single file
+preservation.preserveAt."/persistent".files = [
+  { file = "/foo/bar/baz"; user = "baz"; group = "bar"; };
+];
+
+# create and configure parents of preserved file on the volatile volume with custom permissions
+# The Preservation module also uses `settings.preservation` here.
+systemd.tmpfiles.settings.preservation = {
+  "/foo".d = { user = "foo"; group = "bar"; mode = "0775"; };
+  "/foo/bar".d = { user = "bar"; group = "bar"; mode = "0755"; };
+};
+```
+
+See [tmpfiles.d(5)](https://www.freedesktop.org/software/systemd/man/latest/tmpfiles.d.html)
+for available configuration options.
+</file>
+
+<file path="docs/src/impermanence.md">
+# Impermanence
+
+[Impermanence](https://github.com/nix-community/impermanence) is the established solution for managing persistent state on NixOS systems.
+Preservation is inspired and heavily influenced by impermanence.
+
+See [Comparison](./impermanence-comparison.md) for a high-level overview of their differences.
+</file>
+
+<file path="docs/src/library-and-testing.md">
+# Library and Testing
+
+## Library
+
+The functionality that is used in the module to discover the files and
+directories that are persisted and to generate the corresponding tmpfiles
+config and mount units is available from [`lib.nix`](https://github.com/nix-community/preservation/blob/main/lib.nix).
+It is also available from the flake `lib` output.
+
+In both cases it needs to be instantiated with the nixpkgs `lib`.
+
+## Testing
+
+The integration test(s) can be found in [/tests](https://github.com/nix-community/preservation/blob/main/tests).
+</file>
+
+<file path="docs/src/SUMMARY.md">
+# Summary
+
+[Preservation](./README.md)
+- [Configuration Options](./configuration-options.md)
+- [Examples](./examples.md)
+- [Impermanence](./impermanence.md)
+  - [Comparison](./impermanence-comparison.md)
+  - [Migration](./impermanence-migration.md)
+- [Library and Testing](./library-and-testing.md)
+</file>
+
+<file path="docs/.gitignore">
+book
+src/README.md
+</file>
+
+<file path="docs/book.toml">
+[book]
+title = "Preservation"
+authors = ["Willi Butz"]
+language = "en"
+src = "src"
+
+[output.html]
+additional-css = ["custom.css"]
+git-repository-url = "https://github.com/nix-community/preservation"
+edit-url-template = "https://github.com/nix-community/preservation/edit/main/docs/{path}"
+</file>
+
+<file path="docs/custom.css">
+:root {
+  /* accommodate long option paths on big screens */
+  --content-max-width: 1000px;
+}
+</file>
+
+<file path="docs/flake.lock">
+{
+  "nodes": {
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1738410390,
+        "narHash": "sha256-xvTo0Aw0+veek7hvEVLzErmJyQkEcRk6PSR4zsRQFEc=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "3a228057f5b619feb3186e986dbe76278d707b6e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="docs/flake.nix">
+{
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+
+  outputs = inputs: {
+    packages.x86_64-linux =
+      let
+        pkgs = import inputs.nixpkgs { system = "x86_64-linux"; };
+      in
+      {
+        optionsManualMD =
+          let
+            eval = pkgs.lib.evalModules {
+              modules = [
+                ../options.nix
+                (args: {
+                  options._module.args = args.lib.mkOption { internal = true; };
+                })
+              ];
+            };
+            optionsDoc = pkgs.nixosOptionsDoc {
+              inherit (eval) options;
+              transformOptions =
+                o:
+                o
+                // {
+                  declarations = map (
+                    declaration:
+                    let
+                      flakeOutPath = inputs.self.sourceInfo.outPath;
+                      name = pkgs.lib.removePrefix "${flakeOutPath}/" declaration;
+                    in
+                    if pkgs.lib.hasPrefix "${flakeOutPath}/" declaration then
+                      {
+                        inherit name;
+                        url = "https://github.com/nix-community/preservation/blob/main/${name}";
+                      }
+                    else
+                      declaration
+                  ) o.declarations;
+                };
+            };
+          in
+          optionsDoc.optionsCommonMark;
+
+        docs = pkgs.stdenv.mkDerivation {
+          name = "preservation-docs";
+          src = pkgs.lib.cleanSource ../.;
+          nativeBuildInputs = [ pkgs.mdbook ];
+          patchPhase = ''
+            cat ${inputs.self.packages.x86_64-linux.optionsManualMD} > docs/src/configuration-options.md
+            cp README.md docs/src
+          '';
+          buildPhase = ''
+            cd docs
+            mdbook build
+          '';
+          installPhase = "cp -vr book $out";
+        };
+      };
+  };
+}
+</file>
+
+<file path="tests/appliance-image-verity.nix">
+pkgs:
+{
+  name = "preservation-verity-image";
+
+  nodes.machine =
+    { config, lib, pkgs, modulesPath, ... }:
+    let
+      inherit (config.image.repart.verityStore) partitionIds;
+    in
+    {
+      imports = [
+        ../module.nix
+        (modulesPath + "/image/repart.nix")
+      ];
+
+      preservation = {
+        enable = true;
+        preserveAt."/persistent" = {
+          files = [
+            { file = "/etc/machine-id"; inInitrd = true; how = "symlink"; configureParent = true; }
+          ];
+        };
+      };
+
+      systemd.services.systemd-machine-id-commit = {
+        unitConfig.ConditionPathIsMountPoint = [
+          "" "/persistent/etc/machine-id"
+        ];
+        serviceConfig.ExecStart = [
+          "" "systemd-machine-id-setup --commit --root /persistent"
+        ];
+      };
+
+      system = {
+        name = "preservation-verity";
+        image = {
+          id = config.system.name;
+          version = "1";
+        };
+        activationScripts.usrbinenv = lib.mkForce "";
+        etc.overlay.enable = true;
+      };
+
+      image.repart = {
+        verityStore.enable = true;
+
+        inherit (config.system) name;
+
+        partitions =
+         {
+          ${partitionIds.esp} = {
+            repartConfig = {
+              Type = "esp";
+              Format = "vfat";
+              SizeMinBytes = if config.nixpkgs.hostPlatform.isx86_64 then "64M" else "96M";
+            };
+            contents =
+              let
+                inherit (config.nixpkgs.hostPlatform) efiArch;
+                systemdBoot = "${pkgs.systemd}/lib/systemd/boot/efi/systemd-boot${efiArch}.efi";
+              in
+              {
+              "/EFI/systemd/systemd-boot${efiArch}.efi".source = systemdBoot;
+              "/EFI/BOOT/BOOT${lib.toUpper efiArch}.EFI".source = systemdBoot;
+            };
+          };
+          ${partitionIds.store-verity}.repartConfig = {
+            Minimize = "best";
+          };
+          ${partitionIds.store}.repartConfig = {
+            Minimize = "best";
+          };
+        };
+      };
+
+      boot.initrd.systemd.enable = true;
+
+      networking.useNetworkd = true;
+
+      services.userborn = {
+        enable = true;
+        passwordFilesLocation = "/persistent/etc";
+      };
+
+      virtualisation = {
+        memorySize = 2048;
+        emptyDiskImages = [ 23 ];
+        directBoot.enable = false;
+        mountHostNixStore = false;
+        useEFIBoot = true;
+        fileSystems = lib.mkVMOverride {
+          "/" = {
+            fsType = "tmpfs";
+            options = [ "mode=0755" ];
+          };
+          "/nix/store" = {
+            device = "/usr/nix/store";
+            options = [ "bind" ];
+          };
+          "/persistent" = {
+            device = "/dev/vdb";
+            fsType = "ext4";
+            neededForBoot = true;
+            autoFormat = true;
+          };
+        };
+      };
+
+      nixpkgs.hostPlatform = pkgs.stdenv.hostPlatform;
+    };
+
+  testScript =
+    { nodes, ... }:
+    # python
+    ''
+      import os
+      import subprocess
+      import tempfile
+
+      tmp_disk_image = tempfile.NamedTemporaryFile()
+
+      subprocess.run([
+        "${nodes.machine.virtualisation.qemu.package}/bin/qemu-img",
+        "create",
+        "-f",
+        "qcow2",
+        "-b",
+        "${nodes.machine.system.build.finalImage}/${nodes.machine.image.fileName}",
+        "-F",
+        "raw",
+        tmp_disk_image.name,
+      ])
+
+      os.environ['NIX_DISK_IMAGE'] = tmp_disk_image.name
+
+      machine.start(allow_reboot=True)
+      machine.wait_for_unit("default.target")
+
+      with subtest("Running with volatile root"):
+        machine.succeed("findmnt --kernel --type tmpfs /")
+
+      with subtest("/nix/store is backed by dm-verity protected fs"):
+        verity_info = machine.succeed("dmsetup info --target verity usr")
+        t.assertIn("ACTIVE", verity_info, "unexpected verity info")
+
+        backing_device = machine.succeed("df --output=source /nix/store | tail -n1").strip()
+        t.assertEqual("/dev/mapper/usr", backing_device, "unexpected backing device")
+
+      with subtest("Initial boot meets ConditionFirstBoot"):
+        machine.require_unit_state("first-boot-complete.target","active")
+
+      with subtest("Machine ID linked and populated"):
+        machine.succeed("test -L /etc/machine-id")
+        machine.succeed("test -s /persistent/etc/machine-id")
+
+      with subtest("Machine ID persisted"):
+        first_id = machine.succeed("cat /etc/machine-id")
+        machine.reboot()
+        machine.wait_for_unit("default.target")
+        second_id = machine.succeed("cat /etc/machine-id")
+        t.assertEqual(first_id, second_id, "machine-id changed")
+
+      with subtest("Second boot does not meet ConditionFirstBoot"):
+        machine.require_unit_state("first-boot-complete.target", "inactive")
+
+      machine.shutdown()
+    '';
+}
+</file>
+
+<file path="tests/basic.nix">
+pkgs:
+let
+  inherit (pkgs) lib;
+  preservationLib = import ../lib.nix { inherit lib; };
+in
+{
+  name = "preservation-basic";
+
+  nodes.machine =
+    { pkgs, ... }:
+    {
+      # import the preservation module
+      imports = [ ../module.nix ];
+
+      # module configuration
+      preservation = {
+        # global enable switch
+        enable = true;
+        # all files and directories are preserved under "/state" in this test
+        preserveAt."/state" = {
+          commonMountOptions = [
+            "x-foo"
+          ];
+          directories = [
+            "/var/lib/someservice"
+            "/var/log"
+          ];
+          files = [
+            { file = "/etc/wpa_supplicant.conf"; how = "symlink"; }
+            # some files need to be prepared very early, machine-id is one such case
+            { file = "/etc/machine-id"; inInitrd = true; }
+            # persist SSH host keys
+            { file = "/etc/ssh/ssh_host_rsa_key"; how = "symlink"; configureParent = true; }
+            { file = "/etc/ssh/ssh_host_ed25519_key"; how = "symlink"; configureParent = true; }
+          ];
+          # per-user configuration is possible
+          # similar to impermanence this configures ownership for the respective users
+          users = {
+            alice = {
+              directories = [
+                ".rabbit_hole"
+              ];
+            };
+            butz = {
+              commonMountOptions = [
+                "x-bar"
+              ];
+              files = [
+                { file = ".config/foo"; mode = "0600"; }
+                "bar"
+                # an empty file with may be created at the symlink's
+                # target, i.e. on the persistent volume
+                { file = ".symlinks/baz"; how = "symlink"; createLinkTarget = true; }
+                # this file should be mounted and with the combination of all three
+                # configured `x-foo`, `x-bar` and `x-baz`.
+                { file = "yay_userspace_mount_options"; mountOptions = [ "x-baz" ]; }
+                # a symlinked file in the user's home directory
+                { file = ".toplevel_symlink"; how = "symlink"; }
+              ];
+              directories = [
+                "unshaved_yaks"
+                "foo/bar/baz"
+                { directory = "symlinked_user_dir"; how = "symlink"; }
+              ];
+            };
+          };
+        };
+      };
+
+      # systemd-machine-id-commit.service would fail, but it is not relevant
+      # in this specific setup for a persistent machine-id so we disable it
+      systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
+
+      # to test sshd with preserved host keys
+      services.openssh.enable = true;
+
+      # test-specific configuration below
+
+      testing.initrdBackdoor = true;
+      boot.initrd.systemd = {
+        enable = true;
+        extraBin = {
+          mountpoint = "${pkgs.util-linux}/bin/mountpoint";
+        };
+      };
+      networking.useNetworkd = true;
+
+      users.users = {
+        alice = {
+          isNormalUser = true;
+          # custom home directory
+          home = "/home/wonderland";
+        };
+        butz.isNormalUser = true;
+      };
+
+      virtualisation = {
+        memorySize = 2048;
+        # separate block device for preserved state
+        emptyDiskImages = [ 23 ];
+        fileSystems."/state" = {
+          device = "/dev/vdb";
+          fsType = "ext4";
+          neededForBoot = true;
+          autoFormat = true;
+        };
+      };
+
+    };
+
+  testScript =
+    { nodes, ... }:
+    let
+      butzHome = nodes.machine.users.users.butz.home;
+
+      allFiles = lib.flatten (
+        lib.mapAttrsToList (_: preservationLib.getAllFiles) nodes.machine.preservation.preserveAt
+      );
+      allDirs = lib.flatten (
+        lib.mapAttrsToList (_: preservationLib.getAllDirectories) nodes.machine.preservation.preserveAt
+      );
+      initrdFiles = builtins.filter (conf: conf.inInitrd) allFiles;
+      initrdDirs = builtins.filter (conf: conf.inInitrd) allDirs;
+      initrdJSON = builtins.toJSON (initrdDirs ++ initrdFiles);
+      allJSON = builtins.toJSON (allDirs ++ allFiles);
+    in
+    # (for syntax highlighting)
+    /* python */
+    ''
+      import json
+
+      initrd_files = json.loads('${initrdJSON}')
+      all_files = json.loads('${allJSON}')
+
+      def check_file(config, in_initrd=False):
+        prefix = "/sysroot" if in_initrd else ""
+        file_path = config.get("directory", config.get("file"))
+        path = f"{prefix}{file_path}"
+
+        match config["how"]:
+          case "bindmount":
+            # check that file is mounted
+            machine.succeed(f"mountpoint {path}")
+
+            # check permissions and ownership
+            actual = machine.succeed(f"stat -c '0%a %U %G' {path} | tee /dev/stderr").strip()
+            expected = "{} {} {}".format(config["mode"],config["user"],config["group"])
+            t.assertEqual(actual, expected, "unexpected file attributes")
+
+          case "symlink":
+            # check that file is _not_ mounted
+            machine.fail(f"mountpoint {path}")
+
+          case "_intermediate":
+            # intermediate paths only ever refer to directories
+            machine.succeed(f"test -d {path}")
+
+            # check permissions and ownership
+            actual = machine.succeed(f"stat -c '0%a %U %G' {path} | tee /dev/stderr").strip()
+            expected = "{} {} {}".format("0755",config["user"],config["group"])
+            t.assertEqual(actual, expected, "unexpected file attributes")
+
+          case x:
+            raise Exception(f"Unknown case: {x}")
+
+        if config.get("configureParent") == True:
+          parent = os.path.dirname(path)
+          config = config["parent"]
+          # check permissions and ownership of parent directory
+          actual = machine.succeed(f"stat -c '0%a %U %G' {parent} | tee /dev/stderr").strip()
+          expected = "{} {} {}".format(config["mode"],config["user"],config["group"])
+          t.assertEqual(actual, expected, "unexpected file attributes")
+
+
+      machine.start(allow_reboot=True)
+      machine.wait_for_unit("default.target")
+
+      with subtest("Empty machine ID files and bindmount prepared in initrd"):
+        machine.succeed("test -f /sysroot/etc/machine-id")
+        machine.succeed("test -f /sysroot/state/etc/machine-id")
+
+        # files are expected to be empty at this point
+        machine.fail("test -s /sysroot/etc/machine-id")
+        machine.fail("test -s /sysroot/state/etc/machine-id")
+
+        mounts = machine.succeed("mount")
+        t.assertIn("/sysroot/etc/machine-id", mounts, "/sysroot/etc/machine-id not in mounts")
+
+      with subtest("Type, permissions and ownership in first boot initrd"):
+        for file in initrd_files:
+          check_file(file, in_initrd=True)
+
+      machine.switch_root()
+      machine.wait_for_unit("default.target")
+
+      with subtest("Machine ID file still mounted and now populated"):
+        machine.succeed("mountpoint /etc/machine-id")
+        machine.succeed("test -s /etc/machine-id")
+
+      with subtest("Type, permissions and ownership after first boot completed"):
+        for file in all_files:
+          check_file(file)
+
+      with subtest("SSH host keys created at the persistent prefix"):
+        machine.succeed("test -s /state/etc/ssh/ssh_host_rsa_key")
+        machine.succeed("test -s /state/etc/ssh/ssh_host_ed25519_key")
+
+      with subtest("sshd service running"):
+        machine.wait_for_unit("sshd.service")
+
+      with subtest("Unpreserved intermediate user directories have correct permissions and ownership"):
+          for path_segment in [ "foo", "foo/bar" ]:
+            actual = machine.succeed(f"stat -c '0%a %U %G' /home/butz/{path_segment} | tee /dev/stderr").strip()
+            expected = "0755 butz users"
+            t.assertEqual(actual, expected, "unexpected file attributes")
+
+      with subtest("Unpreserved user home has same permissions and ownership on persistent prefix as actual user home"):
+          actual = machine.succeed("stat -c '0%a %U %G' /state/home/butz | tee /dev/stderr").strip()
+          expected = machine.succeed("stat -c '0%a %U %G' /home/butz | tee /dev/stderr").strip()
+          t.assertEqual(actual, expected, "unexpected file attributes")
+
+      with subtest("Files preserved across reboots"):
+        # write something in one of the preserved files
+        teststring = "foobarbaz"
+        machine.succeed(f"echo -n '{teststring}' > ${butzHome}/bar")
+
+        # get current machine id
+        machine_id = machine.succeed("cat /etc/machine-id")
+
+        # reboot to initrd
+        machine.reboot()
+        machine.wait_for_unit("default.target")
+
+        # preserved machine-id resides on /state
+        machine.succeed("test -s /sysroot/state/etc/machine-id")
+        initrd_machine_id = machine.succeed("cat /sysroot/state/etc/machine-id")
+        t.assertEqual(initrd_machine_id, machine_id, "machine id changed")
+
+        # check that machine-id is already mounted in initrd
+        mounts = machine.succeed("mount")
+        t.assertIn("/sysroot/etc/machine-id", mounts, "/sysroot/etc/machine-id not in mounts")
+
+        # check type, permissions and ownership before switch root
+        for file in initrd_files:
+          check_file(file, in_initrd=True)
+
+        # proceed with boot
+        machine.switch_root()
+        machine.wait_for_unit("default.target")
+
+        # check that machine-id remains unchanged in stage-2 after reboot
+        machine.succeed("test -s /etc/machine-id")
+        new_machine_id = machine.succeed("cat /etc/machine-id")
+        t.assertEqual(new_machine_id, machine_id, "machine id changed")
+
+        # check that state in file was also preserved
+        machine.succeed("test -s ${butzHome}/bar")
+        content = machine.succeed("cat ${butzHome}/bar")
+        t.assertEqual(content, teststring, "unexpected file content")
+
+      with subtest("Type, permissions and ownership after reboot"):
+        for file in all_files:
+          check_file(file)
+
+      with subtest("Custom (userspace) mount options are applied"):
+        utab_entry = machine.succeed("grep TARGET=/home/butz/yay_userspace_mount_options /run/mount/utab")
+        for opt in [ "x-foo", "x-bar", "x-baz"]:
+          t.assertIn(opt, utab_entry, "expected mount option not found")
+
+      machine.shutdown()
+    '';
+}
+</file>
+
+<file path="tests/firstboot.nix">
+pkgs:
+{
+  name = "preservation-firstboot";
+
+  nodes.machine =
+    { pkgs, ... }:
+    {
+      imports = [ ../module.nix ];
+
+      preservation = {
+        enable = true;
+        preserveAt."/state" = {
+          files = [
+            { file = "/etc/machine-id"; inInitrd = true; how = "symlink"; configureParent = true; }
+          ];
+        };
+      };
+
+      systemd.services.systemd-machine-id-commit = {
+        unitConfig.ConditionPathIsMountPoint = [
+          "" "/state/etc/machine-id"
+        ];
+        serviceConfig.ExecStart = [
+          "" "systemd-machine-id-setup --commit --root /state"
+        ];
+      };
+
+      # test-specific configuration below
+      boot.initrd.systemd.enable = true;
+
+      networking.useNetworkd = true;
+
+      virtualisation = {
+        memorySize = 2048;
+        # separate block device for preserved state
+        emptyDiskImages = [ 23 ];
+        fileSystems."/state" = {
+          device = "/dev/vdb";
+          fsType = "ext4";
+          neededForBoot = true;
+          autoFormat = true;
+        };
+      };
+
+    };
+
+  testScript =
+    { nodes, ... }:
+    # python
+    ''
+      machine.start(allow_reboot=True)
+      machine.wait_for_unit("default.target")
+
+      with subtest("Initial boot meets ConditionFirstBoot"):
+        machine.require_unit_state("first-boot-complete.target","active")
+
+      with subtest("Machine ID linked and populated"):
+        machine.succeed("test -L /etc/machine-id")
+        machine.succeed("test -s /state/etc/machine-id")
+
+      with subtest("Machine ID persisted"):
+        first_id = machine.succeed("cat /etc/machine-id")
+        machine.reboot()
+        machine.wait_for_unit("default.target")
+        second_id = machine.succeed("cat /etc/machine-id")
+        t.assertEqual(first_id, second_id, "machine-id changed")
+
+      with subtest("Second boot does not meet ConditionFirstBoot"):
+        machine.require_unit_state("first-boot-complete.target", "inactive")
+
+      machine.shutdown()
+    '';
+}
+</file>
+
+<file path="tests/flake.lock">
+{
+  "nodes": {
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": "nixpkgs-lib"
+      },
+      "locked": {
+        "lastModified": 1756770412,
+        "narHash": "sha256-+uWLQZccFHwqpGqr2Yt5VsW/PbeJVTn9Dk6SHWhNRPw=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "4524271976b625a4a605beefd893f270620fd751",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1757068644,
+        "narHash": "sha256-NOrUtIhTkIIumj1E/Rsv1J37Yi3xGStISEo8tZm3KW4=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "8eb28adfa3dc4de28e792e3bf49fcf9007ca8ac9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs-lib": {
+      "locked": {
+        "lastModified": 1754788789,
+        "narHash": "sha256-x2rJ+Ovzq0sCMpgfgGaaqgBSwY+LST+WbZ6TytnT9Rk=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "a73b9c743612e4244d865a2fdee11865283c04e6",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "nixpkgs": "nixpkgs"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="tests/flake.nix">
+{
+  inputs = {
+    flake-parts.url = "github:hercules-ci/flake-parts";
+
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  };
+
+  outputs = inputs:
+    inputs.flake-parts.lib.mkFlake
+      { inherit inputs; }
+      {
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+        ];
+        perSystem = { pkgs, ... }:
+          {
+            checks = {
+              default = pkgs.nixosTest (import ./basic.nix pkgs);
+              firstboot = pkgs.nixosTest (import ./firstboot.nix pkgs);
+              verity-image = pkgs.nixosTest (import ./appliance-image-verity.nix pkgs);
+            };
+          };
+      };
+}
+</file>
+
+<file path=".gitignore">
+.*.swo
+.*.swp
+result*
+/.direnv
+/tests/.nixos-test-history
+*.html
+</file>
+
+<file path="flake.nix">
+{
+  outputs = inputs: {
+    lib = import ./lib.nix; # need to pass nixpkgs-lib
+    nixosModules = {
+      default = inputs.self.nixosModules.preservation;
+      preservation = ./module.nix;
+    };
+  };
+}
+</file>
+
+<file path="lib.nix">
+{ lib, ... }:
+
+rec {
+  # converts a list of `mountOption` to a comma-separated string that is passed to the mount unit
+  toOptionsString =
+    mountOptions:
+    builtins.concatStringsSep "," (
+      map (
+        option: if option.value == null then option.name else "${option.name}=${option.value}"
+      ) mountOptions
+    );
+
+  # concatenates two paths
+  # inserts a "/" in between if there is none, removes one if there are two
+  concatTwoPaths =
+    parent: child:
+    with lib.strings;
+    if hasSuffix "/" parent then
+      if
+        hasPrefix "/" child
+      # "/parent/" "/child"
+      then
+        parent + (removePrefix "/" child)
+      # "/parent/" "child"
+      else
+        parent + child
+    else if
+      hasPrefix "/" child
+    # "/parent" "/child"
+    then
+      parent + child
+    # "/parent" "child"
+    else
+      parent + "/" + child;
+
+  # concatenates a list of paths using `concatTwoPaths`
+  concatPaths = builtins.foldl' concatTwoPaths "";
+
+  # get the parent directory of an absolute path
+  parentDirectory =
+    path:
+    with lib.strings;
+    assert "/" == (builtins.substring 0 1 path);
+    let
+      parts = splitString "/" (removeSuffix "/" path);
+      len = builtins.length parts;
+    in
+    if len < 1 then "/" else concatPaths ([ "/" ] ++ (lib.lists.sublist 0 (len - 1) parts));
+
+  # splits a path on "/", returning a list of non-empty path components
+  parts =
+    path:
+    builtins.foldl' (acc: p: if builtins.isString p && p != "" then acc ++ [ p ] else acc) [ ] (
+      builtins.split "/" path
+    );
+
+  # generates a list of path segments that are parents of the given path
+  # e.g.: for "/foo/bar/baz" this yields [ "foo" "foo/bar" ]
+  parentSegments =
+    path:
+    let
+      # collect all path segments, including the given path itself
+      includingPath = builtins.foldl' (
+        acc: part: if acc == [ ] then [ part ] else ([ (concatTwoPaths (builtins.head acc) part) ] ++ acc)
+      ) [ ] (parts path);
+      # return all path segments except for the given path
+    in
+    builtins.tail includingPath;
+
+  # generates a list of unique path segments that are parents of a given list of paths
+  missingIntermediatePaths =
+    paths:
+    let
+      intermediates = builtins.foldl' (acc: path: acc ++ (parentSegments path)) [ ] paths;
+    in
+    lib.lists.unique (builtins.filter (path: !(builtins.elem path paths)) intermediates);
+
+  # generates a list of attributes to be used in the `directories` option of the `userModule`
+  #
+  # essentially this takes the given lists of configurations for `directories` and `files`,
+  # generates a list of all their unique parent paths and returns a single list of the
+  # given configurations extended by the configurations for their parents, using `defaults`
+  mkIntermediateUserDirectories =
+    defaults: files: prefix: directories:
+    let
+      partitions = builtins.partition (d: d.inInitrd) (files ++ directories);
+      toPaths = map (
+        d: if builtins.hasAttr "file" d then lib.removePrefix prefix d.file else d.directory
+      );
+      intermediateInitrdPaths = missingIntermediatePaths (toPaths partitions.right);
+      intermediateRegularPaths = missingIntermediatePaths (toPaths partitions.wrong);
+      initrdIntermediates = map (
+        p:
+        defaults
+        // {
+          inInitrd = true;
+          directory = p;
+        }
+      ) intermediateInitrdPaths;
+      regularIntermediates = map (
+        p:
+        defaults
+        // {
+          inInitrd = false;
+          directory = p;
+        }
+      ) intermediateRegularPaths;
+    in
+    directories ++ initrdIntermediates ++ regularIntermediates;
+
+  # retrieves the list of directories for all users in a `userModule`
+  getUserDirectories = lib.mapAttrsToList (_: userConfig: userConfig.directories);
+  # retrieves the list of files for all users in a `userModule`
+  getUserFiles = lib.mapAttrsToList (_: userConfig: userConfig.files);
+  # retrieves all directories configured in a `preserveAtSubmodule`
+  getAllDirectories =
+    stateConfig:
+    stateConfig.directories ++ (builtins.concatLists (getUserDirectories stateConfig.users));
+  # retrieves all files configured in a `preserveAtSubmodule`
+  getAllFiles =
+    stateConfig: stateConfig.files ++ (builtins.concatLists (getUserFiles stateConfig.users));
+  # retrieves the list of user configs that preserve any file or directory for all
+  # users in a `preserveAtSubmodule`
+  getNonEmptyUserConfigs =
+    forInitrd: stateConfig:
+    let
+      preservesAny =
+        userConfig: lib.any (def: def.inInitrd == forInitrd) (userConfig.files ++ userConfig.directories);
+      nonEmptyUsers = lib.filterAttrs (_: preservesAny) stateConfig.users;
+    in
+    lib.mapAttrsToList (_: userConfig: userConfig) nonEmptyUsers;
+  # filters a list of files or directories, returns only bindmounts
+  onlyBindMounts =
+    forInitrd: builtins.filter (conf: conf.how == "bindmount" && conf.inInitrd == forInitrd);
+  # filters a list of files or directories, returns only symlinks
+  onlySymLinks =
+    forInitrd: builtins.filter (conf: conf.how == "symlink" && conf.inInitrd == forInitrd);
+  # filters a list of files or directories, returns only intermediate paths
+  onlyIntermediates =
+    forInitrd: builtins.filter (conf: conf.how == "_intermediate" && conf.inInitrd == forInitrd);
+
+  # creates tmpfiles.d rules for the `settings` option of the tmpfiles module from a `preserveAtSubmodule`
+  mkTmpfilesRules =
+    forInitrd: preserveAt: stateConfig:
+    let
+      allDirectories = getAllDirectories stateConfig;
+      allFiles = getAllFiles stateConfig;
+      nonEmptyUserConfigs = getNonEmptyUserConfigs forInitrd stateConfig;
+      mountedDirectories = onlyBindMounts forInitrd allDirectories;
+      intermediateDirectories = onlyIntermediates forInitrd allDirectories;
+      mountedFiles = onlyBindMounts forInitrd allFiles;
+      symlinkedDirectories = onlySymLinks forInitrd allDirectories;
+      symlinkedFiles = onlySymLinks forInitrd allFiles;
+
+      prefix = if forInitrd then "/sysroot" else "/";
+
+      # directories that are bind-mounted from the persistent prefix
+      mountedDirRules = map (
+        dirConfig:
+        let
+          persistentDirPath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            dirConfig.directory
+          ];
+          volatileDirPath = concatPaths [
+            prefix
+            dirConfig.directory
+          ];
+        in
+        {
+          # directory on persistent storage
+          "${persistentDirPath}".d = {
+            inherit (dirConfig) user group mode;
+          };
+          # directory on volatile storage
+          "${volatileDirPath}".d = {
+            inherit (dirConfig) user group mode;
+          };
+        }
+        // lib.optionalAttrs dirConfig.configureParent {
+          # parent directory of directory on persistent storage
+          "${parentDirectory persistentDirPath}".d = {
+            inherit (dirConfig.parent) user group mode;
+          };
+          # parent directory of symlink on volatile storage
+          "${parentDirectory volatileDirPath}".d = {
+            inherit (dirConfig.parent) user group mode;
+          };
+        }
+      ) mountedDirectories;
+
+      # directories that are not persisted themselves
+      intermediateDirRules = map (
+        dirConfig:
+        let
+          persistentDirPath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            dirConfig.directory
+          ];
+          volatileDirPath = concatPaths [
+            prefix
+            dirConfig.directory
+          ];
+        in
+        {
+          # directory on persistent storage
+          "${persistentDirPath}".d = {
+            inherit (dirConfig) user group mode;
+          };
+          # directory on volatile storage
+          "${volatileDirPath}".d = {
+            inherit (dirConfig) user group mode;
+          };
+        }
+      ) intermediateDirectories;
+
+      # home directories that are not persisted themselves but require
+      # user-specific ownership and permissions on the persistent prefix
+      intermediateHomeRules = map (
+        userConfig:
+        let
+          persistentDirPath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            userConfig.home
+          ];
+        in
+        {
+          "${persistentDirPath}".d = {
+            user = userConfig.username;
+            group = userConfig.homeGroup;
+            mode = userConfig.homeMode;
+          };
+        }
+
+      ) nonEmptyUserConfigs;
+
+      # files that are bind-mounted from the persistent prefix
+      mountedFileRules = map (
+        fileConfig:
+        let
+          persistentFilePath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            fileConfig.file
+          ];
+          volatileFilePath = concatPaths [
+            prefix
+            fileConfig.file
+          ];
+        in
+        {
+          # file on persistent storage
+          "${concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            fileConfig.file
+          ]}".f =
+            {
+              inherit (fileConfig) user group mode;
+            };
+          # file on volatile storage
+          "${concatPaths [
+            prefix
+            fileConfig.file
+          ]}".f =
+            {
+              inherit (fileConfig) user group mode;
+            };
+        }
+        // lib.optionalAttrs fileConfig.configureParent {
+          # parent directory of file on persistent storage
+          "${parentDirectory persistentFilePath}".d = {
+            inherit (fileConfig.parent) user group mode;
+          };
+          # parent directory of symlink on volatile storage
+          "${parentDirectory volatileFilePath}".d = {
+            inherit (fileConfig.parent) user group mode;
+          };
+        }
+      ) mountedFiles;
+
+      # directories are linked to from the volatile prefix
+      symlinkedDirRules = map (
+        dirConfig:
+        let
+          persistentDirPath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            dirConfig.directory
+          ];
+          volatileDirPath = concatPaths [
+            prefix
+            dirConfig.directory
+          ];
+        in
+        {
+          # symlink on volatile storage
+          "${volatileDirPath}".L = {
+            inherit (dirConfig) user group mode;
+            argument = concatPaths [
+              stateConfig.persistentStoragePath
+              dirConfig.directory
+            ];
+          };
+        }
+        // lib.optionalAttrs dirConfig.createLinkTarget {
+          # directory on persistent storage
+          "${persistentDirPath}".d = {
+            inherit (dirConfig) user group mode;
+          };
+        }
+        // lib.optionalAttrs dirConfig.configureParent {
+          # parent directory of directory on persistent storage
+          "${parentDirectory persistentDirPath}".d = {
+            inherit (dirConfig.parent) user group mode;
+          };
+          # parent directory of symlink on volatile storage
+          "${parentDirectory volatileDirPath}".d = {
+            inherit (dirConfig.parent) user group mode;
+          };
+        }
+      ) symlinkedDirectories;
+
+      # files are linked to from the volatile prefix
+      symlinkedFileRules = map (
+        fileConfig:
+        let
+          persistentFilePath = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            fileConfig.file
+          ];
+          volatileFilePath = concatPaths [
+            prefix
+            fileConfig.file
+          ];
+        in
+        {
+          # symlink on volatile storage
+          "${volatileFilePath}".L = {
+            inherit (fileConfig) user group mode;
+            argument = concatPaths [
+              stateConfig.persistentStoragePath
+              fileConfig.file
+            ];
+          };
+        }
+        // lib.optionalAttrs fileConfig.createLinkTarget {
+          # file on persistent storage
+          "${persistentFilePath}".f = {
+            inherit (fileConfig) user group mode;
+          };
+        }
+        // lib.optionalAttrs fileConfig.configureParent {
+          # parent directory of file on persistent storage
+          "${parentDirectory persistentFilePath}".d = {
+            inherit (fileConfig.parent) user group mode;
+          };
+          # parent directory of symlink on volatile storage
+          "${parentDirectory volatileFilePath}".d = {
+            inherit (fileConfig.parent) user group mode;
+          };
+        }
+      ) symlinkedFiles;
+
+      rules =
+        mountedDirRules
+        ++ intermediateDirRules
+        ++ intermediateHomeRules
+        ++ symlinkedDirRules
+        ++ mountedFileRules
+        ++ symlinkedFileRules;
+    in
+    rules;
+
+  # creates systemd mount unit configurations from a `preserveAtSubmodule`
+  mkMountUnits =
+    forInitrd: preserveAt: stateConfig:
+    let
+      allDirectories = getAllDirectories stateConfig;
+      allFiles = getAllFiles stateConfig;
+      mountedDirectories = onlyBindMounts forInitrd allDirectories;
+      mountedFiles = onlyBindMounts forInitrd allFiles;
+
+      prefix = if forInitrd then "/sysroot" else "/";
+
+      directoryMounts = map (directoryConfig: {
+        options = toOptionsString (
+          directoryConfig.mountOptions
+          ++ (lib.optional forInitrd {
+            name = "x-initrd.mount";
+            value = null;
+          })
+        );
+        where = concatPaths [
+          prefix
+          directoryConfig.directory
+        ];
+        what = concatPaths [
+          prefix
+          stateConfig.persistentStoragePath
+          directoryConfig.directory
+        ];
+        unitConfig.DefaultDependencies = "no";
+        conflicts = [ "umount.target" ];
+        wantedBy =
+          if forInitrd then
+            [
+              "initrd-preservation.target"
+            ]
+          else
+            [
+              "preservation.target"
+            ];
+        before =
+          if forInitrd then
+            [
+              # directory mounts are set up before tmpfiles
+              "systemd-tmpfiles-setup-sysroot.service"
+              "initrd-preservation.target"
+            ]
+          else
+            [
+              "systemd-tmpfiles-setup.service"
+              "preservation.target"
+            ];
+      }) mountedDirectories;
+
+      fileMounts = map (fileConfig: {
+        options = toOptionsString (
+          fileConfig.mountOptions
+          ++ (lib.optional forInitrd {
+            name = "x-initrd.mount";
+            value = null;
+          })
+        );
+        where = concatPaths [
+          prefix
+          fileConfig.file
+        ];
+        what = concatPaths [
+          prefix
+          stateConfig.persistentStoragePath
+          fileConfig.file
+        ];
+        unitConfig = {
+          DefaultDependencies = "no";
+          ConditionPathExists = concatPaths [
+            prefix
+            stateConfig.persistentStoragePath
+            fileConfig.file
+          ];
+        };
+        conflicts = [ "umount.target" ];
+        after =
+          if forInitrd then
+            [ "systemd-tmpfiles-setup-sysroot.service" ]
+          else
+            [ "systemd-tmpfiles-setup.service" ];
+        wantedBy = if forInitrd then [ "initrd-preservation.target" ] else [ "preservation.target" ];
+        before = if forInitrd then [ "initrd-preservation.target" ] else [ "preservation.target" ];
+      }) mountedFiles;
+
+      mountUnits = directoryMounts ++ fileMounts;
+    in
+    mountUnits;
+
+  # aliases to avoid the use of a nameless bool outside this lib
+  mkRegularMountUnits = mkMountUnits false;
+  mkInitrdMountUnits = mkMountUnits true;
+  mkRegularTmpfilesRules = mkTmpfilesRules false;
+  mkInitrdTmpfilesRules = mkTmpfilesRules true;
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2024 Willi Butz
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="module.nix">
+{ config, lib, ... }:
+
+let
+  cfg = config.preservation;
+
+  inherit (import ./lib.nix { inherit lib; })
+    mkRegularMountUnits
+    mkInitrdMountUnits
+    mkRegularTmpfilesRules
+    mkInitrdTmpfilesRules
+    ;
+in
+{
+  imports = [
+    ./options.nix
+  ];
+
+  config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = config.boot.initrd.systemd.enable;
+        message = "This module cannot be used with scripted initrd.";
+      }
+    ];
+
+    boot.initrd.systemd = {
+      targets.initrd-preservation = {
+        description = "Initrd Preservation Mounts";
+        before = [ "initrd.target" ];
+        wantedBy = [ "initrd.target" ];
+      };
+      tmpfiles.settings.preservation = lib.mkMerge (
+        lib.flatten (lib.mapAttrsToList mkInitrdTmpfilesRules cfg.preserveAt)
+      );
+      mounts = lib.flatten (lib.mapAttrsToList mkInitrdMountUnits cfg.preserveAt);
+    };
+
+    systemd = {
+      targets.preservation = {
+        description = "Preservation Mounts";
+        before = [ "sysinit.target" ];
+        wantedBy = [ "sysinit.target" ];
+      };
+      tmpfiles.settings.preservation = lib.mkMerge (
+        lib.flatten (lib.mapAttrsToList mkRegularTmpfilesRules cfg.preserveAt)
+      );
+      mounts = lib.flatten (lib.mapAttrsToList mkRegularMountUnits cfg.preserveAt);
+    };
+
+  };
+}
+</file>
+
+<file path="options.nix">
+{ config, lib, ... }:
+
+let
+  inherit (import ./lib.nix { inherit lib; })
+    mkIntermediateUserDirectories
+    concatTwoPaths
+    ;
+
+  mountOption = lib.types.submodule {
+    options = {
+      name = lib.mkOption {
+        type = lib.types.str;
+        description = ''
+          Specify the name of the mount option.
+        '';
+        example = "bind";
+      };
+      value = lib.mkOption {
+        type = with lib.types; nullOr str;
+        default = null;
+        description = ''
+          Optionally specify a value for the mount option.
+        '';
+      };
+    };
+  };
+
+  directoryPath =
+    attrs@{ defaultOwner, ... }:
+    {
+      options = {
+        directory = lib.mkOption {
+          type = lib.types.str;
+          description = ''
+            Specify the path to the directory that should be preserved.
+          '';
+        };
+        how = lib.mkOption {
+          type = lib.types.enum [
+            "bindmount"
+            "symlink"
+            "_intermediate" # TODO find a better name. maybe "structure"?
+          ];
+          default = "bindmount";
+          description = ''
+            Specify how this directory should be preserved.
+
+            1. Either a directory is created both on the volatile and on the
+            persistent volume, with a bind mount from the former to the
+            latter.
+
+            2. Or a symlink is created on the volatile volume, pointing
+            to the corresponding location on the persistent volume.
+
+            3. Finally the option `_intermediate` exists to handle directories
+            which are supposed to be created on both the volatile and persistent
+            volume, but without any preservation of them specifically.
+          '';
+        };
+        user = lib.mkOption {
+          type = lib.types.str;
+          default = defaultOwner;
+          description = ''
+            Specify the user that owns the directory.
+          '';
+        };
+        group = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${defaultOwner}.group;
+          defaultText = "config.users.users.\${defaultOwner}.group";
+          description = ''
+            Specify the group that owns the directory.
+          '';
+        };
+        mode = lib.mkOption {
+          type = lib.types.str;
+          default = "0755";
+          description = ''
+            Specify the access mode of the directory.
+            See the section `Mode` in {manpage}`tmpfiles.d(5)` for more information.
+          '';
+        };
+        configureParent = lib.mkOption {
+          type = lib.types.bool;
+          default =
+            let
+              isUserSymlink = attrs.config.how == "symlink" && attrs.config.user != "root";
+              notOnTopLevel = !builtins.isNull (builtins.match ".+/.*" attrs.config.directory);
+            in
+            isUserSymlink && notOnTopLevel;
+          description = ''
+            Specify whether the parent directory of this directory shall be configured with
+            custom ownership and permissions.
+
+            By default, missing parent directories are always created with ownership
+            `root:root` and mode `0755`, as described in {manpage}`tmpfiles.d(5)`.
+
+            Ownership and mode may be configured through the options
+            {option}`parent.user`,
+            {option}`parent.group`,
+            {option}`parent.mode`.
+
+            Defaults to `true` when {option}`how` is set to `symlink` and
+            {option}`user` is not `root`.
+          '';
+        };
+        parent.user = lib.mkOption {
+          type = lib.types.str;
+          default = defaultOwner;
+          description = ''
+            Specify the user that owns the parent directory of this file.
+          '';
+        };
+        parent.group = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${defaultOwner}.group;
+          defaultText = "config.users.users.\${defaultOwner}.group";
+          description = ''
+            Specify the group that owns the parent directory of this file.
+          '';
+        };
+        parent.mode = lib.mkOption {
+          type = lib.types.str;
+          default = "0755";
+          description = ''
+            Specify the access mode of the parent directory of this file.
+            See the section `Mode` in {manpage}`tmpfiles.d(5)` for more information.
+          '';
+        };
+        mountOptions = lib.mkOption {
+          type = with lib.types; listOf (coercedTo str (n: { name = n; }) mountOption);
+          description = ''
+            Specify a list of mount options that should be used for this directory.
+            These options are only used when {option}`how` is set to `bindmount`.
+            By default, `bind` and `X-fstrim.notrim` are added,
+            use `mkForce` to override these if needed.
+            See also {manpage}`fstrim(8)`.
+          '';
+        };
+        createLinkTarget = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Only used when {option}`how` is set to `symlink`.
+
+            Specify whether to create an empty directory with the specified ownership
+            and permissions as target of the symlink.
+          '';
+        };
+        inInitrd = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Whether to prepare preservation of this directory in initrd.
+
+            ::: {.note}
+            For most directories there is no need to enable this option.
+            :::
+
+            ::: {.important}
+            Note that both owner and group for this directory need to be
+            available in the initrd for permissions to be set correctly.
+            :::
+          '';
+        };
+      };
+
+      config = {
+        mountOptions = [
+          "bind"
+          "X-fstrim.notrim" # see fstrim(8)
+        ];
+      };
+    };
+
+  filePath =
+    attrs@{ defaultOwner, ... }:
+    {
+      options = {
+        file = lib.mkOption {
+          type = lib.types.str;
+          description = ''
+            Specify the path to the file that should be preserved.
+          '';
+        };
+        how = lib.mkOption {
+          type = lib.types.enum [
+            "bindmount"
+            "symlink"
+          ];
+          default = "bindmount";
+          description = ''
+            Specify how this file should be preserved:
+
+            1. Either a file is placed both on the volatile and on the
+            persistent volume, with a bind mount from the former to the
+            latter.
+
+            2. Or a symlink is created on the volatile volume, pointing
+            to the corresponding location on the persistent volume.
+          '';
+        };
+        user = lib.mkOption {
+          type = lib.types.str;
+          default = defaultOwner;
+          description = ''
+            Specify the user that owns the file.
+          '';
+        };
+        group = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${defaultOwner}.group;
+          defaultText = "config.users.users.\${defaultOwner}.group";
+          description = ''
+            Specify the group that owns the file.
+          '';
+        };
+        mode = lib.mkOption {
+          type = lib.types.str;
+          default = "0644";
+          description = ''
+            Specify the access mode of the file.
+            See the section `Mode` in {manpage}`tmpfiles.d(5)` for more information.
+          '';
+        };
+        configureParent = lib.mkOption {
+          type = lib.types.bool;
+          default =
+            let
+              isUserSymlink = attrs.config.how == "symlink" && attrs.config.user != "root";
+              notOnTopLevel = !builtins.isNull (builtins.match ".+/.*" attrs.config.file);
+            in
+            isUserSymlink && notOnTopLevel;
+          description = ''
+            Specify whether the parent directory of this file shall be configured with
+            custom ownership and permissions.
+
+            By default, missing parent directories are always created with ownership
+            `root:root` and mode `0755`, as described in {manpage}`tmpfiles.d(5)`.
+
+            Ownership and mode may be configured through the options
+            {option}`parent.user`,
+            {option}`parent.group`,
+            {option}`parent.mode`.
+
+            Defaults to `true` when {option}`how` is set to `symlink` and
+            {option}`user` is not `root`.
+          '';
+        };
+        parent.user = lib.mkOption {
+          type = lib.types.str;
+          default = defaultOwner;
+          description = ''
+            Specify the user that owns the parent directory of this file.
+          '';
+        };
+        parent.group = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${attrs.defaultOwner}.group;
+          defaultText = "config.users.users.\${defaultOwner}.group";
+          description = ''
+            Specify the group that owns the parent directory of this file.
+          '';
+        };
+        parent.mode = lib.mkOption {
+          type = lib.types.str;
+          default = "0755";
+          description = ''
+            Specify the access mode of the parent directory of this file.
+            See the section `Mode` in {manpage}`tmpfiles.d(5)` for more information.
+          '';
+        };
+        mountOptions = lib.mkOption {
+          type = with lib.types; listOf (coercedTo str (o: { name = o; }) mountOption);
+          description = ''
+            Specify a list of mount options that should be used for this file.
+            These options are only used when {option}`how` is set to `bindmount`.
+            By default, `bind` is added,
+            use `mkForce` to override this if needed.
+          '';
+        };
+        createLinkTarget = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Only used when {option}`how` is set to `symlink`.
+
+            Specify whether to create an empty file with the specified ownership
+            and permissions as target of the symlink.
+          '';
+        };
+        inInitrd = lib.mkOption {
+          type = lib.types.bool;
+          default = false;
+          description = ''
+            Whether to prepare preservation of this file in the initrd.
+
+            ::: {.note}
+            For most files there is no need to enable this option.
+
+            {file}`/etc/machine-id` is an exception because it needs to
+            be populated/read very early.
+            :::
+
+            ::: {.important}
+            Note that both owner and group for this file need to be
+            available in the initrd for permissions to be set correctly.
+            :::
+          '';
+        };
+      };
+
+      config = {
+        mountOptions = [
+          "bind"
+        ];
+      };
+    };
+
+  userModule =
+    attrs@{ name, ... }:
+    {
+      options = {
+        username = lib.mkOption {
+          type = with lib.types; passwdEntry str;
+          default = name;
+          description = ''
+            Specify the user for which the {option}`directories` and {option}`files`
+            should be persisted. Defaults to the name of the parent attribute set.
+          '';
+        };
+        home = lib.mkOption {
+          type = with lib.types; passwdEntry path;
+          default = config.users.users.${attrs.config.username}.home;
+          defaultText = "config.users.users.\${name}.home";
+          description = ''
+            Specify the path to the user's home directory.
+          '';
+        };
+        directories = lib.mkOption {
+          type =
+            with lib.types;
+            listOf (
+              coercedTo str (d: { directory = d; }) (submodule [
+                {
+                  _module.args.defaultOwner = attrs.config.username;
+                  mountOptions = attrs.config.commonMountOptions;
+                }
+                directoryPath
+              ])
+            );
+          default = [ ];
+          apply =
+            definedDirectories:
+            let
+              intermediateDirectorySettings = {
+                how = "_intermediate";
+                configureParent = false;
+                user = attrs.config.username;
+                group = config.users.users.${attrs.config.username}.group;
+                mode = "0755";
+              };
+              allDirectories =
+                mkIntermediateUserDirectories intermediateDirectorySettings attrs.config.files attrs.config.home
+                  definedDirectories;
+            in
+            map (d: d // { directory = concatTwoPaths attrs.config.home d.directory; }) allDirectories;
+          description = ''
+            Specify a list of directories that should be preserved for this user.
+            The paths are interpreted relative to {option}`home`.
+          '';
+          example = [ ".rabbit_hole" ];
+        };
+        files = lib.mkOption {
+          type =
+            with lib.types;
+            listOf (
+              coercedTo str (f: { file = f; }) (submodule [
+                {
+                  _module.args.defaultOwner = attrs.config.username;
+                  mountOptions = attrs.config.commonMountOptions;
+                }
+                filePath
+              ])
+            );
+          default = [ ];
+          apply = map (f: f // { file = concatTwoPaths attrs.config.home f.file; });
+          description = ''
+            Specify a list of files that should be preserved for this user.
+            The paths are interpreted relative to {option}`home`.
+          '';
+          example = lib.literalMD ''
+            ```nix
+            [
+              {
+                file = ".config/foo";
+                mode = "0600";
+              }
+              "bar"
+            ]
+            ```
+          '';
+        };
+        commonMountOptions = lib.mkOption {
+          type = with lib.types; listOf (coercedTo str (n: { name = n; }) mountOption);
+          default = [ ];
+          example = [
+            "x-gvfs-hide"
+            "x-gdu.hide"
+          ];
+          description = ''
+            Specify a list of mount options that should be added to all files and directories
+            of this user, for which {option}`how` is set to `bindmount`.
+
+            See also the top level {option}`commonMountOptions` and the invdividual
+            {option}`mountOptions` that is available per file / directory.
+          '';
+        };
+        homeMode = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${attrs.config.username}.homeMode;
+          internal = true;
+          readOnly = true;
+        };
+        homeGroup = lib.mkOption {
+          type = lib.types.str;
+          default = config.users.users.${attrs.config.username}.group;
+          internal = true;
+          readOnly = true;
+        };
+      };
+    };
+
+  preserveAtSubmodule =
+    attrs@{ name, ... }:
+    {
+      options = {
+        persistentStoragePath = lib.mkOption {
+          type = lib.types.path;
+          default = name;
+          description = ''
+            Specify the location at which the {option}`directories`, {option}`files`,
+            {option}`users.directories` and {option}`users.files` should be preserved.
+            Defaults to the name of the parent attribute set.
+          '';
+        };
+        directories = lib.mkOption {
+          type =
+            with lib.types;
+            listOf (
+              coercedTo str (d: { directory = d; }) (submodule [
+                {
+                  _module.args.defaultOwner = "root";
+                  mountOptions = attrs.config.commonMountOptions;
+                }
+                directoryPath
+              ])
+            );
+          default = [ ];
+          description = ''
+            Specify a list of directories that should be preserved.
+            The paths are interpreted as absolute paths.
+          '';
+          example = [ "/var/lib/someservice" ];
+        };
+        files = lib.mkOption {
+          type =
+            with lib.types;
+            listOf (
+              coercedTo str (f: { file = f; }) (submodule [
+                {
+                  _module.args.defaultOwner = "root";
+                  mountOptions = attrs.config.commonMountOptions;
+                }
+                filePath
+              ])
+            );
+          default = [ ];
+          description = ''
+            Specify a list of files that should be preserved.
+            The paths are interpreted as absolute paths.
+          '';
+          example = lib.literalMD ''
+            ```nix
+            [
+              {
+                file = "/etc/wpa_supplicant.conf";
+                how = "symlink";
+              }
+              {
+                file = "/etc/machine-id";
+                inInitrd = true;
+              }
+            ]
+            ```
+          '';
+        };
+        users = lib.mkOption {
+          type =
+            with lib.types;
+            attrsWith {
+              placeholder = "user";
+              elemType = submodule [
+                { commonMountOptions = attrs.config.commonMountOptions; }
+                userModule
+              ];
+            };
+          default = { };
+          description = ''
+            Specify a set of users with corresponding files and directories that
+            should be preserved.
+          '';
+          example = lib.literalMD ''
+            ```nix
+            {
+              alice.directories = [ ".rabbit_hole" ];
+              butz = {
+                files = [
+                  {
+                    file = ".config/foo";
+                    mode = "0600";
+                  }
+                  "bar"
+                ];
+                directories = [ "unshaved_yaks" ];
+              };
+            }
+            ```
+          '';
+        };
+        commonMountOptions = lib.mkOption {
+          type = with lib.types; listOf (coercedTo str (n: { name = n; }) mountOption);
+          default = [ ];
+          example = [
+            "x-gvfs-hide"
+            "x-gdu.hide"
+          ];
+          description = ''
+            Specify a list of mount options that should be added to all files and directories
+            under this preservation prefix, for which {option}`how` is set to `bindmount`.
+
+            See also {option}`commonMountOptions` under {option}`users` and the invdividual
+            {option}`mountOptions` that is available per file / directory.
+          '';
+        };
+      };
+    };
+
+in
+{
+  options.preservation = {
+    enable = lib.mkEnableOption "the preservation module";
+
+    preserveAt = lib.mkOption {
+      type =
+        with lib.types;
+        attrsWith {
+          placeholder = "path";
+          elemType = submodule preserveAtSubmodule;
+        };
+      description = ''
+        Specify a set of locations and the corresponding state that
+        should be preserved there.
+      '';
+      default = { };
+      example = lib.literalMD ''
+        ```nix
+        {
+          "/state" = {
+            directories = [ "/var/lib/someservice" ];
+            files = [
+              {
+                file = "/etc/wpa_supplicant.conf";
+                how = "symlink";
+              }
+              {
+                file = "/etc/machine-id";
+                inInitrd = true;
+              }
+            ];
+            users = {
+              alice.directories = [ ".rabbit_hole" ];
+              butz = {
+                files = [
+                  {
+                    file = ".config/foo";
+                    mode = "0600";
+                  }
+                  "bar"
+                ];
+                directories = [ "unshaved_yaks" ];
+              };
+            };
+          };
+        }
+        ```
+      '';
+    };
+  };
+}
+</file>
+
+<file path="README.md">
+# Preservation
+
+Nix tooling to enable declarative management of non-volatile system state.
+
+Inspired and heavily influenced by [impermanence](https://github.com/nix-community/impermanence) but not
+meant to be a drop-in replacement.
+
+## Documentation
+
+Docs are available at <https://nix-community.github.io/preservation>
+
+## Prerequisites
+
+Requires at least nixos-24.11
+
+## Why?
+
+This aims to provide a declarative state management solution for NixOS systems without resorting to
+interpreters to do the heavy lifting. This should enable impermanence-like state management on
+an "interpreter-less" NixOS system.
+
+Related:
+- <https://github.com/NixOS/nixpkgs/issues/265640>
+- <https://github.com/nix-community/projects/blob/main/proposals/nixpkgs-security-phase2.md#boot-chain-security>
+
+## License
+
+This project is released under the terms of the MIT License. See [LICENSE](./LICENSE).
+</file>
+
+<file path="TODO.md">
+* add support for tmpfiles' modifiers?
+* maybe add some recommended config that users can opt-in to use in addition
+  to preservation?
+* with the recent upstream changes the handling of /etc/machine-id changed.
+  That requires another change upstream, i.e. the file needs to be created with content
+  `uninitialized\n` and on a setup with preservation something like the following needs
+  to be done to properly preserve the machine-id across reboots.
+  ```nix
+  {
+    preservation.preserveAt."/state".files = [
+      { file = "/etc/machine-id"; inInitrd = true; how = "symlink"; }
+    ];
+
+    systemd.services.systemd-machine-id-commit = {
+      unitConfig.ConditionPathIsMountPoint = [
+        "" "/state/etc/machine-id"
+      ];
+      serviceConfig.ExecStart = [
+        "" "systemd-machine-id-setup --commit --root /state"
+      ];
+    };
+  }
+  ```
+  see https://github.com/NixOS/nixpkgs/pull/351151#issuecomment-2440122776
+</file>
+
+</files>

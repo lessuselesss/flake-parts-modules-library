@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Read(//tmp/**)",
+      "WebFetch(domain:flake.parts)",
+      "WebSearch"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

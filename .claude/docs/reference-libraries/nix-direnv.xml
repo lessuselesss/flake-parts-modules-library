@@ -1,0 +1,1995 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    auto-merge.yaml
+    test.yml
+    update-flake-inputs.yml
+  dependabot.yml
+scripts/
+  create-release.sh
+templates/
+  flake/
+    .envrc
+    flake.nix
+tests/
+  nix/
+    bats-assert.nix
+    bats-support.nix
+  testenv/
+    flake.lock
+    flake.nix
+    shell.nix
+  default.nix
+  test_fallback.bats
+  test_gc.bats
+  test_use_nix.bats
+  test_versions.bats
+  util.bash
+.envrc
+.gitignore
+default.nix
+direnvrc
+flake.lock
+flake.nix
+LICENSE
+pyproject.toml
+README.md
+shell.nix
+treefmt.nix
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/auto-merge.yaml">
+name: Auto Merge Dependency Updates
+on:
+  - pull_request_target
+jobs:
+  auto-merge-dependency-updates:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: "auto-merge:${{ github.head_ref }}"
+      cancel-in-progress: true
+    steps:
+      - uses: actions/create-github-app-token@v2
+        id: app-token
+        with:
+          app-id: ${{ vars.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+      - uses: Mic92/auto-merge@main
+        with:
+          repo-token: ${{ steps.app-token.outputs.token }}
+</file>
+
+<file path=".github/workflows/test.yml">
+name: "Test"
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches:
+      - master
+      - staging
+      - trying
+jobs:
+  tests:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        # FIXME macos garbage currently collect also nix-shell that runs the test
+        #os: [ ubuntu-latest, macos-latest ]
+        variants: [stable, latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: cachix/install-nix-action@v31
+        with:
+          nix_path: nixpkgs=channel:nixpkgs-unstable
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+      - run: "nix run --accept-flake-config .#test-runner-${{ matrix.variants }}"
+</file>
+
+<file path=".github/workflows/update-flake-inputs.yml">
+name: Update Flake Inputs
+on:
+  schedule:
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+jobs:
+  update-flake-inputs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Generate GitHub App Token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.CI_APP_ID }}
+          private-key: ${{ secrets.CI_APP_PRIVATE_KEY }}
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+      - name: Setup Nix
+        uses: cachix/install-nix-action@v31
+      - name: Update flake inputs
+        uses: mic92/update-flake-inputs@main
+        with:
+          github-token: ${{ steps.app-token.outputs.token }}
+          auto-merge: true
+</file>
+
+<file path=".github/dependabot.yml">
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+</file>
+
+<file path="scripts/create-release.sh">
+#!/usr/bin/env bash
+
+set -eu -o pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null && pwd)"
+cd "$SCRIPT_DIR/.."
+
+version=${1:-}
+if [[ -z $version ]]; then
+  echo "USAGE: $0 version" 2>/dev/null
+  exit 1
+fi
+
+if [[ "$(git symbolic-ref --short HEAD)" != "master" ]]; then
+  echo "must be on master branch" 2>/dev/null
+  exit 1
+fi
+
+waitForPr() {
+  local pr=$1
+  while true; do
+    if gh pr view "$pr" | grep -q 'MERGED'; then
+      break
+    fi
+    echo "Waiting for PR to be merged..."
+    sleep 5
+  done
+}
+
+sed -Ei "s!(version = ).*!\1\"$version\";!" default.nix
+sed -Ei "s!(NIX_DIRENV_VERSION=).*!\1$version!" direnvrc
+
+sed -i README.md templates/flake/.envrc \
+  -e 's!\(nix-direnv/\).*\(/direnvrc\)!\1'"${version}"'\2!' \
+  -e 's?\( ! nix_direnv_version \)[0-9.]\+\(; \)?\1'"${version}"'\2?'
+git add README.md direnvrc templates/flake/.envrc default.nix
+git commit -m "bump version ${version}"
+git tag "${version}"
+git branch -D "release-${version}" || true
+git checkout -b "release-${version}"
+git push origin --force "release-${version}"
+gh pr create \
+  --base master \
+  --head "release-${version}" \
+  --title "Release ${version}" \
+  --body "Release ${version} of nix-direnv"
+
+gh pr merge --auto "release-${version}"
+
+waitForPr "release-${version}"
+git push origin "$version"
+
+sha256=$(direnv fetchurl "https://raw.githubusercontent.com/nix-community/nix-direnv/${version}/direnvrc" | grep -m1 -o 'sha256-.*')
+sed -i README.md templates/flake/.envrc -e "s!sha256-.*!${sha256}\"!"
+git add README.md templates/flake/.envrc
+git commit -m "update fetchurl checksum"
+git push origin --force "release-${version}"
+gh pr create \
+  --base master \
+  --head "release-${version}" \
+  --title "Update checksums for release ${version} of nix-direnv" \
+  --body "Update checksums for release ${version} of nix-direnv"
+gh pr merge --auto "release-${version}"
+waitForPr "release-${version}"
+
+echo "You can now create a release at https://github.com/nix-community/nix-direnv/releases for version ${version}"
+</file>
+
+<file path="templates/flake/.envrc">
+# shellcheck shell=bash
+if ! has nix_direnv_version || ! nix_direnv_version 3.1.0; then
+  source_url "https://raw.githubusercontent.com/nix-community/nix-direnv/3.1.0/direnvrc" "sha256-yMJ2OVMzrFaDPn7q8nCBZFRYpL/f0RcHzhmw/i6btJM="
+fi
+use flake
+</file>
+
+<file path="templates/flake/flake.nix">
+{
+  description = "A basic flake with a shell";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs.systems.url = "github:nix-systems/default";
+  inputs.flake-utils = {
+    url = "github:numtide/flake-utils";
+    inputs.systems.follows = "systems";
+  };
+
+  outputs =
+    { nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in
+      {
+        devShells.default = pkgs.mkShell { packages = [ pkgs.bashInteractive ]; };
+      }
+    );
+}
+</file>
+
+<file path="tests/nix/bats-assert.nix">
+{ fetchFromGitHub, stdenv }:
+stdenv.mkDerivation {
+  name = "bats-assert";
+  version = "2.1.0+";
+  src = fetchFromGitHub {
+    owner = "bats-core";
+    repo = "bats-assert";
+    rev = "912a98804efd34f24d5eae1bf97ee622ca770e9"; # master 8/7/2025
+    hash = "sha256-gp52V4mAiT+Lod2rvEMLhi0Y7AdQQTFCHcNgb8JEKXE=";
+  };
+
+  dontBuild = true;
+  installPhase = ''
+
+    # This looks funny
+    # but they mean that you can use bats' built-in `bats_load_library` easily
+    # when setting $BATS_LIB_PATH to the string of the derivation.
+
+    mkdir -p $out/bats-assert;
+    cp -r src $out/bats-assert/
+    cp load.bash $out/bats-assert
+  '';
+}
+</file>
+
+<file path="tests/nix/bats-support.nix">
+{ stdenv, fetchFromGitHub }:
+
+stdenv.mkDerivation {
+  name = "bats-support";
+  version = "3.0+";
+  src = fetchFromGitHub {
+    owner = "bats-core";
+    repo = "bats-support";
+    rev = "0ad082d4590108684c68975ca517a90459f05cd0";
+    hash = "sha256-hkPAn12gQudboL9pDpQZhtaMhqyyj885tti4Gx/aun4=";
+  };
+
+  dontBuild = true;
+  installPhase = ''
+
+    # This looks funny
+    # but they mean that you can use bats' built-in `bats_load_library` easily
+    # when setting $BATS_LIB_PATH to the string of the derivation.
+
+    mkdir -p $out/bats-support;
+    cp -r src $out/bats-support/
+    cp load.bash $out/bats-support/
+  '';
+}
+</file>
+
+<file path="tests/testenv/flake.lock">
+{
+  "nodes": {
+    "flake-utils": {
+      "inputs": {
+        "systems": "systems"
+      },
+      "locked": {
+        "lastModified": 1694529238,
+        "narHash": "sha256-zsNZZGTGnMOf9YpHKJqMSsa0dXbfmxeoJ7xHlrt+xmY=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "ff7b65b44d01cf9ba6a71320833626af21126384",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1701401302,
+        "narHash": "sha256-kfCOHzgtmHcgJwH7uagk8B+K1Qz58rN79eTLe55eGqA=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "69a165d0fd2b08a78dbd2c98f6f860ceb2bbcd40",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-utils": "flake-utils",
+        "nixpkgs": "nixpkgs"
+      }
+    },
+    "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="tests/testenv/flake.nix">
+{
+  description = "A very basic flake";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+  inputs.flake-utils.url = "github:numtide/flake-utils";
+
+  # deadnix: skip
+  outputs =
+    { nixpkgs, flake-utils, ... }:
+    flake-utils.lib.eachDefaultSystem (system: {
+      devShell = import ./shell.nix { pkgs = nixpkgs.legacyPackages.${system}; };
+    });
+}
+</file>
+
+<file path="tests/testenv/shell.nix">
+{
+  pkgs ? import (builtins.getFlake (toString ./.)).inputs.nixpkgs { },
+  someArg ? null,
+  shellHook ? ''
+    echo "Executing shellHook."
+  '',
+}:
+pkgs.mkShellNoCC {
+  inherit shellHook;
+
+  nativeBuildInputs = [ pkgs.hello ];
+  SHOULD_BE_SET = someArg;
+
+  passthru = {
+    subshell = pkgs.mkShellNoCC { THIS_IS_A_SUBSHELL = "OK"; };
+  };
+}
+</file>
+
+<file path="tests/default.nix">
+{
+  bash,
+  bats,
+  callPackage,
+  coreutils,
+  direnv,
+  fetchurl,
+  findutils,
+  gnugrep,
+  gnused,
+  lib,
+  nix-direnv,
+  nixVersions,
+  writeShellScriptBin,
+}:
+let
+  direnv-stdlib = fetchurl {
+    url = "https://raw.githubusercontent.com/direnv/direnv/refs/tags/v2.37.1/stdlib.sh";
+    hash = "sha256-MMM04OXhqS/rRSuv8uh7CD70Z7CaGT63EtL/3LC08qM=";
+  };
+  bats-support = callPackage ./nix/bats-support.nix { };
+  bats-assert = callPackage ./nix/bats-assert.nix { };
+  mkTestRunner =
+    nixVersion:
+    writeShellScriptBin "test-runner-${nixVersion}" ''
+      set -e
+      export PATH=${
+        lib.makeBinPath [
+          bash
+          direnv
+          nixVersions.${nixVersion}
+          coreutils
+          findutils
+          gnugrep
+          gnused
+        ]
+      }
+      export DIRENV_STDLIB=${direnv-stdlib}
+      export DIRENVRC="${nix-direnv}/share/nix-direnv/direnvrc"
+      export BATS_LIB_PATH="${bats-support}:${bats-assert}"
+
+      echo run unittest
+      ${lib.getExe' bats "bats"} tests/
+    '';
+  test-runner-stable = mkTestRunner "stable";
+  test-runner-latest = mkTestRunner "latest";
+in
+{
+  inherit
+    bats-support
+    bats-assert
+    direnv-stdlib
+    test-runner-stable
+    test-runner-latest
+    ;
+}
+</file>
+
+<file path="tests/test_fallback.bats">
+# -*- mode: bash-ts -*-
+
+function setup {
+  load "util"
+
+  _common_setup
+}
+
+function teardown {
+  _common_teardown
+}
+
+function test_fallback_allowed() { # @test
+  write_envrc "strict_env\nwatch_file shell.nix\nuse flake"
+  run_in_direnv 'hello'
+
+  sed -i.bk 's|inherit shellHook|inherit doesntExist|' "$TESTDIR/shell.nix"
+
+  run --separate-stderr direnv exec "$TESTDIR" "hello"
+  assert_stderr -p "Falling back to previous environment"
+
+}
+
+function test_fallback_disallowed() { # @test
+  write_envrc "strict_env\nwatch_file shell.nix\nnix_direnv_disallow_fallback\nuse flake"
+  run_in_direnv 'hello'
+
+  sed -i.bk 's|inherit shellHook|inherit doesntExist|' "$TESTDIR/shell.nix"
+
+  run --separate-stderr direnv exec "$TESTDIR" "hello"
+  refute_stderr -p "Falling back to previous environment"
+}
+</file>
+
+<file path="tests/test_gc.bats">
+# -*- mode: bash-ts -*-
+
+# test initialization ====================
+function setup {
+  load "util"
+
+  _common_setup
+}
+
+function teardown {
+  _common_teardown
+}
+
+# helpers =================================
+function assert_run_output {
+  run_in_direnv hello
+  assert_output -p "Hello, world"
+  assert_stderr -p "Executing shellHook"
+}
+
+function assert_gcroot {
+  profile_path=$(find "$TESTDIR/.direnv" -type l | head -n 1)
+  run bats_pipe find /nix/var/nix/gcroots/auto/ -type l -printf "%l\n" \| grep -q "$profile_path"
+  assert_success
+}
+
+function assert_use_nix_layout_dir_shape {
+  paths=("$TESTDIR"/.direnv/*)
+  chomped_paths=("${paths[@]#$TESTDIR/.direnv/}")
+  assert_equal "${#chomped_paths[@]}" "3"
+  assert_regex "$(printf "%s " "${chomped_paths[@]}")" "bin nix-profile.+ nix-profile-.+\.rc"
+}
+
+function assert_use_flake_layout_dir_shape {
+  paths=("$TESTDIR"/.direnv/flake-inputs/*)
+  chomped_inputs_paths=("${paths[@]#$TESTDIR/.direnv/flake-inputs/}")
+  # four inputs, so four "...-source" outputs
+  assert_regex "$(printf "%s " "${chomped_inputs_paths[@]}")" "(.+-source[ ]?){4}"
+
+  paths=("$TESTDIR"/.direnv/*)
+  chomped_paths=("${paths[@]#$TESTDIR/.direnv/}")
+  assert_equal "${#chomped_paths[@]}" "4"
+  assert_regex "$(printf "%s " "${chomped_paths[@]}")" "bin flake-inputs flake-profile-.+ flake-profile-.+\.rc"
+}
+
+# tests ===================================
+function use_nix_strict { # @test
+  write_envrc "strict_env\nuse nix"
+  assert_run_output
+  assert_gcroot
+  assert_use_nix_layout_dir_shape
+}
+
+function use_flake_strict { # @test
+  write_envrc "strict_env\nuse flake"
+  assert_run_output
+  assert_gcroot
+  assert_use_flake_layout_dir_shape
+}
+</file>
+
+<file path="tests/test_use_nix.bats">
+# -*- mode: bash-ts -*-
+
+function setup {
+  load "util"
+
+  _common_setup
+}
+
+function teardown {
+  _common_teardown
+}
+
+function use_nix_attrs_strict { # @test
+  write_envrc "strict_env\nuse nix -A subshell"
+  # shellcheck disable=SC2016
+  run_in_direnv 'echo "subshell: $THIS_IS_A_SUBSHELL"'
+  assert_output -e "subshell: OK$"
+}
+
+function use_nix_no_nix_path_strict { # @test
+  unset NIX_PATH
+  write_envrc "strict_env\nuse nix --argstr someArg OK"
+  # shellcheck disable=SC2016
+  run_in_direnv 'echo "someArg: $SHOULD_BE_SET"'
+  assert_output -e "someArg: OK$"
+}
+
+function use_nix_no_files { # @test
+  write_envrc "use nix -p hello"
+  (
+    cd "$TESTDIR" || exit 1
+    run --separate-stderr direnv status
+    assert_success
+    refute_output -p 'Loaded watch: "."'
+  )
+}
+</file>
+
+<file path="tests/test_versions.bats">
+# -*- mode: bash-ts -*-
+
+function setup {
+  bats_load_library bats-support
+  bats_load_library bats-assert
+
+  load "$DIRENV_STDLIB"
+  load "$DIRENVRC"
+}
+
+function _require_version_with_valid_versions { # @test
+  # args: cmd version minimum_required
+  run _require_version "test-cmd" "2.5" "2.4"
+  assert_success
+  run _require_version "test-cmd" "2.5" "2.4.1"
+  assert_success
+  run _require_version "test-cmd" "2.4.1" "2.4"
+  assert_success
+  run _require_version "test-cmd" "2.4" "2.4.1"
+  assert_failure
+  run _require_version "test-cmd" "2.31pre20250712_b1245123" "2.4"
+  assert_success
+}
+
+function _require_cmd_version_with_valid_versions { # @test
+  run _require_cmd_version "bash" "1.0"
+  assert_success
+  run _require_cmd_version "bash" "100.0"
+  assert_failure
+  run _require_cmd_version "bash" "1.2.3"
+  assert_success
+}
+</file>
+
+<file path="tests/util.bash">
+function _common_setup {
+  shopt -s globstar
+  bats_require_minimum_version 1.5.0
+  bats_load_library bats-support
+  bats_load_library bats-assert
+
+  TESTDIR=
+  TESTDIR=$(mktemp -d -t nix-direnv.XXXXXX)
+  export TESTDIR
+  export DIRENV_LOG_FORMAT="direnv: %s"
+
+  # Set up nix to be able to find your user's nix.conf if run locally
+  export NIX_USER_CONF_FILES="$HOME/.config/nix/nix.conf"
+
+  export HOME=$TESTDIR/home
+  unset XDG_DATA_HOME
+  unset XDG_CONFIG_HOME
+
+  cp "$BATS_TEST_DIRNAME"/testenv/* "$TESTDIR/"
+}
+
+function _common_teardown {
+  rm -rf "$TESTDIR"
+}
+
+function write_envrc {
+  echo "source $DIRENVRC" >"$TESTDIR/.envrc"
+  echo -e "\n$*" >>"$TESTDIR/.envrc"
+  direnv allow "$TESTDIR"
+}
+
+function run_in_direnv {
+  run --separate-stderr direnv exec "$TESTDIR" sh -c "$@"
+  assert_success
+  run direnv exec "$TESTDIR" sh -c "$@"
+  assert_success
+  assert_stderr -p "Renewed cache"
+}
+</file>
+
+<file path=".envrc">
+# shellcheck shell=bash
+strict_env
+source ./direnvrc
+
+watch_file direnvrc
+# shellcheck disable=SC2046
+watch_file $(find . -name "*.nix")
+
+# This is not in shell.nix because accessing the working path requires impure eval
+export DIRENVRC="$PWD/direnvrc"
+
+use flake
+</file>
+
+<file path=".gitignore">
+.direnv/
+/template/flake.lock
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+</file>
+
+<file path="default.nix">
+{
+  resholve,
+  lib,
+  coreutils,
+  nix,
+  writeText,
+}:
+
+# resholve does not yet support `finalAttrs` call pattern hence `rec`
+# https://github.com/abathur/resholve/issues/107
+resholve.mkDerivation rec {
+  pname = "nix-direnv";
+  version = "3.1.0";
+
+  src = builtins.path {
+    path = ./.;
+    name = pname;
+  };
+
+  installPhase = ''
+    install -m400 -D direnvrc $out/share/${pname}/direnvrc
+  '';
+
+  solutions = {
+    default = {
+      scripts = [ "share/${pname}/direnvrc" ];
+      interpreter = "none";
+      inputs = [ coreutils ];
+      fake = {
+        builtin = [
+          "PATH_add"
+          "direnv_layout_dir"
+          "has"
+          "log_error"
+          "log_status"
+          "watch_file"
+        ];
+        function = [
+          # not really a function - this is in an else branch for macOS/homebrew that
+          # cannot be reached when built with nix
+          "shasum"
+        ];
+        external = [
+          # We want to reference the ambient Nix when possible, and have custom logic
+          # for the fallback
+          "nix"
+        ];
+      };
+      keep = {
+        "$cmd" = true;
+        "$direnv" = true;
+
+        # Nix fallback implementation
+        "$_nix_direnv_nix" = true;
+        "$ambient_nix" = true;
+        "$NIX_DIRENV_FALLBACK_NIX" = true;
+      };
+      prologue =
+        (writeText "prologue.sh" ''
+          NIX_DIRENV_SKIP_VERSION_CHECK=1
+          NIX_DIRENV_FALLBACK_NIX=''${NIX_DIRENV_FALLBACK_NIX:-${lib.getExe nix}}
+        '').outPath;
+    };
+  };
+
+  meta = with lib; {
+    description = "A fast, persistent use_nix implementation for direnv";
+    homepage = "https://github.com/nix-community/nix-direnv";
+    license = licenses.mit;
+    platforms = platforms.unix;
+  };
+}
+</file>
+
+<file path="direnvrc">
+# -*- mode: sh -*-
+# shellcheck shell=bash
+
+NIX_DIRENV_VERSION=3.1.0
+
+# min required versions
+BASH_MIN_VERSION=4.4
+DIRENV_MIN_VERSION=2.21.3
+
+_NIX_DIRENV_LOG_PREFIX="nix-direnv: "
+
+_nix_direnv_info() {
+  log_status "${_NIX_DIRENV_LOG_PREFIX}$*"
+}
+
+_nix_direnv_warning() {
+  local msg=$*
+  local color_normal=""
+  local color_warning=""
+
+  if [[ -t 2 ]]; then
+    color_normal="\e[m"
+    color_warning="\e[33m"
+  fi
+
+  printf "%b" "$color_warning"
+  log_status "${_NIX_DIRENV_LOG_PREFIX}${msg}"
+  printf "%b" "$color_normal"
+}
+
+_nix_direnv_error() { log_error "${_NIX_DIRENV_LOG_PREFIX}$*"; }
+
+_nix_direnv_nix=""
+
+_nix() {
+  ${_nix_direnv_nix} --no-warn-dirty --extra-experimental-features "nix-command flakes" "$@"
+}
+
+_require_version() {
+  local cmd=$1 raw_version=$2 version=${2%%[^0-9.]*} required=$3
+  if ! printf "%s\n" "$required" "$version" | LC_ALL=C sort -c -V 2>/dev/null; then
+    _nix_direnv_error \
+      "minimum required $(basename "$cmd") version is $required (installed: $raw_version)"
+    return 1
+  fi
+}
+
+_require_cmd_version() {
+  local cmd=$1 required=$2 version
+  if ! has "$cmd"; then
+    _nix_direnv_error "command not found: $cmd"
+    return 1
+  fi
+  version=$($cmd --version)
+  [[ $version =~ ([0-9]+\.[0-9]+(\.[0-9]+)?) ]]
+  _require_version "$cmd" "${BASH_REMATCH[1]}" "$required"
+}
+
+_nix_direnv_preflight() {
+  if [[ -z $direnv ]]; then
+    # shellcheck disable=2016
+    _nix_direnv_error '$direnv environment variable was not defined. Was this script run inside direnv?'
+    return 1
+  fi
+
+  # check command min versions
+  if [[ -z ${NIX_DIRENV_SKIP_VERSION_CHECK:-} ]]; then
+    # bash check uses $BASH_VERSION with _require_version instead of
+    # _require_cmd_version because _require_cmd_version uses =~ operator which would be
+    # a syntax error on bash < 3
+    if ! _require_version bash "$BASH_VERSION" "$BASH_MIN_VERSION" ||
+      # direnv stdlib defines $direnv
+      ! _require_cmd_version "$direnv" "$DIRENV_MIN_VERSION"; then
+      return 1
+    fi
+  fi
+
+  if command -v nix >/dev/null 2>&1; then
+    _nix_direnv_nix=$(command -v nix)
+  elif [[ -n ${NIX_DIRENV_FALLBACK_NIX:-} ]]; then
+    _nix_direnv_nix="${NIX_DIRENV_FALLBACK_NIX}"
+  else
+    _nix_direnv_error "Could not find Nix binary, please add Nix to PATH or set NIX_DIRENV_FALLBACK_NIX"
+    return 1
+  fi
+
+  local layout_dir
+  layout_dir=$(direnv_layout_dir)
+
+  if [[ ! -d "$layout_dir/bin" ]]; then
+    mkdir -p "$layout_dir/bin"
+  fi
+  # N.B. This script relies on variable expansion in *this* shell.
+  # (i.e. The written out file will have the variables expanded)
+  # If the source path changes, the script becomes broken.
+  # Because direnv_layout_dir is user controlled,
+  # we can't assume to be able to reverse it to get the source dir
+  # So there's little to be done about this.
+  cat >"${layout_dir}/bin/nix-direnv-reload" <<-EOF
+#!/usr/bin/env bash
+set -e
+if [[ ! -d "$PWD" ]]; then
+  echo "Cannot find source directory; Did you move it?"
+  echo "(Looking for "$PWD")"
+  echo 'Cannot force reload with this script - use "direnv reload" manually and then try again'
+  exit 1
+fi
+
+# rebuild the cache forcefully
+_nix_direnv_force_reload=1 direnv exec "$PWD" true
+
+# Update the mtime for .envrc.
+# This will cause direnv to reload again - but without re-building.
+touch "$PWD/.envrc"
+
+# Also update the timestamp of whatever profile_rc we have.
+# This makes sure that we know we are up to date.
+touch -r "$PWD/.envrc" "${layout_dir}"/*.rc
+EOF
+
+  chmod +x "${layout_dir}/bin/nix-direnv-reload"
+
+  PATH_add "${layout_dir}/bin"
+}
+
+# Usage: nix_direnv_version <version_at_least>
+#
+# Checks that the nix-direnv version is at least as old as <version_at_least>.
+nix_direnv_version() {
+  _require_version nix-direnv $NIX_DIRENV_VERSION "$1"
+}
+
+_nix_export_or_unset() {
+  local key=$1 value=$2
+  if [[ $value == __UNSET__ ]]; then
+    unset "$key"
+  else
+    export "$key=$value"
+  fi
+}
+
+_nix_import_env() {
+  local profile_rc=$1
+
+  local -A values_to_restore=(
+    ["NIX_BUILD_TOP"]=${NIX_BUILD_TOP:-__UNSET__}
+    ["TMP"]=${TMP:-__UNSET__}
+    ["TMPDIR"]=${TMPDIR:-__UNSET__}
+    ["TEMP"]=${TEMP:-__UNSET__}
+    ["TEMPDIR"]=${TEMPDIR:-__UNSET__}
+    ["terminfo"]=${terminfo:-__UNSET__}
+  )
+  local old_xdg_data_dirs=${XDG_DATA_DIRS:-}
+
+  # On the first run in manual mode, the profile_rc does not exist.
+  if [[ ! -e $profile_rc ]]; then
+    return
+  fi
+
+  eval "$(<"$profile_rc")"
+  # `nix print-dev-env` will create a temporary directory and use it as TMPDIR
+  # We cannot rely on this directory being available at all times,
+  # as it may be garbage collected.
+  # Instead - just remove it immediately.
+  # Use recursive & force as it may not be empty.
+  if [[ -n ${NIX_BUILD_TOP+x} && $NIX_BUILD_TOP == */nix-shell.* && -d $NIX_BUILD_TOP ]]; then
+    rm -rf "$NIX_BUILD_TOP"
+  fi
+
+  for key in "${!values_to_restore[@]}"; do
+    _nix_export_or_unset "$key" "${values_to_restore[${key}]}"
+  done
+
+  local new_xdg_data_dirs=${XDG_DATA_DIRS:-}
+  export XDG_DATA_DIRS=
+  local IFS=:
+  for dir in $new_xdg_data_dirs${old_xdg_data_dirs:+:}$old_xdg_data_dirs; do
+    dir="${dir%/}" # remove trailing slashes
+    if [[ :$XDG_DATA_DIRS: == *:$dir:* ]]; then
+      continue # already present, skip
+    fi
+    XDG_DATA_DIRS="$XDG_DATA_DIRS${XDG_DATA_DIRS:+:}$dir"
+  done
+}
+
+_nix_add_gcroot() {
+  local storepath=$1
+  local symlink=$2
+  _nix build --out-link "$symlink" "$storepath"
+}
+
+_nix_clean_old_gcroots() {
+  local layout_dir=$1
+
+  rm -rf "$layout_dir/flake-inputs/"
+  rm -f "$layout_dir"/{nix,flake}-profile*
+}
+
+_nix_argsum_suffix() {
+  local out checksum
+  if [ -n "$1" ]; then
+
+    if has sha1sum; then
+      out=$(sha1sum <<<"$1")
+    elif has shasum; then
+      out=$(shasum <<<"$1")
+    else
+      # degrade gracefully both tools are not present
+      return
+    fi
+    read -r checksum _ <<<"$out"
+    echo "-$checksum"
+  fi
+}
+
+nix_direnv_watch_file() {
+  # shellcheck disable=2016
+  log_error '`nix_direnv_watch_file` is deprecated - use `watch_file`'
+  watch_file "$@"
+}
+
+_nix_direnv_watches() {
+  local -n _watches=$1
+  if [[ -z ${DIRENV_WATCHES-} ]]; then
+    return
+  fi
+  while IFS= read -r line; do
+    local regex='"[Pp]ath": "(.+)"$'
+    if [[ $line =~ $regex ]]; then
+      local path="${BASH_REMATCH[1]}"
+      if [[ $path == "${XDG_DATA_HOME:-${HOME:-/var/empty}/.local/share}/direnv/allow/"* ]]; then
+        continue
+      fi
+      # expand new lines and other json escapes
+      # shellcheck disable=2059
+      path=$(printf "$path")
+      _watches+=("$path")
+    fi
+  done < <($direnv show_dump "${DIRENV_WATCHES}")
+}
+
+: "${_nix_direnv_manual_reload:=0}"
+nix_direnv_manual_reload() {
+  _nix_direnv_manual_reload=1
+}
+
+: "${_nix_direnv_allow_fallback:=1}"
+nix_direnv_disallow_fallback() {
+  _nix_direnv_info "Fallback disallowed"
+  _nix_direnv_allow_fallback=0
+}
+
+_nix_direnv_warn_manual_reload() {
+  if [[ -e $1 ]]; then
+    _nix_direnv_warning 'cache is out of date. use "nix-direnv-reload" to reload'
+  else
+    _nix_direnv_warning 'cache does not exist. use "nix-direnv-reload" to create it'
+  fi
+}
+
+use_flake() {
+  if ! _nix_direnv_preflight; then
+    return 1
+  fi
+
+  flake_expr="${1:-.}"
+  flake_uri="${flake_expr%#*}"
+  flake_dir=${flake_uri#"path:"}
+
+  if [[ $flake_expr == -* ]]; then
+    local message="the first argument must be a flake expression"
+    if [[ -n ${2:-} ]]; then
+      _nix_direnv_error "$message"
+      return 1
+    else
+      _nix_direnv_error "$message. did you mean 'use flake . $1'?"
+      return 1
+    fi
+  fi
+
+  local files_to_watch
+  files_to_watch=("$HOME/.direnvrc" "$HOME/.config/direnv/direnvrc")
+
+  if [[ -d $flake_dir ]]; then
+    files_to_watch+=("$flake_dir/flake.nix" "$flake_dir/flake.lock" "$flake_dir/devshell.toml")
+  fi
+
+  watch_file "${files_to_watch[@]}"
+
+  local layout_dir profile
+  layout_dir=$(direnv_layout_dir)
+  profile="${layout_dir}/flake-profile$(_nix_argsum_suffix "$flake_expr")"
+  local profile_rc="${profile}.rc"
+  local flake_inputs="${layout_dir}/flake-inputs/"
+
+  local need_update=0
+  local watches
+  _nix_direnv_watches watches
+  local file=
+  for file in "${watches[@]}"; do
+    if [[ $file -nt $profile_rc ]]; then
+      need_update=1
+      break
+    fi
+  done
+
+  if [[ ! -e $profile ||
+    ! -e $profile_rc ||
+    $need_update -eq 1 ]] \
+    ; then
+    if [[ $_nix_direnv_manual_reload -eq 1 && -z ${_nix_direnv_force_reload-} ]]; then
+      _nix_direnv_warn_manual_reload "$profile_rc"
+
+    else
+      local tmp_profile_rc
+      local tmp_profile="${layout_dir}/flake-tmp-profile.$$"
+      if tmp_profile_rc=$(_nix print-dev-env --profile "$tmp_profile" "$@"); then
+        # If we've gotten here, the user's current devShell is valid and we should cache it
+        _nix_clean_old_gcroots "$layout_dir"
+
+        # We need to update our cache
+        echo "$tmp_profile_rc" >"$profile_rc"
+        _nix_add_gcroot "$tmp_profile" "$profile"
+        rm -f "$tmp_profile" "$tmp_profile"*
+
+        # also add garbage collection root for source
+        local flake_input_paths
+        mkdir -p "$flake_inputs"
+        flake_input_paths=$(_nix flake archive \
+          --json --no-write-lock-file \
+          -- "$flake_uri")
+
+        while [[ $flake_input_paths =~ /nix/store/[^\"]+ ]]; do
+          local store_path="${BASH_REMATCH[0]}"
+          _nix_add_gcroot "${store_path}" "${flake_inputs}/${store_path##*/}"
+          flake_input_paths="${flake_input_paths/${store_path}/}"
+        done
+
+        _nix_direnv_info "Renewed cache"
+      else
+        # The user's current flake failed to evaluate,
+        # but there is already a prior profile_rc,
+        # which is probably more useful than nothing.
+        # Fallback to use that (which means just leaving profile_rc alone!)
+        if [[ $_nix_direnv_allow_fallback -eq 1 ]]; then
+          _nix_direnv_warning "Evaluating current devShell failed. Falling back to previous environment!"
+          export NIX_DIRENV_DID_FALLBACK=1
+        else
+          return 1
+        fi
+      fi
+    fi
+  else
+    if [[ -e ${profile_rc} ]]; then
+      # Our cache is valid, use that
+      _nix_direnv_info "Using cached dev shell"
+    else
+      # We don't have a profile_rc to use!
+      _nix_direnv_error "use_flake failed - Is your flake's devShell working?"
+      return 1
+    fi
+  fi
+
+  _nix_import_env "$profile_rc"
+}
+
+use_nix() {
+  if ! _nix_direnv_preflight; then
+    return 1
+  fi
+
+  local layout_dir path version
+  layout_dir=$(direnv_layout_dir)
+  if path=$(realpath -e "$(_nix eval --impure --expr "<nixpkgs>" 2>/dev/null)"); then
+    if [[ -f "${path}/.version-suffix" ]]; then
+      version=$(<"${path}/.version-suffix")
+    elif [[ -f "${path}/.git/HEAD" ]]; then
+      local head
+      read -r head <"${path}/.git/HEAD"
+      local regex="ref: (.*)"
+      if [[ $head =~ $regex ]]; then
+        read -r version <"${path}/.git/${BASH_REMATCH[1]}"
+      else
+        version="$head"
+      fi
+    elif [[ -f "${path}/.version" && ${path} == "/nix/store/"* ]]; then
+      # borrow some bits from the store path
+      local version_prefix
+      read -r version_prefix < <(
+        cat "${path}/.version"
+        echo
+      )
+      version="${version_prefix}-${path:11:16}"
+    fi
+  fi
+
+  local profile
+  profile="${layout_dir}/nix-profile-${version:-unknown}$(_nix_argsum_suffix "$*")"
+  local profile_rc="${profile}.rc"
+
+  local in_packages=0
+  local attribute=
+  local packages=""
+  local extra_args=()
+
+  local nixfile=
+  if [[ -e "shell.nix" ]]; then
+    nixfile="./shell.nix"
+  elif [[ -e "default.nix" ]]; then
+    nixfile="./default.nix"
+  fi
+
+  while [[ $# -gt 0 ]]; do
+    i="$1"
+    shift
+
+    case $i in
+    -p | --packages)
+      in_packages=1
+      ;;
+    --command | --run | --exclude)
+      # These commands are unsupported
+      # ignore them
+      shift
+      ;;
+    --pure | -i | --keep)
+      # These commands are unsupported (but take no argument)
+      # ignore them
+      ;;
+    --include | -I)
+      extra_args+=("$i" "${1:-}")
+      shift
+      ;;
+    --attr | -A)
+      attribute="${1:-}"
+      shift
+      ;;
+    --option | -o | --arg | --argstr)
+      extra_args+=("$i" "${1:-}" "${2:-}")
+      shift
+      shift
+      ;;
+    -*)
+      # Other arguments are assumed to be of a single arg form
+      # (--foo=bar or -j4)
+      extra_args+=("$i")
+      ;;
+    *)
+      if [[ $in_packages -eq 1 ]]; then
+        packages+=" $i"
+      else
+        nixfile=$i
+      fi
+      ;;
+    esac
+  done
+
+  watch_file "$HOME/.direnvrc" "$HOME/.config/direnv/direnvrc" "shell.nix" "default.nix"
+
+  local need_update=0
+  local watches
+  _nix_direnv_watches watches
+  local file=
+  for file in "${watches[@]}"; do
+    if [[ $file -nt $profile_rc ]]; then
+      need_update=1
+      break
+    fi
+  done
+
+  if [[ ! -e $profile ||
+    ! -e $profile_rc ||
+    $need_update -eq 1 ]] \
+    ; then
+    if [[ $_nix_direnv_manual_reload -eq 1 && -z ${_nix_direnv_force_reload-} ]]; then
+      _nix_direnv_warn_manual_reload "$profile_rc"
+    else
+      local tmp_profile="${layout_dir}/nix-tmp-profile.$$"
+      local tmp_profile_rc
+      if [[ -n $packages ]]; then
+        extra_args+=("--expr" "with import <nixpkgs> {}; mkShell { buildInputs = [ $packages ]; }")
+      else
+        extra_args+=("--file" "$nixfile")
+        if [[ -n $attribute ]]; then
+          extra_args+=("$attribute")
+        fi
+      fi
+
+      # Some builtin nix tooling depends on this variable being set BEFORE their invocation to change their behavior
+      # (notably haskellPackages.developPackage returns an env if this is set)
+      # This allows us to more closely mimic nix-shell.
+      export IN_NIX_SHELL="impure"
+
+      if tmp_profile_rc=$(_nix \
+        print-dev-env \
+        --profile "$tmp_profile" \
+        --impure \
+        "${extra_args[@]}"); then
+        _nix_clean_old_gcroots "$layout_dir"
+
+        echo "$tmp_profile_rc" >"$profile_rc"
+        _nix_add_gcroot "$tmp_profile" "$profile"
+        rm -f "$tmp_profile" "$tmp_profile"*
+        _nix_direnv_info "Renewed cache"
+      else
+        if [[ $_nix_direnv_allow_fallback -eq 1 ]]; then
+          _nix_direnv_warning "Evaluating current nix shell failed. Falling back to previous environment!"
+          export NIX_DIRENV_DID_FALLBACK=1
+        else
+          unset IN_NIX_SHELL
+          return 1
+        fi
+      fi
+    fi
+  else
+    if [[ -e ${profile_rc} ]]; then
+      _nix_direnv_info "Using cached dev shell"
+    else
+      _nix_direnv_error "use_nix failed - Is your nix shell working?"
+      unset IN_NIX_SHELL
+      return 1
+    fi
+  fi
+
+  _nix_import_env "$profile_rc"
+
+}
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1760813311,
+        "narHash": "sha256-lbHQ7FXGzt6/IygWvJ1lCq+Txcut3xYYd6VIpF1ojkg=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "4e627ac2e1b8f1de7f5090064242de9a259dbbc8",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1759570798,
+        "narHash": "sha256-kbkzsUKYzKhuvMOuxt/aTwWU2mnrwoY964yN3Y4dE98=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "0d4f673a88f8405ae14484e6a1ea870e0ba4ca26",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixpkgs-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-parts": "flake-parts",
+        "nixpkgs": "nixpkgs",
+        "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "treefmt-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1760802554,
+        "narHash": "sha256-5YkOYOCF8/XNw89/ABKFB0c/P78U2EVuKRDGTql6+kA=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "296ebf0c3668ebceb3b0bfee55298f112b4b5754",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+{
+  description = "A faster, persistent implementation of `direnv`'s `use_nix`, to replace the built-in one.";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } (
+      { lib, ... }:
+      {
+        imports = [ ./treefmt.nix ];
+        systems = [
+          "aarch64-linux"
+          "x86_64-linux"
+
+          "x86_64-darwin"
+          "aarch64-darwin"
+        ];
+        perSystem =
+          {
+            config,
+            pkgs,
+            self',
+            ...
+          }:
+          let
+            nix-direnv = pkgs.callPackage ./default.nix { };
+            test_pkgs = pkgs.lib.callPackagesWith pkgs ./tests { inherit nix-direnv; };
+          in
+          {
+            packages = test_pkgs // {
+              inherit nix-direnv;
+              default = nix-direnv;
+            };
+
+            devShells.default = pkgs.callPackage ./shell.nix {
+              treefmt = config.treefmt.build.wrapper;
+            };
+
+            checks =
+              let
+                packages = lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages;
+                devShells = lib.mapAttrs' (n: lib.nameValuePair "devShell-${n}") self'.devShells;
+              in
+              packages // devShells;
+          };
+        flake = {
+          overlays.default = final: _prev: { nix-direnv = final.callPackage ./default.nix { }; };
+          templates.default = {
+            path = ./templates/flake;
+            description = "nix flake new -t github:nix-community/nix-direnv .";
+          };
+        };
+      }
+    );
+}
+</file>
+
+<file path="LICENSE">
+MIT License
+
+Copyright (c) 2019 Nix community projects
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+</file>
+
+<file path="pyproject.toml">
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+select = ["ALL"]
+ignore = [
+  # pydocstyle
+  "D",
+  # Missing type annotation for `self` in method
+  "ANN101",
+  # Trailing comma missing
+  "COM812",
+  # Unnecessary `dict` call (rewrite as a literal)
+  "C408",
+  # Boolean-typed positional argument in function definition
+  "FBT001",
+  # Logging statement uses f-string
+  "G004",
+  # disabled on ruff's recommendation as causes problems with the formatter
+  "ISC001",
+  # Use of `assert` detected
+  "S101",
+  # `subprocess` call: check for execution of untrusted input
+  "S603",
+
+  # FIXME? Maybe we should enable these?
+  "PLR0913", # Too many arguments in function definition (7 > 5)
+  "PLR2004", # Magic value used in comparison, consider replacing 4 with a constant variable
+  "FBT002",  # Boolean default positional argument in function definition
+]
+
+[tool.mypy]
+python_version = "3.10"
+warn_redundant_casts = true
+disallow_untyped_calls = true
+disallow_untyped_defs = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = "setuptools.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "pytest.*"
+ignore_missing_imports = true
+</file>
+
+<file path="README.md">
+# nix-direnv
+
+![Test](https://github.com/nix-community/nix-direnv/workflows/Test/badge.svg)
+
+A faster, persistent implementation of `direnv`'s `use_nix` and `use_flake`, to
+replace the built-in one.
+
+Prominent features:
+
+- significantly faster after the first run by caching the `nix-shell`
+  environment
+- prevents garbage collection of build dependencies by symlinking the resulting
+  shell derivation in the user's `gcroots` (Life is too short to lose your
+  project's build cache if you are on a flight with no internet connection)
+
+## Why not use `lorri` instead?
+
+Compared to [lorri](https://github.com/nix-community/lorri), nix-direnv is
+simpler (and requires no external daemon). Additionally, lorri can sometimes
+re-evaluate the entirety of nixpkgs on every change (leading to perpetual high
+CPU load).
+
+## Installation
+
+Requirements:
+
+- bash 4.4
+- nix 2.4 or newer
+- direnv 2.21.3 or newer
+
+> [!WARNING]\
+> We assume that [direnv](https://direnv.net/) is installed properly because
+> nix-direnv IS NOT a replacement for regular direnv _(only some of its
+> functionality)_.
+
+> [!NOTE]\
+> nix-direnv requires a modern Bash. MacOS ships with bash 3.2 from 2007. As a
+> work-around we suggest that macOS users install `direnv` via Nix or Homebrew.
+> There are different ways to install nix-direnv, pick your favourite:
+
+<details>
+  <summary> Via home-manager (Recommended)</summary>
+
+### Via home-manager
+
+Note that while the home-manager integration is recommended, some use cases
+require the use of features only present in some versions of nix-direnv. It is
+much harder to control the version of nix-direnv installed with this method. If
+you require such specific control, please use another method of installing
+nix-direnv.
+
+In `$HOME/.config/home-manager/home.nix` add
+
+```Nix
+{
+  # ...other config, other config...
+
+  programs = {
+    direnv = {
+      enable = true;
+      enableBashIntegration = true; # see note on other shells below
+      nix-direnv.enable = true;
+    };
+
+    bash.enable = true; # see note on other shells below
+  };
+}
+```
+
+Check the current
+[Home Manager Options](https://mipmip.github.io/home-manager-option-search/?query=direnv)
+for integration with shells other than Bash. Be sure to also allow
+`home-manager` to manage your shell with `programs.<your_shell>.enable = true`.
+
+</details>
+<details>
+  <summary>Direnv's source_url</summary>
+
+### Direnv source_url
+
+Put the following lines in your `.envrc`:
+
+```bash
+if ! has nix_direnv_version || ! nix_direnv_version 3.1.0; then
+  source_url "https://raw.githubusercontent.com/nix-community/nix-direnv/3.1.0/direnvrc" "sha256-yMJ2OVMzrFaDPn7q8nCBZFRYpL/f0RcHzhmw/i6btJM="
+fi
+```
+
+</details>
+
+<details>
+  <summary>Via system configuration on NixOS</summary>
+
+### Via system configuration on NixOS
+
+For NixOS 23.05+ all that's required is
+
+```Nix
+{
+  programs.direnv.enable = true;
+}
+```
+
+other available options are:
+
+```Nix
+{ pkgs, ... }: {
+  #set to default values
+  programs.direnv = {
+    package = pkgs.direnv;
+    silent = false;
+    loadInNixShell = true;
+    direnvrcExtra = "";
+    nix-direnv = {
+      enable = true;
+      package = pkgs.nix-direnv;
+    };
+  }
+```
+
+</details>
+
+<details>
+  <summary>With `nix profile`</summary>
+
+### With `nix profile`
+
+As **non-root** user do the following:
+
+```shell
+nix profile install nixpkgs#nix-direnv
+```
+
+Then add nix-direnv to `$HOME/.config/direnv/direnvrc`:
+
+```bash
+source $HOME/.nix-profile/share/nix-direnv/direnvrc
+```
+
+</details>
+
+<details>
+  <summary>From source</summary>
+
+### From source
+
+Clone the repository to some directory and then source the direnvrc from this
+repository in your own `~/.config/direnv/direnvrc`:
+
+```bash
+# put this in ~/.config/direnv/direnvrc
+source $HOME/nix-direnv/direnvrc
+```
+
+</details>
+
+## Usage example
+
+Either add `shell.nix` or a `default.nix` to the project directory:
+
+```nix
+# save this as shell.nix
+{ pkgs ? import <nixpkgs> {}}:
+
+pkgs.mkShell {
+  packages = [ pkgs.hello ];
+}
+```
+
+Then add the line `use nix` to your envrc:
+
+```shell
+echo "use nix" >> .envrc
+direnv allow
+```
+
+If you haven't used direnv before, make sure to
+[hook it into your shell](https://direnv.net/docs/hook.html) first.
+
+### Using a non-standard file name
+
+You may use a different file name than `shell.nix` or `default.nix` by passing
+the file name in `.envrc`, e.g.:
+
+```shell
+echo "use nix foo.nix" >> .envrc
+```
+
+## Flakes support
+
+nix-direnv also comes with an alternative `use_flake` implementation. The code
+is tested and does work but the upstream flake api is not finalized, so we
+cannot guarantee stability after a nix upgrade.
+
+Like `use_nix`, our `use_flake` will prevent garbage collection of downloaded
+packages, including flake inputs.
+
+### Creating a new flake-native project
+
+This repository ships with a
+[flake template](https://github.com/nix-community/nix-direnv/tree/master/templates/flake).
+which provides a basic flake with devShell integration and a basic `.envrc`.
+
+To make use of this template, you may issue the following command:
+
+```shell
+nix flake new -t github:nix-community/nix-direnv <desired output path>
+```
+
+### Integrating with a existing flake
+
+```shell
+echo "use flake" >> .envrc && direnv allow
+```
+
+The `use flake` line also takes an additional arbitrary flake parameter, so you
+can point at external flakes as follows:
+
+```bash
+use flake ~/myflakes#project
+```
+
+### Advanced usage
+
+#### use flake
+
+Under the covers, `use_flake` calls `nix print-dev-env`. The first argument to
+the `use_flake` function is the flake expression to use, and all other arguments
+are proxied along to the call to `print-dev-env`. You may make use of this fact
+for some more arcane invocations.
+
+For instance, if you have a flake that needs to be called impurely under some
+conditions, you may wish to pass `--impure` to the `print-dev-env` invocation so
+that the environment of the calling shell is passed in.
+
+You can do that as follows:
+
+```shell
+echo "use flake . --impure" > .envrc
+direnv allow
+```
+
+#### use nix
+
+Like `use flake`, `use nix` now uses `nix print-dev-env`. Due to historical
+reasons, the argument parsing emulates `nix shell`.
+
+This leads to some limitations in what we can reasonably parse.
+
+Currently, all single-word arguments and some well-known double arguments will
+be interpreted or passed along.
+
+#### Fine-grained behavior control
+
+##### Disabling devShell fallback
+
+By default, nix-direnv will reload a previously working devShell if it discovers
+that a new version does not evaluate. This can be disabled by calling
+`nix_direnv_disallow_fallback` in `.envrc`, like so:
+
+```shell
+nix_direnv_disallow_fallback
+use nix # or use flake
+```
+
+##### Manual reload of the nix environment
+
+To avoid delays and time consuming rebuilds at unexpected times, you can use
+nix-direnv in the "manual reload" mode. nix-direnv will then tell you when the
+nix environment is no longer up to date. You can then decide yourself when you
+want to reload the nix environment.
+
+To activate manual mode, use `nix_direnv_manual_reload` in your `.envrc` like
+this:
+
+```shell
+nix_direnv_manual_reload
+use nix # or use flake
+```
+
+To reload your nix environment, use the `nix-direnv-reload` command:
+
+```shell
+nix-direnv-reload
+```
+
+##### Known arguments
+
+- `-p`: Starts a list of packages to install; consumes all remaining arguments
+- `--include` / `-I`: Add the following path to the list of lookup locations for
+  `<...>` file names
+- `--attr` / `-A`: Specify the output attribute to utilize
+
+`--command`, `--run`, `--exclude`, `--pure`, `-i`, and `--keep` are explicitly
+ignored.
+
+All single word arguments (`-j4`, `--impure` etc) are passed to the underlying
+nix invocation.
+
+#### Tracked files
+
+As a convenience, `nix-direnv` adds common files to direnv's watched file list
+automatically.
+
+The list of additionally tracked files is as follows:
+
+- for `use nix`:
+  - `~/.direnvrc`
+  - `~/.config/direnv/direnvrc`
+  - `.envrc`,
+  - A single nix file. In order of preference:
+    - The file argument to `use nix`
+    - `default.nix` if it exists
+    - `shell.nix` if it exists
+
+- for `use flake`:
+  - `~/.direnvrc`
+  - `~/.config/direnv/direnvrc`
+  - `.envrc`
+  - `flake.nix`
+  - `flake.lock`
+  - `devshell.toml` if it exists
+
+Users are free to use direnv's builtin `watch_file` function to track additional
+files. `watch_file` must be invoked before either `use flake` or `use nix` to
+take effect.
+
+#### Environment Variables
+
+nix-direnv sets the following environment variables for user consumption. All
+other environment variables are either a product of the underlying nix
+invocation or are purely incidental and should not be relied upon.
+
+- `NIX_DIRENV_DID_FALLBACK`: Set when the current revision of your nix shell or
+  flake's devShell are invalid and nix-direnv has loaded the last known working
+  shell.
+
+nix-direnv also respects the following environment variables for configuration.
+
+- `NIX_DIRENV_FALLBACK_NIX`: Can be set to a fallback Nix binary location, to be
+  used when a compatible one isn't available in `PATH`. Defaults to
+  `config.nix.package` if installed via the NixOS module, otherwise needs to be
+  set manually. Leave unset or empty to fail immediately when a Nix
+  implementation can't be found on `PATH`.
+
+## General direnv tips
+
+- [Changing where direnv stores its cache][cache_location]
+- [Quickly setting up direnv in a new nix project][new_project]
+- [Disable the diff notice (requires direnv 2.34+)][hide_diff_notice]: Note that
+  this goes into direnv's TOML configuration!
+
+[cache_location]: https://github.com/direnv/direnv/wiki/Customizing-cache-location
+[new_project]: https://github.com/nix-community/nix-direnv/wiki/Shell-integration
+[hide_diff_notice]: https://direnv.net/man/direnv.toml.1.html#codehideenvdiffcode
+
+## Recommended integration
+
+- [direnv-instant](https://github.com/Mic92/direnv-instant) - A non-blocking
+  daemon that makes direnv truly instant by running it asynchronously in the
+  background. When combined with nix-direnv's caching, it provides immediate
+  shell access while environment loading happens in the background, with
+  automatic notifications when the environment is ready.
+
+## Other projects in the field
+
+- [lorri](https://github.com/nix-community/lorri)
+- [sorri](https://github.com/nmattia/sorri)
+- [nixify](https://github.com/kalbasit/nur-packages/blob/master/pkgs/nixify/envrc)
+- [lorelei](https://github.com/shajra/direnv-nix-lorelei)
+
+## Need commercial support or customization?
+
+For commercial support, please contact [Mic92](https://github.com/Mic92/) at
+joerg@thalheim.io or reach out to [Numtide](https://numtide.com/contact/).
+</file>
+
+<file path="shell.nix">
+{
+  pkgs ? import <nixpkgs> { },
+  treefmt ? null,
+  nix-direnv ? (pkgs.callPackage ./default.nix { }),
+  test_pkgs ? (pkgs.lib.callPackagesWith pkgs ./tests { inherit nix-direnv; }),
+}:
+let
+  inherit (pkgs) lib;
+in
+pkgs.mkShell {
+  DIRENV_STDLIB = "${test_pkgs.direnv-stdlib}";
+  BATS_LIB_PATH = lib.strings.makeSearchPath "" (
+    with test_pkgs;
+    [
+      bats-support
+      bats-assert
+    ]
+  );
+  packages =
+    (builtins.attrValues {
+      inherit (pkgs)
+        bats
+        direnv
+        shellcheck
+        ;
+    })
+    ++ (builtins.attrValues (lib.attrsets.filterAttrs (name: _val: name != "direnv-stdlib") test_pkgs))
+    ++ lib.optionals (treefmt != null) [ treefmt ];
+}
+</file>
+
+<file path="treefmt.nix">
+{ inputs, ... }:
+{
+  imports = [ inputs.treefmt-nix.flakeModule ];
+
+  perSystem =
+    { pkgs, ... }:
+    {
+      treefmt = {
+        # Used to find the project root
+        projectRootFile = ".git/config";
+
+        programs = {
+          deadnix.enable = true;
+          deno.enable = true;
+          nixfmt.enable = true;
+          nixfmt.package = pkgs.nixfmt-rfc-style;
+          shellcheck.enable = true;
+          shfmt.enable = true;
+          statix.enable = true;
+          yamlfmt.enable = true;
+        };
+
+        settings.formatter = {
+          shellcheck.includes = [
+            "direnvrc"
+            "tests/*.bash"
+            "tests/*.bats"
+          ];
+          shfmt.includes = [
+            "direnvrc"
+            "tests/*.bash"
+            "tests/*.bats"
+          ];
+        };
+      };
+    };
+}
+</file>
+
+</files>

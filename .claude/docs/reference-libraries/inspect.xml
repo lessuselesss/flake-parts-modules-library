@@ -1,0 +1,885 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    ci.yml
+    flakehub-publish-rolling.yml
+corpus/
+  DeterminateSystems/
+    fh/
+      =0.1.12/
+        excluding.expect
+        including.expect
+    flake-checker/
+      =0.1.19/
+        excluding.expect
+        including.expect
+.gitignore
+flake.nix
+README.md
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/ci.yml">
+name: "Test the inspector against a corpus"
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+jobs:
+  flakehub-publish:
+    runs-on: "ubuntu-latest"
+    permissions:
+      id-token: "write"
+      contents: "read"
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "DeterminateSystems/nix-installer-action@main"
+      - uses: "DeterminateSystems/magic-nix-cache-action@main"
+      - name: Ensure no flake.lock is committed
+        run: |
+          if [ -f flake.lock ]; then
+            echo "flake.lock found, failing the workflow"
+            exit 1
+          fi
+      - name: Check formatting
+        if: success() || failure()
+        run: |
+          nix run nixpkgs#nixpkgs-fmt -- --check .
+      - name: Ensure evaluating DeterminateSystems/flake-checker/=0.1.19 without output paths produces the right result
+        if: success() || failure()
+        run: |
+          nix eval --json \
+            --override-input flake https://flakehub.com/f/DeterminateSystems/flake-checker/=0.1.19 \
+            --no-write-lock-file '.#contents.excludingOutputPaths' \
+            | nix run nixpkgs\#gron > corpus/DeterminateSystems/flake-checker/=0.1.19/excluding.output
+          diff corpus/DeterminateSystems/flake-checker/=0.1.19/excluding.expect corpus/DeterminateSystems/flake-checker/=0.1.19/excluding.output
+
+      - name: Ensure evaluating DeterminateSystems/fh/=0.1.12 without output paths produces the right result
+        if: success() || failure()
+        run: |
+          nix eval --json \
+            --override-input flake https://flakehub.com/f/DeterminateSystems/fh/=0.1.12 \
+            --no-write-lock-file '.#contents.excludingOutputPaths' \
+            | nix run nixpkgs\#gron > corpus/DeterminateSystems/fh/=0.1.12/excluding.output
+          diff corpus/DeterminateSystems/fh/=0.1.12/excluding.expect corpus/DeterminateSystems/fh/=0.1.12/excluding.output
+
+      - name: Ensure evaluating DeterminateSystems/fh/=0.1.12 with output paths produces the right result
+        if: success() || failure()
+        run: |
+          nix eval --json \
+              --override-input flake https://flakehub.com/f/DeterminateSystems/fh/=0.1.12 \
+              --no-write-lock-file '.#contents.includingOutputPaths' \
+              | nix run nixpkgs\#gron > corpus/DeterminateSystems/fh/=0.1.12/including.output
+          diff corpus/DeterminateSystems/fh/=0.1.12/including.expect corpus/DeterminateSystems/fh/=0.1.12/including.output
+</file>
+
+<file path=".github/workflows/flakehub-publish-rolling.yml">
+name: "Publish every Git push to main to FlakeHub"
+on:
+  push:
+    branches:
+      - "main"
+jobs:
+  flakehub-publish:
+    runs-on: "ubuntu-latest"
+    permissions:
+      id-token: "write"
+      contents: "read"
+    steps:
+      - uses: "actions/checkout@v4"
+      - uses: "DeterminateSystems/nix-installer-action@main"
+      - uses: "DeterminateSystems/flakehub-push@main"
+        with:
+          name: "DeterminateSystems/inspect"
+          rolling: true
+          visibility: "public"
+</file>
+
+<file path="corpus/DeterminateSystems/fh/=0.1.12/excluding.expect">
+json = {};
+json.docs = {};
+json.docs.devShells = "The `devShells` flake output contains derivations that provide a development environment for `nix develop`.\n";
+json.docs.overlays = "The `overlays` flake output defines [\"overlays\"](https://nixos.org/manual/nixpkgs/stable/#chap-overlays) that can be plugged into Nixpkgs.\nOverlays add additional packages or modify or replace existing packages.\n";
+json.docs.packages = "The `packages` flake output contains packages that can be added to a shell using `nix shell`.\n";
+json.inventory = {};
+json.inventory.devShells = {};
+json.inventory.devShells.children = {};
+json.inventory.devShells.children["aarch64-darwin"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["aarch64-linux"] = {};
+json.inventory.devShells.children["aarch64-linux"].children = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"] = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.devShells.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-linux"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-darwin"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-linux"] = {};
+json.inventory.devShells.children["x86_64-linux"].children = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"] = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.devShells.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-linux"].children["default"].what = "development environment";
+json.inventory.overlays = {};
+json.inventory.overlays.children = {};
+json.inventory.overlays.children["default"] = {};
+json.inventory.overlays.children["default"].forSystems = null;
+json.inventory.overlays.children["default"].shortDescription = null;
+json.inventory.overlays.children["default"].what = "Nixpkgs overlay";
+json.inventory.packages = {};
+json.inventory.packages.children = {};
+json.inventory.packages.children["aarch64-darwin"] = {};
+json.inventory.packages.children["aarch64-darwin"].children = {};
+json.inventory.packages.children["aarch64-darwin"].children.fh = {};
+json.inventory.packages.children["aarch64-darwin"].children.fh.forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children.fh.forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children.fh.shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children.fh.what = "package";
+json.inventory.packages.children["aarch64-darwin"].children["default"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-linux"] = {};
+json.inventory.packages.children["aarch64-linux"].children = {};
+json.inventory.packages.children["aarch64-linux"].children.fh = {};
+json.inventory.packages.children["aarch64-linux"].children.fh.forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children.fh.forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children.fh.shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children.fh.what = "package";
+json.inventory.packages.children["aarch64-linux"].children["default"] = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-darwin"] = {};
+json.inventory.packages.children["x86_64-darwin"].children = {};
+json.inventory.packages.children["x86_64-darwin"].children.fh = {};
+json.inventory.packages.children["x86_64-darwin"].children.fh.forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children.fh.forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children.fh.shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children.fh.what = "package";
+json.inventory.packages.children["x86_64-darwin"].children["default"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-linux"] = {};
+json.inventory.packages.children["x86_64-linux"].children = {};
+json.inventory.packages.children["x86_64-linux"].children.fh = {};
+json.inventory.packages.children["x86_64-linux"].children.fh.forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children.fh.forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children.fh.shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children.fh.what = "package";
+json.inventory.packages.children["x86_64-linux"].children["default"] = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["default"].what = "package";
+json.version = 1;
+</file>
+
+<file path="corpus/DeterminateSystems/fh/=0.1.12/including.expect">
+json = {};
+json.docs = {};
+json.docs.devShells = "The `devShells` flake output contains derivations that provide a development environment for `nix develop`.\n";
+json.docs.overlays = "The `overlays` flake output defines [\"overlays\"](https://nixos.org/manual/nixpkgs/stable/#chap-overlays) that can be plugged into Nixpkgs.\nOverlays add additional packages or modify or replace existing packages.\n";
+json.docs.packages = "The `packages` flake output contains packages that can be added to a shell using `nix shell`.\n";
+json.inventory = {};
+json.inventory.devShells = {};
+json.inventory.devShells.children = {};
+json.inventory.devShells.children["aarch64-darwin"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].derivation = "/nix/store/jm4yhcbad5wkbl33rjvxrz8nshdkpdrq-dev.drv";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].outputs = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].outputs.out = "/nix/store/lx2bak7nxy1wclzk30iysfd15yln9mza-dev";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["aarch64-linux"] = {};
+json.inventory.devShells.children["aarch64-linux"].children = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"] = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].derivation = "/nix/store/k10c2zwzqg3c6f7iw05nfyh9xbg346fj-dev.drv";
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.devShells.children["aarch64-linux"].children["default"].outputs = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].outputs.out = "/nix/store/fr6kpjjfp4z96l9w3b8a89i55qy320b9-dev";
+json.inventory.devShells.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-linux"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-darwin"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].derivation = "/nix/store/3g8q65gkdfxalbqvg6xnrqr1paaqkzya-dev.drv";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].outputs = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].outputs.out = "/nix/store/1isd6idp3f0ynv3w60r7a0lfs6al4d2j-dev";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-linux"] = {};
+json.inventory.devShells.children["x86_64-linux"].children = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"] = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].derivation = "/nix/store/6k28sdhx3vwhfcn6vkxq5zjwmj07p2g4-dev.drv";
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.devShells.children["x86_64-linux"].children["default"].outputs = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].outputs.out = "/nix/store/9qqgrvvwl1a4y22idkrxnrzr533qigd5-dev";
+json.inventory.devShells.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-linux"].children["default"].what = "development environment";
+json.inventory.overlays = {};
+json.inventory.overlays.children = {};
+json.inventory.overlays.children["default"] = {};
+json.inventory.overlays.children["default"].derivation = null;
+json.inventory.overlays.children["default"].forSystems = null;
+json.inventory.overlays.children["default"].outputs = null;
+json.inventory.overlays.children["default"].shortDescription = null;
+json.inventory.overlays.children["default"].what = "Nixpkgs overlay";
+json.inventory.packages = {};
+json.inventory.packages.children = {};
+json.inventory.packages.children["aarch64-darwin"] = {};
+json.inventory.packages.children["aarch64-darwin"].children = {};
+json.inventory.packages.children["aarch64-darwin"].children.fh = {};
+json.inventory.packages.children["aarch64-darwin"].children.fh.derivation = "/nix/store/ab38ngzsf9xkhbfwj052fysdn69xzh3k-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["aarch64-darwin"].children.fh.forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children.fh.forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children.fh.outputs = {};
+json.inventory.packages.children["aarch64-darwin"].children.fh.outputs.out = "/nix/store/wpx4jd2h6sm4wq8gbcn1hppfkfp6alxp-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["aarch64-darwin"].children.fh.shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children.fh.what = "package";
+json.inventory.packages.children["aarch64-darwin"].children["default"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].derivation = "/nix/store/ab38ngzsf9xkhbfwj052fysdn69xzh3k-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["default"].outputs = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].outputs.out = "/nix/store/wpx4jd2h6sm4wq8gbcn1hppfkfp6alxp-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-linux"] = {};
+json.inventory.packages.children["aarch64-linux"].children = {};
+json.inventory.packages.children["aarch64-linux"].children.fh = {};
+json.inventory.packages.children["aarch64-linux"].children.fh.derivation = "/nix/store/v2v0k0lqap0gbg41nd09f2xsy9wgis44-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["aarch64-linux"].children.fh.forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children.fh.forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children.fh.outputs = {};
+json.inventory.packages.children["aarch64-linux"].children.fh.outputs.out = "/nix/store/505xdcyl2p94f2zqh6zss9k5hpdp0iqg-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["aarch64-linux"].children.fh.shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children.fh.what = "package";
+json.inventory.packages.children["aarch64-linux"].children["default"] = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].derivation = "/nix/store/v2v0k0lqap0gbg41nd09f2xsy9wgis44-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["default"].outputs = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].outputs.out = "/nix/store/505xdcyl2p94f2zqh6zss9k5hpdp0iqg-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-darwin"] = {};
+json.inventory.packages.children["x86_64-darwin"].children = {};
+json.inventory.packages.children["x86_64-darwin"].children.fh = {};
+json.inventory.packages.children["x86_64-darwin"].children.fh.derivation = "/nix/store/337lapvy7ap54fdl4myc5v33f1yym13v-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["x86_64-darwin"].children.fh.forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children.fh.forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children.fh.outputs = {};
+json.inventory.packages.children["x86_64-darwin"].children.fh.outputs.out = "/nix/store/1c7d5ahs8yh5hj9mlcll157l64y2if67-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["x86_64-darwin"].children.fh.shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children.fh.what = "package";
+json.inventory.packages.children["x86_64-darwin"].children["default"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].derivation = "/nix/store/337lapvy7ap54fdl4myc5v33f1yym13v-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["default"].outputs = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].outputs.out = "/nix/store/1c7d5ahs8yh5hj9mlcll157l64y2if67-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-linux"] = {};
+json.inventory.packages.children["x86_64-linux"].children = {};
+json.inventory.packages.children["x86_64-linux"].children.fh = {};
+json.inventory.packages.children["x86_64-linux"].children.fh.derivation = "/nix/store/asd6wf6zq2sl1xl0gw2vq8s6394lspqg-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["x86_64-linux"].children.fh.forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children.fh.forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children.fh.outputs = {};
+json.inventory.packages.children["x86_64-linux"].children.fh.outputs.out = "/nix/store/s1xj006crvv6hm5kwq0hcyr2q2h21bdy-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["x86_64-linux"].children.fh.shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children.fh.what = "package";
+json.inventory.packages.children["x86_64-linux"].children["default"] = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].derivation = "/nix/store/asd6wf6zq2sl1xl0gw2vq8s6394lspqg-fh-20240616-5b7e079-0.1.12.drv";
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["default"].outputs = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].outputs.out = "/nix/store/s1xj006crvv6hm5kwq0hcyr2q2h21bdy-fh-20240616-5b7e079-0.1.12";
+json.inventory.packages.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["default"].what = "package";
+json.version = 1;
+</file>
+
+<file path="corpus/DeterminateSystems/flake-checker/=0.1.19/excluding.expect">
+json = {};
+json.docs = {};
+json.docs.devShells = "The `devShells` flake output contains derivations that provide a development environment for `nix develop`.\n";
+json.docs.packages = "The `packages` flake output contains packages that can be added to a shell using `nix shell`.\n";
+json.inventory = {};
+json.inventory.devShells = {};
+json.inventory.devShells.children = {};
+json.inventory.devShells.children["aarch64-darwin"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["aarch64-linux"] = {};
+json.inventory.devShells.children["aarch64-linux"].children = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"] = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.devShells.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-linux"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-darwin"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-linux"] = {};
+json.inventory.devShells.children["x86_64-linux"].children = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"] = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.devShells.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-linux"].children["default"].what = "development environment";
+json.inventory.packages = {};
+json.inventory.packages.children = {};
+json.inventory.packages.children["aarch64-darwin"] = {};
+json.inventory.packages.children["aarch64-darwin"].children = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].what = "package";
+json.inventory.packages.children["aarch64-linux"] = {};
+json.inventory.packages.children["aarch64-linux"].children = {};
+json.inventory.packages.children["aarch64-linux"].children["default"] = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"] = {};
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].what = "package";
+json.inventory.packages.children["x86_64-darwin"] = {};
+json.inventory.packages.children["x86_64-darwin"].children = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].what = "package";
+json.inventory.packages.children["x86_64-linux"] = {};
+json.inventory.packages.children["x86_64-linux"].children = {};
+json.inventory.packages.children["x86_64-linux"].children["default"] = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"] = {};
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].what = "package";
+json.version = 1;
+</file>
+
+<file path="corpus/DeterminateSystems/flake-checker/=0.1.19/including.expect">
+json = {};
+json.docs = {};
+json.docs.devShells = "The `devShells` flake output contains derivations that provide a development environment for `nix develop`.\n";
+json.docs.packages = "The `packages` flake output contains packages that can be added to a shell using `nix shell`.\n";
+json.inventory = {};
+json.inventory.devShells = {};
+json.inventory.devShells.children = {};
+json.inventory.devShells.children["aarch64-darwin"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"] = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].derivation = "/nix/store/r1s52jrjvkf21nz0h6qq193s2lcmaj4y-nix-shell.drv";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].outputs = {};
+json.inventory.devShells.children["aarch64-darwin"].children["default"].outputs.out = "/nix/store/bgk3nzjfgl4vz9h36lkmwsrb9by5xswk-nix-shell";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["aarch64-linux"] = {};
+json.inventory.devShells.children["aarch64-linux"].children = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"] = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].derivation = "/nix/store/z9z3pkqj3bsj5md1axpzxysq4vjpl9cb-nix-shell.drv";
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.devShells.children["aarch64-linux"].children["default"].outputs = {};
+json.inventory.devShells.children["aarch64-linux"].children["default"].outputs.out = "/nix/store/br6gmnx4lj6cyrq73rkcd7ddmz5vr8ky-nix-shell";
+json.inventory.devShells.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["aarch64-linux"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-darwin"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"] = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].derivation = "/nix/store/49cdfd3zalqqmqk919ycssjc31afysyj-nix-shell.drv";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].outputs = {};
+json.inventory.devShells.children["x86_64-darwin"].children["default"].outputs.out = "/nix/store/d2di82hazyzi4npqp8ipsxh34q3nlvrl-nix-shell";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-darwin"].children["default"].what = "development environment";
+json.inventory.devShells.children["x86_64-linux"] = {};
+json.inventory.devShells.children["x86_64-linux"].children = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"] = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].derivation = "/nix/store/wb0pkvljf5bhb4gaizbpf1ydv2x6v1k3-nix-shell.drv";
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.devShells.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.devShells.children["x86_64-linux"].children["default"].outputs = {};
+json.inventory.devShells.children["x86_64-linux"].children["default"].outputs.out = "/nix/store/cnayfmlncz7hs86ivj7i131ji09w0f5q-nix-shell";
+json.inventory.devShells.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.devShells.children["x86_64-linux"].children["default"].what = "development environment";
+json.inventory.packages = {};
+json.inventory.packages.children = {};
+json.inventory.packages.children["aarch64-darwin"] = {};
+json.inventory.packages.children["aarch64-darwin"].children = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].derivation = "/nix/store/yp33lzqj5afimpavsvqb0lf2lx3r09fm-flake-checker-0.1.19.drv";
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["default"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["default"].outputs = {};
+json.inventory.packages.children["aarch64-darwin"].children["default"].outputs.out = "/nix/store/c2vymjb7vn9wx73ahfp3gfd5ghdpy6k4-flake-checker-0.1.19";
+json.inventory.packages.children["aarch64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"] = {};
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].derivation = "/nix/store/yp33lzqj5afimpavsvqb0lf2lx3r09fm-flake-checker-0.1.19.drv";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].forSystems[0] = "aarch64-darwin";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].outputs = {};
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].outputs.out = "/nix/store/c2vymjb7vn9wx73ahfp3gfd5ghdpy6k4-flake-checker-0.1.19";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["aarch64-darwin"].children["flake-checker"].what = "package";
+json.inventory.packages.children["aarch64-linux"] = {};
+json.inventory.packages.children["aarch64-linux"].children = {};
+json.inventory.packages.children["aarch64-linux"].children["default"] = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].derivation = "/nix/store/mysx5j1ni5jzh0yhfbfawhjixnylsv08-flake-checker-0.1.19.drv";
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["default"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["default"].outputs = {};
+json.inventory.packages.children["aarch64-linux"].children["default"].outputs.out = "/nix/store/spdl41dxprlcjg8mg5ynn19ixz32023v-flake-checker-0.1.19";
+json.inventory.packages.children["aarch64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["default"].what = "package";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"] = {};
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].derivation = "/nix/store/mysx5j1ni5jzh0yhfbfawhjixnylsv08-flake-checker-0.1.19.drv";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].forSystems[0] = "aarch64-linux";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].outputs = {};
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].outputs.out = "/nix/store/spdl41dxprlcjg8mg5ynn19ixz32023v-flake-checker-0.1.19";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["aarch64-linux"].children["flake-checker"].what = "package";
+json.inventory.packages.children["x86_64-darwin"] = {};
+json.inventory.packages.children["x86_64-darwin"].children = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].derivation = "/nix/store/9jd346pkwq8pnz9zcq8gazskgqk6nq6v-flake-checker-0.1.19.drv";
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["default"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["default"].outputs = {};
+json.inventory.packages.children["x86_64-darwin"].children["default"].outputs.out = "/nix/store/7gd7ap7kjg8dr8cz73wnlaxc7907q6hd-flake-checker-0.1.19";
+json.inventory.packages.children["x86_64-darwin"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"] = {};
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].derivation = "/nix/store/9jd346pkwq8pnz9zcq8gazskgqk6nq6v-flake-checker-0.1.19.drv";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].forSystems[0] = "x86_64-darwin";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].outputs = {};
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].outputs.out = "/nix/store/7gd7ap7kjg8dr8cz73wnlaxc7907q6hd-flake-checker-0.1.19";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["x86_64-darwin"].children["flake-checker"].what = "package";
+json.inventory.packages.children["x86_64-linux"] = {};
+json.inventory.packages.children["x86_64-linux"].children = {};
+json.inventory.packages.children["x86_64-linux"].children["default"] = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].derivation = "/nix/store/kcfz0pihn6bhc5bqpdqzllr7kp8ck5cz-flake-checker-0.1.19.drv";
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["default"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["default"].outputs = {};
+json.inventory.packages.children["x86_64-linux"].children["default"].outputs.out = "/nix/store/7bz6d7npj670dclqgc60mr5dg32p8w0b-flake-checker-0.1.19";
+json.inventory.packages.children["x86_64-linux"].children["default"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["default"].what = "package";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"] = {};
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].derivation = "/nix/store/kcfz0pihn6bhc5bqpdqzllr7kp8ck5cz-flake-checker-0.1.19.drv";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].forSystems = [];
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].forSystems[0] = "x86_64-linux";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].outputs = {};
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].outputs.out = "/nix/store/7bz6d7npj670dclqgc60mr5dg32p8w0b-flake-checker-0.1.19";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].shortDescription = "";
+json.inventory.packages.children["x86_64-linux"].children["flake-checker"].what = "package";
+json.version = 1;
+</file>
+
+<file path=".gitignore">
+corpus/*/*/*/*.output
+</file>
+
+<file path="flake.nix">
+{
+  inputs.flake.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/*";
+  outputs = inputs:
+    let
+      getFlakeOutputs = flake: includeOutputPaths:
+        let
+
+          # Helper functions.
+
+          mapAttrsToList = f: attrs: map (name: f name attrs.${name}) (builtins.attrNames attrs);
+
+          try = e: default:
+            let res = builtins.tryEval e;
+            in if res.success then res.value else default;
+
+          mkChildren = children: { inherit children; };
+
+          flakeSchemasFlakePinned = "https://api.flakehub.com/f/pinned/DeterminateSystems/flake-schemas/0.1.4/0190e653-dd76-70bd-ba6e-a3f5eaf3d415/source.tar.gz?narHash=sha256-efoDF3VaZHpcwFd2Y1axGLqNX/ou9kDL7z9mWNqzv9w%3D";
+        in
+
+        rec {
+
+          allSchemas = (flake.outputs.schemas or defaultSchemas) // schemaOverrides;
+
+          # FIXME: make this configurable
+          defaultSchemas = (builtins.getFlake flakeSchemasFlakePinned).schemas;
+
+          # Ignore legacyPackages for now, since it's very big and throws uncatchable errors.
+          schemaOverrides.legacyPackages = {
+            version = 1;
+            doc = ''
+              The `legacyPackages` flake output is similar to `packages`, but it can be nested (i.e. contain attribute sets that contain more packages).
+              Since enumerating the packages in nested attribute sets is inefficient, `legacyPackages` should be avoided in favor of `packages`.
+
+              Note: the contents of `legacyPackages` are not shown in FlakeHub.
+            '';
+            inventory = output: mkChildren { };
+          };
+
+          schemas =
+            builtins.listToAttrs (builtins.concatLists (mapAttrsToList
+              (outputName: output:
+                if allSchemas ? ${outputName} then
+                  [{ name = outputName; value = allSchemas.${outputName}; }]
+                else
+                  [ ])
+              flake.outputs));
+
+          docs =
+            builtins.mapAttrs (outputName: schema: schema.doc or "<no docs>") schemas;
+
+          uncheckedOutputs =
+            builtins.filter (outputName: ! schemas ? ${outputName}) (builtins.attrNames flake.outputs);
+
+          inventoryFor = filterFun:
+            builtins.mapAttrs
+              (outputName: schema:
+                let
+                  doFilter = attrs:
+                    if filterFun attrs
+                    then
+                      if attrs ? children
+                      then
+                        mkChildren (builtins.mapAttrs (childName: child: doFilter child) attrs.children)
+                      else
+                        {
+                          forSystems = attrs.forSystems or null;
+                          shortDescription = attrs.shortDescription or null;
+                          what = attrs.what or null;
+                          #evalChecks = attrs.evalChecks or {};
+                        } // (
+                          if includeOutputPaths then
+                            {
+                              derivation =
+                                if attrs ? derivation
+                                then builtins.unsafeDiscardStringContext attrs.derivation.drvPath
+                                else null;
+                              outputs =
+                                if attrs ? derivation
+                                then
+                                  builtins.listToAttrs
+                                    (
+                                      builtins.map
+                                        (outputName:
+                                          {
+                                            name = outputName;
+                                            value = attrs.derivation.${outputName}.outPath;
+                                          }
+                                        )
+                                        attrs.derivation.outputs
+                                    )
+                                else
+                                  null;
+                            }
+                          else
+                            { }
+                        )
+                    else
+                      { };
+                in
+                doFilter ((schema.inventory or (output: { })) flake.outputs.${outputName})
+              )
+              schemas;
+
+          inventoryForSystem = system: inventoryFor (itemSet:
+            !itemSet ? forSystems
+            || builtins.any (x: x == system) itemSet.forSystems);
+
+          inventory = inventoryFor (x: true);
+
+          contents = {
+            version = 1;
+            inherit docs;
+            inherit inventory;
+          };
+
+        };
+    in
+    {
+      contents.includingOutputPaths =
+        (getFlakeOutputs inputs.flake true).contents;
+      contents.excludingOutputPaths =
+        (getFlakeOutputs inputs.flake false).contents;
+
+
+      schemas.contents = {
+        version = 1;
+        doc = ''
+          The `contents` flake output exposes the discovered outputs of a flake, using flake schemas.
+          See: https://determinate.systems/posts/flake-schemas/
+        '';
+        inventory = _output:
+          {
+            children = {
+              includingOutputPaths = {
+                shortDescription = "Discovered flake outputs which include metadata about derivations, outputs, and derivation output paths.";
+              };
+              excludingOutputPaths = {
+                shortDescription = "Discovered flake outputs which evaluates more quickly because it doesn't include metadata about derivations, outputs, and derivation output paths.";
+              };
+            };
+          };
+      };
+    };
+}
+</file>
+
+<file path="README.md">
+# Inspect a flake's outputs using flake schemas
+
+From the Determinate Systems blog post about [flake schemas](https://determinate.systems/posts/flake-schemas/):
+
+> While there are a number of “well-known” flake output types that are recognized by tools like the nix CLI—nix develop, for example, operates on the devShells output—nothing prevents you from defining your own flake output types.
+>
+> Unfortunately, such “non-standard” flake output types have a big problem: tools like nix flake show and nix flake check don’t know anything about them, so they can’t display or check anything about those outputs.
+
+## Examples
+
+Get a flake's output structure, without derivation and store path data.
+Excluding derivation and store path data means much less Nix evaluation, and a faster result:
+
+```bash
+nix eval --json \
+    --override-input flake https://flakehub.com/f/DeterminateSystems/magic-nix-cache/0.1.341 \
+    --no-write-lock-file 'https://flakehub.com/f/DeterminateSystems/inspect/*#contents.excludingOutputPaths' \
+    | nix run nixpkgs#jq -- .
+
+```
+
+Get a flake's output structure, **with** derivation and store path data.
+Collecting derivation and store path data means a more extensive Nix evaluation:
+
+```bash
+nix eval --json \
+    --override-input flake https://flakehub.com/f/DeterminateSystems/magic-nix-cache/0.1.341 \
+    --no-write-lock-file 'https://flakehub.com/f/DeterminateSystems/inspect/*#contents.includingOutputPaths' \
+    | nix run nixpkgs#jq -- .
+
+```
+
+## Example Output
+
+The data below is representative of the general structure.
+It incudes output paths and derivations, which would not be present in the output in the `contents.excludingOutputPaths` evaluation.
+
+```json
+{
+  "docs": {
+    "devShells": "The `devShells` flake output contains derivations that provide a build environment for `nix develop`.\n",
+    "packages": "The `packages` flake output contains packages that can be added to a shell using `nix shell`.\n"
+  },
+  "inventory": {
+    "devShells": {
+      "children": {
+        "aarch64-darwin": {
+          "children": {
+            "default": {
+              "derivation": "/nix/store/lzfbsl05jw3ixbppm11nmfd4xzj81qhs-nix-shell.drv",
+              "forSystems": ["aarch64-darwin"],
+              "outputs": {
+                "out": "/nix/store/bq48b9naj2ihcwvc8vw6i98pj533qqbh-nix-shell"
+              },
+              "shortDescription": "",
+              "what": "development environment"
+            }
+          }
+        },
+        "aarch64-linux": {
+          "children": {
+            "default": {
+              "derivation": "/nix/store/d157gs8aqf2dizpk04wacbvwrzax23dq-nix-shell.drv",
+              "forSystems": ["aarch64-linux"],
+              "outputs": {
+                "out": "/nix/store/s05laifrbik2xs4ri7351hzld857garz-nix-shell"
+              },
+              "shortDescription": "",
+              "what": "development environment"
+            }
+          }
+        }
+      }
+    },
+    "packages": {
+      "children": {
+        "aarch64-darwin": {
+          "children": {
+            "default": {
+              "derivation": "/nix/store/z593dppy4xjmbkkjasmy92blgzgvnapy-magic-nix-cache-0.2.0.drv",
+              "forSystems": ["aarch64-darwin"],
+              "outputs": {
+                "out": "/nix/store/8lsqcz8vpx0s7mgcj33asrz0f99sr9ag-magic-nix-cache-0.2.0"
+              },
+              "shortDescription": "",
+              "what": "package"
+            },
+            "magic-nix-cache": {
+              "derivation": "/nix/store/z593dppy4xjmbkkjasmy92blgzgvnapy-magic-nix-cache-0.2.0.drv",
+              "forSystems": ["aarch64-darwin"],
+              "outputs": {
+                "out": "/nix/store/8lsqcz8vpx0s7mgcj33asrz0f99sr9ag-magic-nix-cache-0.2.0"
+              },
+              "shortDescription": "",
+              "what": "package"
+            },
+            "veryLongChain": {
+              "derivation": "/nix/store/wdgjivv50ks5d48z54wwrw29kpz9hmqh-chain-200.drv",
+              "forSystems": ["aarch64-darwin"],
+              "outputs": {
+                "out": "/nix/store/zjwhc6sj38cx2mms0nrl76cxaz70qd02-chain-200"
+              },
+              "shortDescription": "",
+              "what": "package"
+            }
+          }
+        },
+        "aarch64-linux": {
+          "children": {
+            "default": {
+              "derivation": "/nix/store/nl65gdz60cm3j774yqdfqr4hss5zl45b-magic-nix-cache-0.2.0.drv",
+              "forSystems": ["aarch64-linux"],
+              "outputs": {
+                "out": "/nix/store/6nr5b7kqhxw738fplg22dl16fsalx3kq-magic-nix-cache-0.2.0"
+              },
+              "shortDescription": "",
+              "what": "package"
+            },
+            "magic-nix-cache": {
+              "derivation": "/nix/store/nl65gdz60cm3j774yqdfqr4hss5zl45b-magic-nix-cache-0.2.0.drv",
+              "forSystems": ["aarch64-linux"],
+              "outputs": {
+                "out": "/nix/store/6nr5b7kqhxw738fplg22dl16fsalx3kq-magic-nix-cache-0.2.0"
+              },
+              "shortDescription": "",
+              "what": "package"
+            },
+            "veryLongChain": {
+              "derivation": "/nix/store/zk93kmbhk4b192w8176znd8p1g8wikv1-chain-200.drv",
+              "forSystems": ["aarch64-linux"],
+              "outputs": {
+                "out": "/nix/store/k1nvfr1nq7as02ckh4dd6lwvjxcca5ph-chain-200"
+              },
+              "shortDescription": "",
+              "what": "package"
+            }
+          }
+        }
+      }
+    }
+  },
+  "version": 1
+}
+```
+</file>
+
+</files>

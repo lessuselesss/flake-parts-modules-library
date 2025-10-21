@@ -1,0 +1,5353 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.github/
+  workflows/
+    ci.yml
+  dependabot.yml
+doc/
+  index.txt
+  Makefile
+  vulnix-whitelist.5.md
+  vulnix.1.md
+nix/
+  checks.nix
+  default.nix
+  packages.nix
+  treefmt.nix
+src/
+  vulnix/
+    tests/
+      fixtures/
+        audiofile-0.3.6.drv
+        bzip2-1.0.6.0.1.drv
+        cpio-2.12.drv
+        CVE-2010-0748.json
+        CVE-2015-1789.json
+        CVE-2016-2183.json
+        CVE-2019-10160.json
+        CVE-2019-11041.json
+        CVE-modified.json.xz
+        cyrus-sasl-2.5.10.drv
+        nvdcve-2.0-modified.json.gz
+        pkgs.json
+        structured-attrs-1.drv
+        transmission-1.91.drv
+        unzip-6.0.drv
+        whitelist.toml
+        whitelist.yaml
+        xercesc-3.2.3.drv
+      conftest.py
+      nvd_test.py
+      output_test.py
+      resource_test.py
+      store_test.py
+      test_derivation.py
+      utils_test.py
+      vulnerability_test.py
+      whitelist_test.py
+    __init__.py
+    derivation.py
+    main.py
+    nix.py
+    nvd.py
+    output.py
+    resource.py
+    utils.py
+    vulnerability.py
+    whitelist.py
+.editorconfig
+.gitignore
+CHANGES.rst
+default.nix
+flake.lock
+flake.nix
+HACKING.rst
+LICENSE
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+shell.nix
+VERSION
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".github/workflows/ci.yml">
+name: Vulnix CI
+
+on:
+  [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  flake-default:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: cachix/install-nix-action@7be5dee1421f63d07e71ce6e0a9f8a4b07c2a487 # v31
+      with:
+        nix_path: nixpkgs=channel:nixos-unstable
+        github_access_token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: cachix/cachix-action@0fc020193b5a1fa3ac4575aa3a7d3aa6a35435ad # v16
+      with:
+        name: nix-community
+        authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+    - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+    - name: Nix build
+      run: nix-build --show-trace
+    - name: Nix flake check
+      run: nix flake check -L
+</file>
+
+<file path=".github/dependabot.yml">
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+</file>
+
+<file path="doc/index.txt">
+vulnix(1) vulnix.1.ronn
+vulnix-whitelist(5) vulnix-whitelist.5.ronn
+
+nix-store(1) https://nixos.org/nix/manual/#sec-nix-store
+nix-build(1) https://nixos.org/nix/manual/#sec-nix-build
+</file>
+
+<file path="doc/Makefile">
+all: vulnix.1 vulnix-whitelist.5
+
+clean:
+	rm -f vulnix.1 vulnix.1.html vulnix-whitelist.5 vulnix-whitelist.5.html
+
+%: %.md
+	ronn -w \
+	    --organization "Version `cat ../VERSION`" \
+	    --manual 'User Commands' \
+	    $<
+
+.PHONY: all clean
+</file>
+
+<file path="doc/vulnix-whitelist.5.md">
+# vulnix-whitelist - Whitelist file format
+
+## DESCRIPTION
+
+Whitelists exclude matching program versions from the list of vulnerabilities
+reported by vulnix(1). Each whitelist file consists of a list of **rules**. Each
+rule defines matching criteria. If a derivation in question is not matched by
+any whitelist rule, it gets reported.
+
+* program:
+  The part of a derivation name before the first dash followed by a digit.
+
+* version:
+  The part of a derivation name starting at the first digit after a dash.
+
+* cve:
+  One or more reported CVE identifiers.
+
+Additionally, whitelist rules can contain an expiry date (**until**), and both a
+free-text comment and an URL to an issue tracker for informational purposes.
+
+### TOML format
+
+Each rule is started by a TOML section header. The following forms are allowed:
+
+* `["`<PROGRAM>`-`<VERSION>`"]`:
+  Matches derivations with the specified program name and version.
+
+* `["`<PROGRAM>`"]`:
+  Matches derivations with the specified program name and an arbitrary version
+  for which no more specific rule is present.
+
+* `["*"]`:
+  Matches arbitrary derivations that are not covered by a more specific rule.
+  Note that the `cve` field must be specified in this case.
+
+Each rule is optionally followed by the following fields:
+
+* `cve = ["`<CVEID>`",` _..._`]`:
+  This rule is only valid if the reported CVE advisories are a subset of those
+  specified here. In case additional CVEs are found, this rule becomes invalid.
+
+* `until = "`<YYYY-MM-DD>`"`:
+  Matching derivations are reported only from the specified date on.
+
+* `comment = "`<TEXT>`"`:
+  Contains notes to fellow users, e.g. to explain why a whitelist rule has been
+  written. A list of strings is also allowed.
+
+* `issue_url = "`<URL>`"`:
+  A link to a ticket in some issue tracker where the development of fixes gets
+  tracked. A list of URLs is also allowed.
+
+
+### YAML format (deprecated)
+
+Whitelist may also be specified in the legacy YAML format. A whitelist file
+consists of a list of dicts with the keys `name` (derivation name), `version`,
+`cve` (list of CVE identifiers), `comment` (free text), `status` (ignored; for
+compatibility reasons). Note that the `issue_url` field is not valid in YAML
+whitelists.
+
+## NOTES
+
+For any given derivation, all relevant rules are applied in order of decreasing
+specificity.
+
+Multiple whitelists can be used by passing more than one `-w` option to
+`vulnix`. Multiple whitelist are merged in order. For merging, the following
+rules apply:
+
+* Rules containing a version and those without are considered different. Only
+  rules with the same headers are merged.
+
+* CVE lists are concatenated and duplicates are removed.
+
+* Comments and issue URLs are converted to lists and concatenated.
+
+## EXAMPLES
+
+Whitelist in TOML format with three rules:
+The first one matches a specific version of `PCRE` until a given date.
+The second one matches all versions of GNU `patch` as long as the set of
+published CVEs is a subset of the listed CVEs. The third matches any
+derivation which is affected by no more than the listed CVEs.
+
+```
+["pcre-8.41"]
+until = "2018-03-01"
+comment = "should be fixed in a month"
+issue_url = "https://tracker.example.com/12345"
+
+["patch"]
+cve = ["CVE-2018-6952", "CVE-2018-6951"]
+comment = "won't fix these two, but alert me if there is a new CVE"
+
+["*"]
+cve = [
+  "CVE-2017-6827",
+  "CVE-2017-6834",
+  "CVE-2017-6828",
+  "CVE-2017-6833",
+]
+```
+
+## SEE ALSO
+
+vulnix(1), [Nix manual](https://nixos.org/nix/manual/),
+[TOML](https://github.com/toml-lang/toml), [YAML](http://yaml.org)
+</file>
+
+<file path="doc/vulnix.1.md">
+# vulnix - Nix(OS) vulnerability scanner
+
+## SYNOPSIS
+
+`vulnix` [`OPTIONS`] _--system_
+
+`vulnix` [`OPTIONS`] _PATH_ _..._
+
+## DESCRIPTION
+
+`vulnix` searches Nix derivations together with its transitive closure for
+vulnerable software versions as published in the NIST NVD. Affected
+derivations are reported together with matching CVE identifiers.
+
+The last argument specifies where to start the search and can be either:
+
+* A derivation (e.g., _/nix/store/0123456789-program-1.0.drv_).
+* An output file in the Nix store for which a deriver is known.
+* A link into the Nix store (e.g. _result_).
+
+Prior to scanning, parts of the NIST NVD database are fetched and parsed.  This
+database copy is cached between `vulnix` invocations and checked in regular
+intervals.
+
+`vulnix` uses whitelists to mask certain combinations of packages and CVEs that
+should not be reported.
+
+## OPTIONS
+
+* `-S`, `--system`:
+  Scans the current system defined as transitive closure of
+  _/run/current-system_.
+
+* `-G`, `--gc-roots`:
+  Scans all active garbage collection roots. This option is of limited use since
+  the scan will include all old system generations.
+
+* `-p`, `--profile`=<PATH>:
+  Scan a nix profile (eg: /nix/var/nix/profiles/per-user/$USER/profile,
+  ~/.nix-profile).  These are typically created with `nix-env -i` or
+  `nix profile install` (but not `nix build --profile`, which creates normal
+  store paths that don't need this special handling).
+
+* `-f`, `--from-file`=<FILE>:
+  Scans derivations read from a file. Expects one derivation path
+  like _/nix/store/*.drv_ per line.  Useful together with `-R`/`--no-requisites`,
+  which means that exactly the specified derivations will be scanned.
+
+* `-w`, `--whitelist`=<FILE> | <URL>:
+  Loads a whitelist from the specified local path or URL. See
+  vulnix-whitelist(5) for an explanation of the whitelist syntax. It is not an
+  error if the path/URL does not exist. This option can be given multiple times.
+
+* `-W`, `--write-whitelist`=<FILE>:
+  Writes a new copy of the whitelist which contains all reported vulnerable
+  package versions in addition to existing whitelist entries (those loaded
+  with `-w`). This option can be used to evolve whitelists so that every
+  vulnerable version gets reported only once. Note that expired whitelist
+  entries (e.g., those where the date set with the `until` option has passed)
+  will not be written into the new whitelist.
+
+* `-r`, `--requisites` / `-R`, `--no-requisites`:
+  Determines if the transitive closure of the specified paths should be
+  computed and scanned or only the given pathnames. Defaults to `--requisites`.
+
+* `-c`, `--cache-dir`=<DIRECTORY>:
+  Puts cached NVD entries into <DIRECTORY>. The directory will be created if it
+  does not exist. Defaults to _~/.cache/vulnix_.
+
+* `-m`, `--mirror`=<URL>:
+  Fetches NIST NVD updates from <URL>. Defaults to
+  _https://nvd.nist.gov/feeds/json/cve/1.1/_.
+
+* `-j`, `--json`:
+  Outputs affected package versions as JSON document. See [JSON output] below.
+
+* `-s`, `--show-whitelisted`:
+  Shows whitelisted results in addition to regular (non-whitelisted)
+  results.
+
+* `-v`, `--verbose`:
+  Prints additional pieces of information on _stderr_. This includes NVD
+  updates, derivation paths and clickable links to CVE advisories. May be given
+  twice for an extra level of debugging information.
+
+* `-V`, `--version`:
+  Prints program version and exits.
+
+* `--help`:
+  Prints options summary and exits.
+
+
+## EXIT STATUS
+
+Exit status are compatible with the [Nagios plugin development
+guidelines](https://nagios-plugins.org/doc/guidelines.html) which means that it
+can be directly used in the majority of monitoring systems.
+
+`vulnix` exits 0 if no vulnerabilities are found. If all of the
+shown vulnerabilities are whitelisted, it exits 1. Otherwise, found
+vulnerabilities lead to exit status 2. Exit status 3 indicates an error
+condition.
+
+Note that exit status 1 may never occur if the `--show-whitelisted` option is
+not given.
+
+
+## ENVIRONMENT
+
+The following environment variables affect `vulnix`:
+
+* HOME:
+  Determines the default cache directory.
+
+* PATH:
+  Used to invoke up low-level Nix utilities like `nix-store`.
+
+
+## FILES ##
+
+`vulnix` maintains a cache dir located at _~/.cache/vulnix_ by default.
+
+The Nix store is assumed to be under _/nix/store_. This pathname is hardcoded.
+
+
+## NOTES
+
+### Patch detection
+
+`vulnix` tries to detect patches for specific CVEs. These are automatically
+excluded from reports.
+
+The `patches` field of each derivation is scanned for names containing CVE
+identifiers. If a single patch fixes multiple vulnerabilities, all relevant CVE
+identifiers should be given in the patch name, separated by arbitrary
+non-numerical characters. See [EXAMPLES] below.
+
+### JSON output
+
+When invoked with `--json`, a JSON document consisting of a list of dicts is
+written to stdout. Each list item is an affected derivation and contains the
+following keys:
+
+- _name_ - package name and version
+- _pname_ - package name without version
+- _version_ - version only
+- _affected_by_ - list of applicable CVE identifiers
+- _whitelisted_ - list of CVE identifiers which are masked by whitelist entries
+- _derivation_ - pathname of the scanned derivation file
+- _cvssv3_basescore_ - dict of CVSS v3 impact base scores for each CVE found
+
+## BUGS
+
+Invoking `vulnix` with an empty cache directory can take quite a while since it
+needs to download and process NIST NVD archives of the last 5 years. Once
+initialized, only changed entries are fetched.
+
+The cache directory grows slowly but steadily as there new CVE advisories added
+on an ongoing basis.
+
+## COMPATIBILITY
+
+`vulnix` is known to parse derivation files created by `Nix` versions up
+to 2.3.
+
+
+## EXAMPLES
+
+Is my NixOS system vulnerable?
+
+```
+vulnix --system
+```
+
+Scan the output of nix-build(1) for dependencies with security advisories:
+
+```
+nix-build ... -o result
+vulnix result
+```
+
+Report advisories for a derivation and its transitive closure as structured
+JSON document:
+
+```
+vulnix -j /nix/store/cm0lrdrf6crb5v38iyygfsbzvivpmh6w-python3-3.6.4.drv
+```
+
+Report all advisories affecting the NixOS base install with whitelisting of
+formerly known vulnerabilities and creation of an updated whitelist (a.k.a.
+vulnerability roundup):
+
+```
+nix-build -I nixpkgs=. nixos/release-combined.nix
+vulnix -j \
+  -w https://raw.githubusercontent.com/ckauhaus/nixos-vulnerability-roundup/master/whitelists/master.toml \
+  -W whitelist-master-new.toml \
+  result
+```
+
+An excerpt from a derivation source which applies a patch against CVE-2018-9055.
+Note the **name** attribute which contains an CVE identifier:
+
+```
+patches = [
+  (fetchpatch {
+    name = "CVE-2018-9055.patch";
+    url = http://paste.opensuse.org/view/raw/330751ce;
+    sha256 = "0m798m6c4v9yyhql7x684j5kppcm6884n1rrb9ljz8p9aqq2jqnm";
+  })
+];
+```
+
+If the patch fixes two vulnerabilities, it could be named
+_CVE-2018-9055+CVE-2018-9600.patch_, for example.
+
+
+## SEE ALSO
+
+vulnix-whitelist(5), nix-store(1), nix-build(1),
+[NIST NVD](https://nvd.nist.gov),
+[Nix](https://nixos.org/nix/)
+</file>
+
+<file path="nix/checks.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-License-Identifier: BSD-3-Clause
+{ lib, self, ... }:
+{
+  perSystem =
+    { pkgs, self', ... }:
+    {
+      checks = {
+        pylint =
+          pkgs.runCommandLocal "pylint"
+            {
+              nativeBuildInputs = [ self'.devShells.default.nativeBuildInputs ];
+            }
+            ''
+              cd ${self.outPath}
+              export HOME=/tmp
+              pylint \
+                $(find . -name "*.py") \
+                --reports n \
+                --enable=useless-suppression \
+                --disable=missing-function-docstring \
+                --disable=missing-module-docstring \
+                --disable=missing-class-docstring
+              touch $out
+            '';
+      }
+      //
+        # Force a build of all packages during a `nix flake check`
+        (with lib; mapAttrs' (n: nameValuePair "package-${n}") self'.packages);
+    };
+}
+</file>
+
+<file path="nix/default.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-License-Identifier: BSD-3-Clause
+{
+  imports = [
+    ./checks.nix
+    ./packages.nix
+    ./treefmt.nix
+  ];
+}
+</file>
+
+<file path="nix/packages.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-License-Identifier: BSD-3-Clause
+{
+  perSystem =
+    {
+      pkgs,
+      lib,
+      ...
+    }:
+    let
+      pp = pkgs.python3Packages;
+      prefix_path = with pkgs; [
+        nix
+      ];
+      check_inputs = with pp; [
+        pkgs.ronn
+        freezegun
+        pytest
+        pytest-cov
+      ];
+      build_inputs = with pp; [
+        click
+        pyyaml
+        requests
+        setuptools
+        toml
+        zodb
+      ];
+    in
+    {
+      packages = rec {
+        default = vulnix;
+        vulnix = pp.buildPythonPackage {
+          pname = "vulnix";
+          version = pkgs.lib.removeSuffix "\n" (builtins.readFile ../VERSION);
+          format = "setuptools";
+          src = lib.cleanSource ../.;
+          pythonImportsCheck = [ "vulnix" ];
+          outputs = [
+            "out"
+            "doc"
+            "man"
+          ];
+          nativeCheckInputs = check_inputs;
+          propagatedBuildInputs = build_inputs;
+          makeWrapperArgs = [ "--prefix PATH : ${lib.makeBinPath prefix_path}" ];
+          postBuild = "make -C doc";
+          checkPhase = "pytest src/vulnix";
+          postInstall = ''
+            install -D -t $doc/share/doc/vulnix README.rst CHANGES.rst
+            gzip $doc/share/doc/vulnix/*.rst
+            install -D -t $man/share/man/man1 doc/vulnix.1
+            install -D -t $man/share/man/man5 doc/vulnix-whitelist.5
+          '';
+          dontStrip = true;
+        };
+      };
+      devShells.default = pkgs.mkShell rec {
+        name = "vulnix-devshell";
+        packages = [
+          pkgs.python3.pkgs.pylint # for running pylint manually in devshell
+          pkgs.ruff # for running ruff manually in devshell
+          check_inputs
+          build_inputs
+        ];
+        shellHook = ''
+          export PATH=${lib.makeBinPath prefix_path}:$PATH
+          export PYTHONPATH="$PYTHONPATH:$(pwd)/src"
+        '';
+      };
+    };
+}
+</file>
+
+<file path="nix/treefmt.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-License-Identifier: BSD-3-Clause
+{ inputs, ... }:
+{
+  imports = with inputs; [
+    flake-root.flakeModule
+    treefmt-nix.flakeModule
+  ];
+  perSystem =
+    {
+      config,
+      pkgs,
+      ...
+    }:
+    {
+      treefmt = {
+        config = {
+          package = pkgs.treefmt;
+          inherit (config.flake-root) projectRootFile;
+          programs = {
+            ruff-check.enable = true; # lints python https://github.com/astral-sh/ruff
+            ruff-format.enable = true; # format python https://github.com/astral-sh/ruff
+            isort.enable = true; # sort python imports https://github.com/PyCQA/isort
+            deadnix.enable = true; # removes dead nix code https://github.com/astro/deadnix
+            nixfmt.enable = true; # nix formatter https://github.com/NixOS/nixfmt
+            nixfmt.package = pkgs.nixfmt-rfc-style; # rfc-166 formatting conform version
+            statix.enable = true; # prevents use of nix anti-patterns https://github.com/nerdypepper/statix
+          };
+        };
+      };
+
+      # configures treefmt as the program to use when invoke `nix fmt`
+      formatter = config.treefmt.build.wrapper;
+    };
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/audiofile-0.3.6.drv">
+Derive([("out","/nix/store/pddwkic40igxjmbs9cnm5ih01a1j77vm-audiofile-0.3.6","","")],[("/nix/store/107d5p9lrp1qqcakr42nqls6zppw8svw-audiofile-0.3.6.tar.gz.drv",["out"]),("/nix/store/39jk3qgfikg14pnvhxp2a6xvi3m87cab-CVE-2017-6833.patch.drv",["out"]),("/nix/store/5hd7acwmvs62ybfahc0mncw1x9wbni15-audiofile-fix-multiplyCheckOverflow-signature.patch.drv",["out"]),("/nix/store/5ld8xvfid3k5klxyqc25v4icplr2bslq-CVE-2017-6829.patch.drv",["out"]),("/nix/store/72a076ziq6fw32sfrl9h4bh06dhbk3pg-CVE-2017-6827+CVE-2017-6828+CVE-2017-6832+CVE-2017-6835+CVE-2017-6837.patch.drv",["out"]),("/nix/store/azxxgsavmplna4pwdxms96mcj4b97s58-bash-4.4-p12.drv",["out"]),("/nix/store/m9ihmfw2vac5rg87sghl3lp2vs4sdqbj-stdenv.drv",["out"]),("/nix/store/px4gk7fwmvbkc2b0ygxqlwp8r3npqvi7-CVE-2017-6830+CVE-2017-6834+CVE-2017-6836+CVE-2017-6838.patch.drv",["out"]),("/nix/store/qq3vhqw3wy4mhs87a15dzz8lj121hxws-alsa-lib-1.1.4.1.drv",["dev"]),("/nix/store/r41kqzhzhl5fhhn3hmaq7z16qvsyqv8q-CVE-2017-6831.patch.drv",["out"]),("/nix/store/s1slnl1qx6lky9h7hrmhx576zc7iz60s-CVE-2017-6839.patch.drv",["out"])],["/nix/store/1cl09g0szzjgchiy7dz2xs8w5nqi2004-CVE-2015-7747.patch","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh","/nix/store/z3pqhg6lbygziw6gbv0nwmmsm81s6lfi-gcc-6.patch"],"x86_64-linux","/nix/store/hqi64wjn83nw4mnf9a5z9r4vmpl72j3r-bash-4.4-p12/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("buildInputs",""),("builder","/nix/store/hqi64wjn83nw4mnf9a5z9r4vmpl72j3r-bash-4.4-p12/bin/bash"),("configureFlags",""),("name","audiofile-0.3.6"),("nativeBuildInputs","/nix/store/20mpfb81p1q1swgf0lnn05sisbshyqc2-alsa-lib-1.1.4.1-dev"),("out","/nix/store/pddwkic40igxjmbs9cnm5ih01a1j77vm-audiofile-0.3.6"),("patches","/nix/store/z3pqhg6lbygziw6gbv0nwmmsm81s6lfi-gcc-6.patch /nix/store/1cl09g0szzjgchiy7dz2xs8w5nqi2004-CVE-2015-7747.patch /nix/store/z4hnchyvbr4h9zkbjg2ympywqxz5mar8-CVE-2017-6829.patch /nix/store/vg3hm494n2hsk62ag1x6safnildsmd6z-CVE-2017-6827+CVE-2017-6828+CVE-2017-6832+CVE-2017-6835+CVE-2017-6837.patch /nix/store/ayf47cah4hazswxp9di8w2l6jpzh9da7-CVE-2017-6839.patch /nix/store/kzcbd6a8w99x70llahmbaplgd79hndyc-CVE-2017-6830+CVE-2017-6834+CVE-2017-6836+CVE-2017-6838.patch /nix/store/mbc8cyiv2iv1lxdnaq5b2n38cckpiz3a-audiofile-fix-multiplyCheckOverflow-signature.patch /nix/store/yysjxmgn0nqbp78yr8j0hwmxzkbidq9y-CVE-2017-6831.patch /nix/store/y3vg0xg5k0l7psjic7vi76dm5bn72rl1-CVE-2017-6833.patch"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/5s5rlwc2i61lmqdddvnkj3mmybmjawyp-audiofile-0.3.6.tar.gz"),("stdenv","/nix/store/066fqdvgfnzdr27i1ffz7cghf8r89glg-stdenv"),("system","x86_64-linux")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/bzip2-1.0.6.0.1.drv">
+Derive([("bin","/nix/store/migmjb53v38qrjxa0bb6v3wmrwpv7d2y-bzip2-1.0.6.0.1-bin","",""),("dev","/nix/store/6g4zckwlx7br0w1285y5xxarakpkja8q-bzip2-1.0.6.0.1-dev","",""),("man","/nix/store/0q2q2yr8kg9s0ckmp2kjihxjrfgdipda-bzip2-1.0.6.0.1-man","",""),("out","/nix/store/c1xh47kkw4g9kayy6xzn7mygxbmp2fa3-bzip2-1.0.6.0.1","","")],[("/nix/store/1452zhxx1skzri6jpaw98alfgg91cgz2-bzip2-1.0.6.0.1.tar.gz.drv",["out"]),("/nix/store/jkwjgpjzk2x8bsc38vhwvkkz7hd97gkg-bootstrap-tools.drv",["out"]),("/nix/store/k4w3mgnwa305ax2wfmk46bqxbv9q2h8n-stdenv-linux-boot.drv",["out"])],["/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh","/nix/store/r8acyr4xb2yw1k73qjzm9sxmpws27gjr-cve-2016-3189.patch"],"x86_64-linux","/nix/store/d1prcspbh2qsviipvnaxizcj8l3g7fpw-bootstrap-tools/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("bin","/nix/store/migmjb53v38qrjxa0bb6v3wmrwpv7d2y-bzip2-1.0.6.0.1-bin"),("buildInputs",""),("builder","/nix/store/d1prcspbh2qsviipvnaxizcj8l3g7fpw-bootstrap-tools/bin/bash"),("configureFlags",""),("dev","/nix/store/6g4zckwlx7br0w1285y5xxarakpkja8q-bzip2-1.0.6.0.1-dev"),("man","/nix/store/0q2q2yr8kg9s0ckmp2kjihxjrfgdipda-bzip2-1.0.6.0.1-man"),("name","bzip2-1.0.6.0.1"),("nativeBuildInputs",""),("out","/nix/store/c1xh47kkw4g9kayy6xzn7mygxbmp2fa3-bzip2-1.0.6.0.1"),("outputs","bin dev out man"),("patches","/nix/store/r8acyr4xb2yw1k73qjzm9sxmpws27gjr-cve-2016-3189.patch"),("postPatch","sed -i -e '/<sys\\\\stat\\.h>/s|\\\\|/|' bzip2.c\n"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/7ir1ygibs1ap5jca2mf403srz9jjqj2g-bzip2-1.0.6.0.1.tar.gz"),("stdenv","/nix/store/jqkwcvv3j8bql40rllqcp16bsc4ks9n3-stdenv-linux-boot"),("system","x86_64-linux"),("version","1.0.6.0.1")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/cpio-2.12.drv">
+Derive([("out","/nix/store/17rdhaypdan2f1gg4rcz50b0lpkr09wm-cpio-2.12","","")],[("/nix/store/13v4s3h3i6f6dsiflk04pj2jp1rj37x8-stdenv.drv",["out"]),("/nix/store/a03r8b5p2zaighb14bydzc9nbcjbyia5-CVE-2015-1197-cpio-2.12.patch.drv",["out"]),("/nix/store/q2wj9sa8z71gcm294h0h04njyw5w3yn5-cpio-2.12.tar.bz2.drv",["out"]),("/nix/store/wyd3cdl23n1bb1bv376l9h7a13y8194x-bash-4.4-p12.drv",["out"])],["/nix/store/1kdsfn67g8h7gzmrawir80qckc4pb5gs-CVE-2016-2037-out-of-bounds-write.patch","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],"x86_64-linux","/nix/store/h404wfcz8rzzlq8vr4z7plcijwzfci72-bash-4.4-p12/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("buildInputs",""),("builder","/nix/store/h404wfcz8rzzlq8vr4z7plcijwzfci72-bash-4.4-p12/bin/bash"),("configureFlags",""),("enableParallelBuilding","1"),("name","cpio-2.12"),("nativeBuildInputs",""),("out","/nix/store/17rdhaypdan2f1gg4rcz50b0lpkr09wm-cpio-2.12"),("patches","/nix/store/ncqx1bmw4a6bpczyr08fz48467b2i7qw-CVE-2015-1197-cpio-2.12.patch /nix/store/1kdsfn67g8h7gzmrawir80qckc4pb5gs-CVE-2016-2037-out-of-bounds-write.patch"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/mvdbnyv9di3kkgp691rj98fyh24vk9lc-cpio-2.12.tar.bz2"),("stdenv","/nix/store/0lyhn922r4rlh5gvlaf26ghmjjdd02qi-stdenv"),("system","x86_64-linux")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/CVE-2010-0748.json">
+{
+  "cve" : {
+    "id" : "CVE-2010-0748",
+    "sourceIdentifier" : "secalert@redhat.com",
+    "published" : "2019-10-30T23:15:10.000",
+    "lastModified" : "2024-11-21T01:12:52.810",
+    "vulnStatus" : "Modified",
+    "cveTags" : [ ],
+    "descriptions" : [ {
+      "lang" : "en",
+      "value" : "Transmission before 1.92 allows an attacker to cause a denial of service (crash) or possibly have other unspecified impact via a large number of tr arguments in a magnet link."
+    } ],
+    "weaknesses" : [ {
+      "source" : "nvd@nist.gov",
+      "type" : "Primary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-20"
+      } ]
+    } ],
+    "configurations" : [ {
+      "operator" : "AND",
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:transmissionbt:transmission:*:*:*:*:*:*:*:*",
+          "versionEndExcluding" : "1.92",
+          "matchCriteriaId" : "A15489B4-BA11-4BC8-8F75-D1D91B200BFC"
+        } ]
+      }, {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : false,
+          "criteria" : "cpe:2.3:o:linux:linux_kernel:-:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "703AF700-7A70-47E2-BC3A-7FD03B3CA9C1"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:8.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "C11E6FB0-C8C0-4527-9AA0-CB9B316F8F43"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:9.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "DEECE5FC-CACF-4496-A3E7-164736409252"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:10.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "07B237A9-69A3-4A9C-9DA0-4E06BD37AE73"
+        } ]
+      } ]
+    } ]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/CVE-2015-1789.json">
+{
+  "cve" : {
+    "id" : "CVE-2015-1789",
+    "sourceIdentifier" : "secalert@redhat.com",
+    "published" : "2015-06-12T19:59:02.507",
+    "lastModified" : "2025-04-12T10:46:40.837",
+    "vulnStatus" : "Deferred",
+    "cveTags" : [ ],
+    "descriptions" : [ {
+      "lang" : "en",
+      "value" : "The X509_cmp_time function in crypto/x509/x509_vfy.c in OpenSSL before 0.9.8zg, 1.0.0 before 1.0.0s, 1.0.1 before 1.0.1n, and 1.0.2 before 1.0.2b allows remote attackers to cause a denial of service (out-of-bounds read and application crash) via a crafted length field in ASN1_TIME data, as demonstrated by an attack against a server that supports client authentication with a custom verification callback."
+    } ],
+    "metrics" : {
+      "cvssMetricV30" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "3.0",
+          "vectorString" : "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+          "baseScore" : 7.5,
+          "baseSeverity" : "HIGH",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "LOW",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "NONE",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "NONE",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "HIGH"
+        },
+        "exploitabilityScore" : 3.9,
+        "impactScore" : 3.6
+      } ],
+      "cvssMetricV2" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "2.0",
+          "vectorString" : "AV:N/AC:M/Au:N/C:N/I:N/A:P",
+          "baseScore" : 4.3,
+          "accessVector" : "NETWORK",
+          "accessComplexity" : "MEDIUM",
+          "authentication" : "NONE",
+          "confidentialityImpact" : "NONE",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "PARTIAL"
+        },
+        "baseSeverity" : "MEDIUM",
+        "exploitabilityScore" : 8.6,
+        "impactScore" : 2.9,
+        "acInsufInfo" : false,
+        "obtainAllPrivilege" : false,
+        "obtainUserPrivilege" : false,
+        "obtainOtherPrivilege" : false,
+        "userInteractionRequired" : false
+      } ]
+    },
+    "weaknesses" : [ {
+      "source" : "nvd@nist.gov",
+      "type" : "Primary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-119"
+      } ]
+    } ],
+    "configurations" : [ {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:*:*:*:*:*:*:*:*",
+          "versionEndIncluding" : "0.9.8zf",
+          "matchCriteriaId" : "8F73A6A3-0F0C-461D-AA7A-940A9DBBFE92"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "2FBD8C92-6138-4274-ACBA-D7D42DAEC5AC"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:beta1:*:*:*:*:*:*",
+          "matchCriteriaId" : "3A2075BD-6102-4B0F-839A-836E9585F43B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:beta2:*:*:*:*:*:*",
+          "matchCriteriaId" : "2A2FA09E-2BF7-4968-B62D-00DA57F81EA1"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:beta3:*:*:*:*:*:*",
+          "matchCriteriaId" : "F02E634E-1E3D-4E44-BADA-76F92483A732"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:beta4:*:*:*:*:*:*",
+          "matchCriteriaId" : "FCC2B07A-49EF-411F-8A4D-89435E22B043"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0:beta5:*:*:*:*:*:*",
+          "matchCriteriaId" : "7E9480D6-3B6A-4C41-B8C1-C3F945040772"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0a:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "10FF0A06-DA61-4250-B083-67E55E362677"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0b:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "8A6BA453-C150-4159-B80B-5465EFF83F11"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0c:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "638A2E69-8AB6-4FEA-852A-FEF16A500C1A"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0d:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "56C47D3A-B99D-401D-B6B8-1194B2DB4809"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0e:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "08355B10-E004-4BE6-A5AE-4D428810580B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0f:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "738BCFDC-1C49-4774-95AE-E099F707DEF9"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0g:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "D4B242C0-D27D-4644-AD19-5ACB853C9DC2"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0h:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "8DC683F2-4346-4E5E-A8D7-67B4F4D7827B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0i:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "764B7D38-BC1B-47DB-B1DF-D092BDA4BFCB"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0j:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "6604E7BE-9F9B-444D-A63A-F65D1CFDF3BF"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0k:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "132B9217-B0E0-4E3E-9096-162AA28E158E"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0l:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "7619F9A0-9054-4217-93D1-3EA64876C5B0"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0m:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "6D82C405-17E2-4DF1-8DF5-315BD5A41595"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0n:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "4C96806F-4718-4BD3-9102-55A26AA86498"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0o:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "8A16CD99-AF7F-4931-AD2E-77727BA18FBD"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0p:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "88440697-754A-47A7-BF83-4D0EB68FFB10"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0q:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "AD51F0FC-F426-4AE5-B3B9-B813C580EBAE"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.0r:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "38721148-F24A-4339-8282-BC2DD9553512"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "2D1C00C0-C77E-4255-9ECA-20F2673C7366"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1:beta1:*:*:*:*:*:*",
+          "matchCriteriaId" : "21F16D65-8A46-4AC7-8970-73AB700035FB"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1:beta2:*:*:*:*:*:*",
+          "matchCriteriaId" : "92F393FF-7E6F-4671-BFBF-060162E12659"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1:beta3:*:*:*:*:*:*",
+          "matchCriteriaId" : "E1B85A09-CF8D-409D-966E-168F9959F6F6"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1a:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "3A66E6CF-39CF-412E-8EF0-8E10BA21B4A4"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1b:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "C684FB18-FDDC-4BED-A28C-C23EE6CD0094"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1c:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "A74A79A7-4FAF-4C81-8622-050008B96AE1"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1d:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "CEDACCB9-8D61-49EE-9957-9E58BC7BB031"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1e:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "4993DD56-F9E3-4AC8-AC3E-BF204B950DEC"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1f:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "E884B241-F9C3-44F8-A420-DE65F5F3D660"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1g:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "3A383620-B4F7-44A7-85DA-A4FF2E115D80"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1h:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "5F0C6812-F455-49CF-B29B-9AC00306DA43"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1i:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "3F2D462C-A1B4-4572-A615-BDE9DC5F1E55"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1j:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "3703E445-17C0-4C85-A496-A35641C0C8DB"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1k:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "2F4034B9-EF1C-40E6-B92A-D4D7B7E7E774"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1l:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "ABEC1927-F469-4B9E-B544-DA6CF90F0B34"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.1m:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "DE2188F9-FAF8-4A0C-BB49-E95BDBC119BF"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.2:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "AD3E5C1B-EC63-4214-A0BD-0B8681CE6C8B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.2:beta1:*:*:*:*:*:*",
+          "matchCriteriaId" : "18797BEE-417D-4959-9AAD-C5A7C051B524"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:openssl:openssl:1.0.2a:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "60F946FD-F564-49DA-B043-5943308BA9EE"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:oracle:sparc-opl_service_processor:*:*:*:*:*:*:*:*",
+          "versionEndIncluding" : "1121",
+          "matchCriteriaId" : "6AF02A45-1811-44F2-B3C9-90C11F5DF6DF"
+        } ]
+      } ]
+    } ]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/CVE-2016-2183.json">
+{
+  "cve" : {
+    "id" : "CVE-2016-2183",
+    "sourceIdentifier" : "secalert@redhat.com",
+    "published" : "2016-09-01T00:59:00.137",
+    "lastModified" : "2025-04-12T10:46:40.837",
+    "vulnStatus" : "Deferred",
+    "cveTags" : [ ],
+    "descriptions" : [ {
+      "lang" : "en",
+      "value" : "The DES and Triple DES ciphers, as used in the TLS, SSH, and IPSec protocols and other protocols and products, have a birthday bound of approximately four billion blocks, which makes it easier for remote attackers to obtain cleartext data via a birthday attack against a long-duration encrypted session, as demonstrated by an HTTPS session using Triple DES in CBC mode, aka a \"Sweet32\" attack."
+    }, {
+      "lang" : "es",
+      "value" : "Los cifrados DES y Triple DES, como se usan en los protocolos TLS, SSH e IPSec y otros protocolos y productos, tienen una cota de cumpleaños de aproximadamente cuatro mil millones de bloques, lo que facilita a atacantes remotos obtener datos de texto plano a través de un ataque de cumpleaños contra una sesión cifrada de larga duración, según lo demostrado por una sesión HTTPS usando Triple DES en modo CBC, también conocido como un ataque \"Sweet32\"."
+    } ],
+    "metrics" : {
+      "cvssMetricV31" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "3.1",
+          "vectorString" : "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+          "baseScore" : 7.5,
+          "baseSeverity" : "HIGH",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "LOW",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "NONE",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "HIGH",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "NONE"
+        },
+        "exploitabilityScore" : 3.9,
+        "impactScore" : 3.6
+      } ],
+      "cvssMetricV2" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "2.0",
+          "vectorString" : "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+          "baseScore" : 5.0,
+          "accessVector" : "NETWORK",
+          "accessComplexity" : "LOW",
+          "authentication" : "NONE",
+          "confidentialityImpact" : "PARTIAL",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "NONE"
+        },
+        "baseSeverity" : "MEDIUM",
+        "exploitabilityScore" : 10.0,
+        "impactScore" : 2.9,
+        "acInsufInfo" : false,
+        "obtainAllPrivilege" : false,
+        "obtainUserPrivilege" : false,
+        "obtainOtherPrivilege" : false,
+        "userInteractionRequired" : false
+      } ]
+    },
+    "weaknesses" : [ {
+      "source" : "nvd@nist.gov",
+      "type" : "Primary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-200"
+      } ]
+    } ],
+    "configurations" : [ {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:jboss_enterprise_application_platform:6.0.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "B142ACCC-F7A9-4A3B-BE60-0D6691D5058D"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:jboss_enterprise_web_server:1.0.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "14259BF1-3601-4BF1-A591-FC4DE1639C57"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:jboss_enterprise_web_server:2.0.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "681173DF-537E-4A64-8FC7-75F439CCAD0D"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:jboss_web_server:3.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "54EB07A0-FB38-4F17-9C8D-DB629967F07B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux:5.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "1D8B549B-E57B-4DFE-8A13-CAB06B5356B3"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux:6.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "2F6AB192-9D7D-4A9A-8995-E53A9DE9EAFC"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux:7.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "142AD0DD-4CF3-4D74-9442-459CE3347E3A"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "2.7.0",
+          "versionEndExcluding" : "2.7.13",
+          "matchCriteriaId" : "23F7B6BD-821B-4355-8C81-CEA6079B9A85"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "3.4.0",
+          "versionEndExcluding" : "3.4.7",
+          "matchCriteriaId" : "E65C03FE-52E0-477A-A104-8F2CC0EEE753"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "3.5.0",
+          "versionEndExcluding" : "3.5.3",
+          "matchCriteriaId" : "35B35EBF-9EA0-4BB4-B868-600D2BAA9790"
+        } ]
+      } ]
+    } ],
+    "references" : [ {
+      "url" : "http://kb.juniper.net/InfoCenter/index?page=content&id=JSA10759",
+      "source" : "secalert@redhat.com",
+      "tags" : [ "Third Party Advisory" ]
+    } ]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/CVE-2019-10160.json">
+{
+  "cve" : {
+    "id" : "CVE-2019-10160",
+    "sourceIdentifier" : "secalert@redhat.com",
+    "published" : "2019-06-07T18:29:00.280",
+    "lastModified" : "2024-11-21T04:18:32.713",
+    "vulnStatus" : "Modified",
+    "cveTags" : [ ],
+    "descriptions" : [ {
+      "lang" : "en",
+      "value" : "A security regression of CVE-2019-9636 was discovered in python since commit d537ab0ff9767ef024f26246899728f0116b1ec3 affecting versions 2.7, 3.5, 3.6, 3.7 and from v3.8.0a4 through v3.8.0b1, which still allows an attacker to exploit CVE-2019-9636 by abusing the user and password parts of a URL. When an application parses user-supplied URLs to store cookies, authentication credentials, or other kind of information, it is possible for an attacker to provide specially crafted URLs to make the application locate host-related information (e.g. cookies, authentication data) and send them to a different host than where it should, unlike if the URLs had been correctly parsed. The result of an attack may vary based on the application."
+    } ],
+    "metrics" : {
+      "cvssMetricV31" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "3.1",
+          "vectorString" : "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "baseScore" : 9.8,
+          "baseSeverity" : "CRITICAL",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "LOW",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "NONE",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "HIGH",
+          "integrityImpact" : "HIGH",
+          "availabilityImpact" : "HIGH"
+        },
+        "exploitabilityScore" : 3.9,
+        "impactScore" : 5.9
+      } ],
+      "cvssMetricV30" : [ {
+        "source" : "secalert@redhat.com",
+        "type" : "Secondary",
+        "cvssData" : {
+          "version" : "3.0",
+          "vectorString" : "CVSS:3.0/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+          "baseScore" : 9.8,
+          "baseSeverity" : "CRITICAL",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "LOW",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "NONE",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "HIGH",
+          "integrityImpact" : "HIGH",
+          "availabilityImpact" : "HIGH"
+        },
+        "exploitabilityScore" : 3.9,
+        "impactScore" : 5.9
+      } ],
+      "cvssMetricV2" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "2.0",
+          "vectorString" : "AV:N/AC:L/Au:N/C:P/I:N/A:N",
+          "baseScore" : 5.0,
+          "accessVector" : "NETWORK",
+          "accessComplexity" : "LOW",
+          "authentication" : "NONE",
+          "confidentialityImpact" : "PARTIAL",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "NONE"
+        },
+        "baseSeverity" : "MEDIUM",
+        "exploitabilityScore" : 10.0,
+        "impactScore" : 2.9,
+        "acInsufInfo" : false,
+        "obtainAllPrivilege" : false,
+        "obtainUserPrivilege" : false,
+        "obtainOtherPrivilege" : false,
+        "userInteractionRequired" : false
+      } ]
+    },
+    "weaknesses" : [ {
+      "source" : "secalert@redhat.com",
+      "type" : "Primary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-172"
+      } ]
+    }, {
+      "source" : "nvd@nist.gov",
+      "type" : "Secondary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-522"
+      } ]
+    } ],
+    "configurations" : [ {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "2.7.0",
+          "versionEndExcluding" : "2.7.17",
+          "matchCriteriaId" : "B09B31A2-30BF-4E95-81A3-F77FD97DF5B6"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "3.5.0",
+          "versionEndExcluding" : "3.5.8",
+          "matchCriteriaId" : "9A384586-B574-4240-8BCF-CCE69498F336"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "3.6.0",
+          "versionEndExcluding" : "3.6.9",
+          "matchCriteriaId" : "2C052B2D-757B-4342-8BE9-510A08599779"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "3.7.0",
+          "versionEndExcluding" : "3.7.4",
+          "matchCriteriaId" : "A8E7B12E-74D0-4E51-A0A6-6C1A8B277055"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:3.8.0:alpha4:*:*:*:*:*:*",
+          "matchCriteriaId" : "BD6CA58B-2D25-4019-95F2-AA6DF516AD36"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:python:python:3.8.0:beta1:*:*:*:*:*:*",
+          "matchCriteriaId" : "BF6397BF-ED2C-4397-A8FF-23C92CAFFC1E"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_desktop:7.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "33C068A4-3780-4EAB-A937-6082DF847564"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_eus:7.6:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "5BF3C7A5-9117-42C7-BEA1-4AA378A582EF"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_server:7.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "51EF4996-72F4-4FA4-814F-F5991E7A8318"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_server_aus:7.6:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "B353CE99-D57C-465B-AAB0-73EF581127D1"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_server_tus:7.6:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "B76AA310-FEC7-497F-AF04-C3EC1E76C4CC"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux_workstation:7.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "825ECE2D-E232-46E0-A047-074B34DB1E97"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:8.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "C11E6FB0-C8C0-4527-9AA0-CB9B316F8F43"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:9.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "DEECE5FC-CACF-4496-A3E7-164736409252"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:opensuse:leap:15.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "F1E78106-58E6-4D59-990F-75DA575BFAD9"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:opensuse:leap:15.1:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "B620311B-34A3-48A6-82DF-6F078D7A4493"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:fedoraproject:fedora:29:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "D100F7CE-FC64-4CC6-852A-6136D72DA419"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:fedoraproject:fedora:30:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "97A4B8DF-58DA-4AB6-A1F9-331B36409BA3"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:fedoraproject:fedora:31:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "80F0FA5D-8D3B-4C0E-81E2-87998286AF33"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:12.04:*:*:*:-:*:*:*",
+          "matchCriteriaId" : "CB66DB75-2B16-4EBF-9B93-CE49D8086E41"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:14.04:*:*:*:esm:*:*:*",
+          "matchCriteriaId" : "815D70A8-47D3-459C-A32C-9FEACA0659D1"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:16.04:*:*:*:esm:*:*:*",
+          "matchCriteriaId" : "7A5301BF-1402-4BE0-A0F8-69FBE79BC6D6"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:18.04:*:*:*:lts:*:*:*",
+          "matchCriteriaId" : "23A7C53F-B80F-4E6A-AFA9-58EEA84BE11D"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:19.04:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "CD783B0C-9246-47D9-A937-6144FE8BFF0F"
+        } ]
+      } ]
+    }, {
+      "operator" : "AND",
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:virtualization:4.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "6BBD7A51-0590-4DDF-8249-5AFA8D645CB6"
+        } ]
+      }, {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : false,
+          "criteria" : "cpe:2.3:o:redhat:enterprise_linux:7.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "142AD0DD-4CF3-4D74-9442-459CE3347E3A"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:netapp:cloud_backup:-:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "5C2089EE-5D7F-47EC-8EA5-0F69790564C4"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:netapp:converged_systems_advisor_agent:-:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "9A865472-D6A4-49D9-96E5-D33D0E58144D"
+        } ]
+      } ]
+    } ]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/CVE-2019-11041.json">
+{
+  "cve" : {
+    "id" : "CVE-2019-11041",
+    "sourceIdentifier" : "security@php.net",
+    "published" : "2019-08-09T20:15:11.050",
+    "lastModified" : "2024-11-21T04:20:25.723",
+    "vulnStatus" : "Modified",
+    "cveTags" : [ ],
+    "descriptions" : [ {
+      "lang" : "es",
+      "value" : "Cuando la extensión EXIF de PHP está analizando información EXIF de una imagen, p.ej. por medio de la función exif_read_data(), en PHP versiones 7.1.x anteriores a 7.1.31, versiones 7.2.x anteriores a 7.2.21 y versiones 7.3.x anteriores a 7.3.8, es posible suministrarle datos que causará que se lea más allá del búfer asignado. Esto puede conllevar a la divulgación de información o bloqueo."
+    } ],
+    "metrics" : {
+      "cvssMetricV31" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "3.1",
+          "vectorString" : "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:L/I:N/A:H",
+          "baseScore" : 7.1,
+          "baseSeverity" : "HIGH",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "LOW",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "REQUIRED",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "LOW",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "HIGH"
+        },
+        "exploitabilityScore" : 2.8,
+        "impactScore" : 4.2
+      } ],
+      "cvssMetricV30" : [ {
+        "source" : "security@php.net",
+        "type" : "Secondary",
+        "cvssData" : {
+          "version" : "3.0",
+          "vectorString" : "CVSS:3.0/AV:N/AC:H/PR:N/UI:N/S:U/C:L/I:N/A:L",
+          "baseScore" : 4.8,
+          "baseSeverity" : "MEDIUM",
+          "attackVector" : "NETWORK",
+          "attackComplexity" : "HIGH",
+          "privilegesRequired" : "NONE",
+          "userInteraction" : "NONE",
+          "scope" : "UNCHANGED",
+          "confidentialityImpact" : "LOW",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "LOW"
+        },
+        "exploitabilityScore" : 2.2,
+        "impactScore" : 2.5
+      } ],
+      "cvssMetricV2" : [ {
+        "source" : "nvd@nist.gov",
+        "type" : "Primary",
+        "cvssData" : {
+          "version" : "2.0",
+          "vectorString" : "AV:N/AC:M/Au:N/C:P/I:N/A:P",
+          "baseScore" : 5.8,
+          "accessVector" : "NETWORK",
+          "accessComplexity" : "MEDIUM",
+          "authentication" : "NONE",
+          "confidentialityImpact" : "PARTIAL",
+          "integrityImpact" : "NONE",
+          "availabilityImpact" : "PARTIAL"
+        },
+        "baseSeverity" : "MEDIUM",
+        "exploitabilityScore" : 8.6,
+        "impactScore" : 4.9,
+        "acInsufInfo" : false,
+        "obtainAllPrivilege" : false,
+        "obtainUserPrivilege" : false,
+        "obtainOtherPrivilege" : false,
+        "userInteractionRequired" : true
+      } ]
+    },
+    "weaknesses" : [ {
+      "source" : "security@php.net",
+      "type" : "Secondary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-125"
+      } ]
+    }, {
+      "source" : "nvd@nist.gov",
+      "type" : "Primary",
+      "description" : [ {
+        "lang" : "en",
+        "value" : "CWE-125"
+      } ]
+    } ],
+    "configurations" : [ {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:php:php:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "7.1.0",
+          "versionEndExcluding" : "7.1.31",
+          "matchCriteriaId" : "BB562D9A-1014-4E8B-9C23-D27AE0804D37"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:php:php:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "7.2.0",
+          "versionEndExcluding" : "7.2.21",
+          "matchCriteriaId" : "C12FECEA-A926-4C57-B65F-6815A6A091A9"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:php:php:*:*:*:*:*:*:*:*",
+          "versionStartIncluding" : "7.3.0",
+          "versionEndExcluding" : "7.3.8",
+          "matchCriteriaId" : "76D1A2A9-CDA6-40AF-81C5-684FBCE2CC93"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:8.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "C11E6FB0-C8C0-4527-9AA0-CB9B316F8F43"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:9.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "DEECE5FC-CACF-4496-A3E7-164736409252"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:debian:debian_linux:10.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "07B237A9-69A3-4A9C-9DA0-4E06BD37AE73"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:12.04:*:*:*:esm:*:*:*",
+          "matchCriteriaId" : "8D305F7A-D159-4716-AB26-5E38BB5CD991"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:14.04:*:*:*:esm:*:*:*",
+          "matchCriteriaId" : "815D70A8-47D3-459C-A32C-9FEACA0659D1"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:16.04:*:*:*:lts:*:*:*",
+          "matchCriteriaId" : "F7016A2A-8365-4F1A-89A2-7A19F2BCAE5B"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:18.04:*:*:*:lts:*:*:*",
+          "matchCriteriaId" : "23A7C53F-B80F-4E6A-AFA9-58EEA84BE11D"
+        }, {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:canonical:ubuntu_linux:19.04:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "CD783B0C-9246-47D9-A937-6144FE8BFF0F"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:apple:mac_os_x:*:*:*:*:*:*:*:*",
+          "versionEndExcluding" : "10.15.1",
+          "matchCriteriaId" : "E773457A-E670-4DDA-86E2-0923C1DCD9BA"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:o:opensuse:leap:15.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "F1E78106-58E6-4D59-990F-75DA575BFAD9"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:redhat:software_collections:1.0:*:*:*:*:*:*:*",
+          "matchCriteriaId" : "9D7EE4B6-A6EC-4B9B-91DF-79615796673F"
+        } ]
+      } ]
+    }, {
+      "nodes" : [ {
+        "operator" : "OR",
+        "negate" : false,
+        "cpeMatch" : [ {
+          "vulnerable" : true,
+          "criteria" : "cpe:2.3:a:tenable:tenable.sc:*:*:*:*:*:*:*:*",
+          "versionEndExcluding" : "5.19.0",
+          "matchCriteriaId" : "41DBA7C7-8084-45F6-B59D-13A9022C34DF"
+        } ]
+      } ]
+    } ]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/cyrus-sasl-2.5.10.drv">
+Derive([("bin","/nix/store/arcy7xighrgzbc66nbwrnbygqlx21qkn-cyrus-sasl-2.5.10-bin","",""),("dev","/nix/store/bzmlljs8qmasv05msxcdjm9p7clbmhhy-cyrus-sasl-2.5.10-dev","",""),("devdoc","/nix/store/q4zmmlfnzcydm8wng6x20fqqywkz5ald-cyrus-sasl-2.5.10-devdoc","",""),("man","/nix/store/w7hsg8zizfzpm3qzrc43h4pri7qzjfsm-cyrus-sasl-2.5.10-man","",""),("out","/nix/store/k4m883xhgs5vrnxfgnq59vvk7vv12jmp-cyrus-sasl-2.5.10","","")],[("/nix/store/8njlmgzsvqj5x57l918115xh1g2nqzkr-linux-pam-1.2.1.drv",["out"]),("/nix/store/9n5lcx4qijv4ag84xi7ilr00frdm76c4-cyrus-sasl-2.5.10.tar.gz.drv",["out"]),("/nix/store/a3ymvkk05cdksvd6k02ynldhgqxa6dlh-db-5.3.28.drv",["out"]),("/nix/store/gh0najnhhd8naqrlcipkam8dy2lch0b6-gettext-0.19.8.drv",["out"]),("/nix/store/iih95k8anxzqrjcl70wyhw5adm326fgi-openssl-1.0.2l.drv",["dev","out"]),("/nix/store/npqpxymvy4kqh3zvydxkcymf2xnvcpi7-stdenv.drv",["out"]),("/nix/store/pl581vsdjmg01ncjdrf29h91ki73q3av-libkrb5-1.15.drv",["out"]),("/nix/store/y9iqpb9ws9f85zsf983zkk6ymw1qw45s-bash-4.4-p5.drv",["out"])],["/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh","/nix/store/s88ghhri7aq8g4r2p955n71zsiwfmm8h-missing-size_t.patch"],"x86_64-linux","/nix/store/lpk84rsbha199vm3k54498lqv2jswqj8-bash-4.4-p5/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("bin","/nix/store/arcy7xighrgzbc66nbwrnbygqlx21qkn-cyrus-sasl-2.5.10-bin"),("buildInputs",""),("builder","/nix/store/lpk84rsbha199vm3k54498lqv2jswqj8-bash-4.4-p5/bin/bash"),("configureFlags","--with-openssl=/nix/store/6jdgjasj5qahwlqf6hll6cr97ljnwkka-openssl-1.0.2l-dev"),("dev","/nix/store/bzmlljs8qmasv05msxcdjm9p7clbmhhy-cyrus-sasl-2.5.10-dev"),("devdoc","/nix/store/q4zmmlfnzcydm8wng6x20fqqywkz5ald-cyrus-sasl-2.5.10-devdoc"),("installFlags",""),("man","/nix/store/w7hsg8zizfzpm3qzrc43h4pri7qzjfsm-cyrus-sasl-2.5.10-man"),("name","cyrus-sasl-2.5.10"),("nativeBuildInputs","/nix/store/6jdgjasj5qahwlqf6hll6cr97ljnwkka-openssl-1.0.2l-dev /nix/store/aiq25g1n16j3k1wm8b8bh5hk0rnp5px2-db-5.3.28 /nix/store/s70cbg1lh45h3gl6xplz6bi2qdszi2cf-gettext-0.19.8 /nix/store/b7yiqkykhj3lr7dlb3v81rsdasjg32jw-libkrb5-1.15 /nix/store/bpjnw5dlrfjkjgz7dhgf9ivplarhv5p3-linux-pam-1.2.1"),("out","/nix/store/k4m883xhgs5vrnxfgnq59vvk7vv12jmp-cyrus-sasl-2.5.10"),("outputs","bin dev out man devdoc"),("patches","/nix/store/s88ghhri7aq8g4r2p955n71zsiwfmm8h-missing-size_t.patch"),("postInstall","for f in $out/lib/*.la $out/lib/sasl2/*.la; do\n  substituteInPlace $f --replace \"/nix/store/6jdgjasj5qahwlqf6hll6cr97ljnwkka-openssl-1.0.2l-dev/lib\" \"/nix/store/b6d4mxvj5wdnf28lpww73pllmm0zd2nv-openssl-1.0.2l/lib\"\ndone\n"),("preConfigure","configureFlagsArray=( --with-plugindir=$out/lib/sasl2\n                      --with-configdir=$out/lib/sasl2\n                      --with-saslauthd=/run/saslauthd\n                      --enable-login\n                    )\n"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/2biqy1wa0qx3555ml27zxhcm9nvv3lv7-cyrus-sasl-2.5.10.tar.gz"),("stdenv","/nix/store/ysa06zk7hz9k4f9l03681vfnnbscp5l5-stdenv"),("system","x86_64-linux"),("version","2.5.10")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/pkgs.json">
+{
+  "acpitool": {
+    "name": "acpitool-0.5.1",
+    "patches": [
+      "ac.patch",
+      "battery.patch"
+    ]
+  },
+  "aespipe": {
+    "name": "aespipe-2.4f",
+    "patches": []
+  },
+  "boolector": {
+    "name": "boolector-3.0.0",
+    "patches": ["CVE-2019-7560.patch"],
+    "known_vulnerabilities": ["CVE-2019-7559"]
+  }
+}
+</file>
+
+<file path="src/vulnix/tests/fixtures/structured-attrs-1.drv">
+Derive([("out","/nix/store/zq65287l3ghx2qrk6wzi1xaffgvq5ms8-structured-attrs-1","","")],[("/nix/store/32nvdb5kaz92bid8l7c0rzi8kr5smpr4-coreutils-8.29.drv",["out"]),("/nix/store/6bwh53x6086nwm5pv1c87jbj9jc5p06g-stdenv-linux.drv",["out"]),("/nix/store/qhvnja1jzfrir86h3w887nrw3fplxmn9-bash-4.4-p19.drv",["out"])],["/nix/store/5baf7x3zyfsbvgzmh0xpgyqbbnmpbsr7-builder.sh"],"x86_64-linux","/nix/store/xn5gv3lpfy91yvfy9b0i7klfcxh9xskz-bash-4.4-p19/bin/bash",["-e","/nix/store/5baf7x3zyfsbvgzmh0xpgyqbbnmpbsr7-builder.sh"],[("__json","{\"PATH\":\"/nix/store/jy9knxp7nmw80jkf932axrs1b4p9k4hi-coreutils-8.29/bin\",\"buildInputs\":[],\"builder\":\"/nix/store/xn5gv3lpfy91yvfy9b0i7klfcxh9xskz-bash-4.4-p19/bin/bash\",\"configureFlags\":[],\"depsBuildBuild\":[],\"depsBuildBuildPropagated\":[],\"depsBuildTarget\":[],\"depsBuildTargetPropagated\":[],\"depsHostBuild\":[],\"depsHostBuildPropagated\":[],\"depsTargetTarget\":[],\"depsTargetTargetPropagated\":[],\"name\":\"structured-attrs-1\",\"nativeBuildInputs\":[],\"propagatedBuildInputs\":[],\"propagatedNativeBuildInputs\":[],\"specialChars\":\"single quote '\\ndouble quote \\\"\\n\",\"stdenv\":\"/nix/store/3y0wxpkxzs6yz73iw35d17qr1wp4p2i4-stdenv-linux\",\"system\":\"x86_64-linux\"}"),("out","/nix/store/zq65287l3ghx2qrk6wzi1xaffgvq5ms8-structured-attrs-1")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/transmission-1.91.drv">
+Derive([("out","/nix/store/m5alb5piifw9dfm3391n80hn9x8nzbiz-transmission-1.91","","")],[("/nix/store/0vjakk65xkg1s887ma3fz5vks6cmkmkv-inotify-tools-3.14.drv",["out"]),("/nix/store/1a7nxkl8c6z9ylhbqa0ymvp8jnshhafh-bash-4.3-p42.drv",["out"]),("/nix/store/1if7ql5x88fjq4f22jcypkx57x5kyvwn-curl-7.47.0.drv",["out"]),("/nix/store/d9sryncawpqp7kvrn3dp0rhiqs91kffg-intltool-0.51.0.drv",["out"]),("/nix/store/gfxq04kswrha3yxalvrkw30q4mr1qna7-pkg-config-0.28.drv",["out"]),("/nix/store/kdjm9ryz1k5ks7vakjlfqipvnrvvdkqc-stdenv.drv",["out"]),("/nix/store/n7j1504gyd15ps52gqv76qa9g1jp93g5-systemd-217.drv",["out"]),("/nix/store/pjp5s99vlfgh2cvazzd5ldfan3sh75fh-file-5.24.drv",["out"]),("/nix/store/svnrq83x3cbaipv52r9pvy7jqm5bsjry-transmission-1.91.tar.xz.drv",["out"]),("/nix/store/w0vhr91hsv0b8jhq3a2x8mxpmrnqy7wf-openssl-1.0.1t.drv",["out"]),("/nix/store/wpgs0na7fhqn7r4k05nakm7fyq9g19j3-libevent-2.0.22.drv",["out"])],["/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],"x86_64-linux","/nix/store/6nrncwqmphfa329rs65p72w3qs9vd2q6-bash-4.3-p42/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("buildInputs",""),("builder","/nix/store/6nrncwqmphfa329rs65p72w3qs9vd2q6-bash-4.3-p42/bin/bash"),("configureFlags","--with-systemd-daemon"),("name","transmission-1.91"),("nativeBuildInputs","/nix/store/1mqmh8ppv1jwynawvsm80nhmdqjifaz2-pkg-config-0.28 /nix/store/8j5b3fqykaqhvnmz6d3grnb8n1ipc7xh-intltool-0.51.0 /nix/store/lapcwvv77dzw428fk36y4ndgp7ajkbjb-file-5.24 /nix/store/dbrn1wgakkzcp61msk4j2qdvympm8ddj-openssl-1.0.1t /nix/store/hsw2kcbh6z9i5cnmlcrp70a3smzr0ksn-curl-7.47.0 /nix/store/1q64ss2yrp7wc914mqbgrp4ilr1iyakl-libevent-2.0.22 /nix/store/d4dm1vhcggw70rq222rmn7s5aj4sq9l2-inotify-tools-3.14 /nix/store/r3pl1zd953qxjwvwr9f08njn5vbyzy2z-systemd-217"),("out","/nix/store/m5alb5piifw9dfm3391n80hn9x8nzbiz-transmission-1.91"),("preConfigure","sed -i -e 's|/usr/bin/file|/nix/store/lapcwvv77dzw428fk36y4ndgp7ajkbjb-file-5.24/bin/file|g' configure\n"),("preFixup",""),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/cvrxam0a36xd251xzahlk3xh09p8kqka-transmission-1.91.tar.xz"),("stdenv","/nix/store/jk87k6nvx5c8i4h6gx46skaz83v3ivna-stdenv"),("system","x86_64-linux")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/unzip-6.0.drv">
+Derive([("out","/nix/store/97v0hssn9371l027nkm8hkvfacabdqs2-unzip-6.0","","")],[("/nix/store/4y7x3db9bhfj3xdara02qini81c5rsmx-unzip60.tar.gz.drv",["out"]),("/nix/store/6h4qvyrdxf247p5cz3b10f6jdjmsgcga-bzip2-1.0.6.0.1.drv",["dev"]),("/nix/store/ic6x8w7x88kz9ifwmygf5gkynvr3l5vg-stdenv.drv",["out"]),("/nix/store/qyv5fwsq08x30n173b8xs9nad8ifdpra-bash-4.4-p12.drv",["out"])],["/nix/store/1k1wn8807yizgz3ghnbd4k6zsc0dzfkr-CVE-2014-9913.patch","/nix/store/2cq4hsc1v8ylccspw8351r72s56w1fia-CVE-2015-7697.diff","/nix/store/6np2acjv1nxcg0xzsv9a76wyrpxznkna-CVE-2014-8141.diff","/nix/store/6zqn6w9rwkgfa6z1hpagnh5xhz2dag6m-CVE-2015-7696.diff","/nix/store/97d26l91h0db8h0qkmhxwi5d8shrilv6-CVE-2016-9844.patch","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh","/nix/store/d9b2qrrq32jzdsdx4y33inzrra5n5z5n-CVE-2014-8140.diff","/nix/store/dhdp9vwy886bbdsvgqkg9h2ydigzbmli-setup-hook.sh","/nix/store/p46prhgmv7ibjh9igfkbc6zfxbbi6sk5-dont-hardcode-cc.patch","/nix/store/pdcj2chp5c2gvm2jc3shbajfc62kbx1i-CVE-2014-9636.diff","/nix/store/rdkdki1f24q8mqgnbsyk7gmh28c027ks-CVE-2014-8139.diff"],"x86_64-linux","/nix/store/7zj4h61blp5lsfi3y0p6p78wing95dsp-bash-4.4-p12/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("NIX_LDFLAGS","-lbz2"),("buildFlags","generic D_USE_BZ2=-DUSE_BZIP2 L_BZ2=-lbz2"),("buildInputs","/nix/store/b896isv3cc5bi0zmc3xny6rzyjhakjpi-bzip2-1.0.6.0.1-dev"),("builder","/nix/store/7zj4h61blp5lsfi3y0p6p78wing95dsp-bash-4.4-p12/bin/bash"),("configureFlags",""),("hardeningDisable","format"),("installFlags","prefix=$(out)"),("makefile","unix/Makefile"),("name","unzip-6.0"),("nativeBuildInputs","/nix/store/b896isv3cc5bi0zmc3xny6rzyjhakjpi-bzip2-1.0.6.0.1-dev"),("out","/nix/store/97v0hssn9371l027nkm8hkvfacabdqs2-unzip-6.0"),("patchFlags","-p1 -F3"),("patches","/nix/store/rdkdki1f24q8mqgnbsyk7gmh28c027ks-CVE-2014-8139.diff /nix/store/d9b2qrrq32jzdsdx4y33inzrra5n5z5n-CVE-2014-8140.diff /nix/store/6np2acjv1nxcg0xzsv9a76wyrpxznkna-CVE-2014-8141.diff /nix/store/pdcj2chp5c2gvm2jc3shbajfc62kbx1i-CVE-2014-9636.diff /nix/store/6zqn6w9rwkgfa6z1hpagnh5xhz2dag6m-CVE-2015-7696.diff /nix/store/2cq4hsc1v8ylccspw8351r72s56w1fia-CVE-2015-7697.diff /nix/store/1k1wn8807yizgz3ghnbd4k6zsc0dzfkr-CVE-2014-9913.patch /nix/store/97d26l91h0db8h0qkmhxwi5d8shrilv6-CVE-2016-9844.patch /nix/store/p46prhgmv7ibjh9igfkbc6zfxbbi6sk5-dont-hardcode-cc.patch"),("preConfigure","sed -i -e 's@CF=\"-O3 -Wall -I. -DASM_CRC $(LOC)\"@CF=\"-O3 -Wall -I. -DASM_CRC -DLARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64 $(LOC)\"@' unix/Makefile\n"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("setupHook","/nix/store/dhdp9vwy886bbdsvgqkg9h2ydigzbmli-setup-hook.sh"),("src","/nix/store/0mr3jzmbc6ldg9bzmb0pm1iszwk19grx-unzip60.tar.gz"),("stdenv","/nix/store/mak02i7jlgcln6n5a3qp45fbg9hnivbk-stdenv"),("system","x86_64-linux")])
+</file>
+
+<file path="src/vulnix/tests/fixtures/whitelist.toml">
+["*"]
+cve = ["CVE-2015-2504", "CVE-2015-7696"]
+
+["libxslt"]
+comment = "broken, won't fix"
+
+["unzip"]
+cve = "CVE-2015-7696"
+status = "inprogress"
+
+["libxslt-2.0"]
+until = "2018-03-01"
+cve = [ "CVE-2015-9019", "CVE-2017-2477" ]
+
+["audiofile-0.3.2"]
+
+["audiofile-0.3.6"]
+cve = [
+  "CVE-2017-6827",
+  "CVE-2017-6828",
+  "CVE-2017-6834",
+]
+issue_url = "https://fb.flyingcircus.io/f/cases/26909/"
+comment = "some issues not fixed upstream"
+
+# vim: set ft=cfg:
+</file>
+
+<file path="src/vulnix/tests/fixtures/whitelist.yaml">
+-
+    cve:
+        - CVE-2015-2504
+        - CVE-2015-7696
+-
+    name: libxslt
+    comment: "broken, won't fix"
+-
+    cve: CVE-2015-7696
+    name: unzip
+    status: inprogress
+-
+    name: libxslt
+    version: '2.0'
+    until: 2018-03-01
+-
+    name: audiofile
+    version: '0.3.2'
+-
+    name: audiofile
+    version: '0.3.6'
+    cve:
+        - CVE-2017-6827
+        - CVE-2017-6828
+        - CVE-2017-6834
+    issue_url: "https://fb.flyingcircus.io/f/cases/26909/"
+    comment: 'some issues not fixed upstream'
+</file>
+
+<file path="src/vulnix/tests/fixtures/xercesc-3.2.3.drv">
+Derive([("out","/nix/store/dn5f1z57l02bhgc6xd3701cqx88x490a-xercesc","","")],[("/nix/store/gxl158n3w7zkb2zbhvyvncbb7kfffv2f-hook.drv",["out"]),("/nix/store/l7ygm6j5k765iwa6jyyybigd5g02sqk5-pkg-config-wrapper-0.29.2.drv",["out"]),("/nix/store/rqr83h2vbyd05bwfb2sagxfmp2zir6s3-source.drv",["out"]),("/nix/store/sr6b1h6by3fkdhsbz8phrxvcjxxg6vbr-bash-5.1-p16.drv",["out"]),("/nix/store/vjvsxc8xgy1dd8c0dix45ankdmi6kb85-stdenv-linux.drv",["out"])],["/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh","/nix/store/sysycpah75i3m3wh5zbihwp9hpcl56lw-xercesc.patch"],"x86_64-linux","/nix/store/kga2r02rmyxl14sg96nxbdhifq3rb8lc-bash-5.1-p16/bin/bash",["-e","/nix/store/9krlzvny65gdc8s7kpb6lkx8cd02c25b-default-builder.sh"],[("CXXFLAGS","-Wno-error"),("LIBS","-lstdc++ -lm"),("buildInputs",""),("builder","/nix/store/kga2r02rmyxl14sg96nxbdhifq3rb8lc-bash-5.1-p16/bin/bash"),("cmakeFlags",""),("configureFlags","--disable-network --enable-mutexmgr-standard --enable-transcoder-iconv --disable-tests --disable-shared --host=x86_64-linux-gnu"),("depsBuildBuild",""),("depsBuildBuildPropagated",""),("depsBuildTarget",""),("depsBuildTargetPropagated",""),("depsHostHost",""),("depsHostHostPropagated",""),("depsTargetTarget",""),("depsTargetTargetPropagated",""),("doCheck",""),("doInstallCheck",""),("mesonFlags",""),("name","xercesc"),("nativeBuildInputs","/nix/store/kkxx963z7a6ihb3xhvxlqaziyb18zc84-pkg-config-wrapper-0.29.2 /nix/store/dr71bz5psw6vhlj26pqkls1nibsvqwi1-hook"),("out","/nix/store/dn5f1z57l02bhgc6xd3701cqx88x490a-xercesc"),("outputs","out"),("patches","/nix/store/sysycpah75i3m3wh5zbihwp9hpcl56lw-xercesc.patch"),("propagatedBuildInputs",""),("propagatedNativeBuildInputs",""),("src","/nix/store/856pqhzgb7kafa715k2m647ihh10i0py-source"),("stdenv","/nix/store/jqpjsnl56szaavvhkyjmwkmfgr1kgb6h-stdenv-linux"),("strictDeps",""),("system","x86_64-linux"),("version","3.2.3")])
+</file>
+
+<file path="src/vulnix/tests/conftest.py">
+import hashlib
+import http.server
+import json
+import os
+import threading
+from http import HTTPStatus
+from pathlib import Path
+
+import pytest
+
+from vulnix.nvd import NVD
+from vulnix.whitelist import Whitelist
+
+fixtures_path = Path(os.path.dirname(os.path.realpath(__file__))) / "fixtures"
+
+
+def load(cve):
+    return json.loads((fixtures_path / f"{cve}.json").read_text())["cve"]
+
+
+@pytest.fixture
+def whitelist_toml():
+    return (fixtures_path / "whitelist.toml").open()
+
+
+@pytest.fixture
+def whitelist_yaml():
+    return (fixtures_path / "whitelist.yaml").open()
+
+
+@pytest.fixture
+def whitelist():
+    return Whitelist.load((fixtures_path / "whitelist.toml").open())
+
+
+class RequestHandler(http.server.SimpleHTTPRequestHandler):
+    def do_GET(self):
+        """Serve a GET request from the fixtures directory"""
+        fn = os.path.join(os.path.dirname(__file__), "fixtures", self.path[1:])
+        print("path=", fn)
+        try:
+            with open(fn, "rb") as f:
+                stat = os.fstat(f.fileno())
+                content = f.read()
+        except (IOError, OSError):
+            self.send_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", self.guess_type(fn))
+        self.send_header("Content-Length", stat.st_size)
+        self.send_header("ETag", hashlib.sha1(content).hexdigest())
+        self.end_headers()
+        self.wfile.write(content)
+
+
+@pytest.fixture(name="http_server")
+def fixture_http_server():
+    httpd = http.server.HTTPServer(("127.0.0.1", 0), RequestHandler)
+    port = httpd.socket.getsockname()[1]
+    mirror_url = f"http://127.0.0.1:{port}/"
+    t = threading.Thread(target=httpd.serve_forever, daemon=True)
+    t.start()
+    yield mirror_url
+
+
+@pytest.fixture
+def nvd(tmpdir, http_server):
+    _nvd = NVD(mirror=http_server, cache_dir=str(tmpdir))
+    _nvd.available_archives = ["modified"]
+    with _nvd:
+        yield _nvd
+</file>
+
+<file path="src/vulnix/tests/nvd_test.py">
+from conftest import load
+
+from vulnix.vulnerability import Node, Vulnerability
+
+
+def test_update(nvd):
+    # pylint: disable=protected-access
+    nvd.update()
+    assert len(nvd._root["advisory"]) == 3
+    cve = nvd.by_id("CVE-2010-0748")
+    assert cve == Vulnerability.parse(load("CVE-2010-0748"))
+    assert cve == nvd.by_product("transmission")[0]
+
+
+def test_parse_vuln():
+    v = Vulnerability.parse(load("CVE-2019-10160"))
+    assert v.cve_id == "CVE-2019-10160"
+    assert v.nodes == [
+        Node("python", "python", [">=2.7.0", "<2.7.17"]),
+        Node("python", "python", [">=3.5.0", "<3.5.8"]),
+        Node("python", "python", [">=3.6.0", "<3.6.9"]),
+        Node("python", "python", [">=3.7.0", "<3.7.4"]),
+        Node("python", "python", "3.8.0-alpha4"),
+        Node("python", "python", "3.8.0-beta1"),
+        Node("redhat", "virtualization", "4.0"),
+    ]
+</file>
+
+<file path="src/vulnix/tests/output_test.py">
+import datetime
+import json
+
+import pytest
+from click import unstyle
+from conftest import load
+
+from vulnix.derivation import Derive
+from vulnix.output import Filtered, fmt_vuln, output, output_json, output_text
+from vulnix.vulnerability import Vulnerability
+from vulnix.whitelist import WhitelistRule
+
+V = Vulnerability
+
+
+@pytest.fixture(name="deriv")
+def fixture_deriv():
+    d = Derive(name="test-0.2")
+    d.store_path = "/nix/store/zsawgflc1fq77ijjzb1369zi6kxnc36j-test-0.2"
+    return (
+        d,
+        {
+            V("CVE-2018-0001"),
+            V("CVE-2018-0002"),
+            V("CVE-2018-0003", cvssv3=9.8),
+        },
+    )
+
+
+@pytest.fixture(name="deriv1")
+def fixture_deriv1():
+    return (Derive(name="foo-1"), {V("CVE-2018-0004"), V("CVE-2018-0005")})
+
+
+@pytest.fixture(name="deriv2")
+def fixture_deriv2():
+    return (Derive(name="bar-2"), {V("CVE-2018-0006", cvssv3=5.0)})
+
+
+@pytest.fixture(name="filt")
+def fixture_filt(deriv):
+    return Filtered(*deriv)
+
+
+@pytest.fixture(name="items")
+def fixture_items(deriv, deriv1, deriv2):
+    return [Filtered(*deriv), Filtered(*deriv1), Filtered(*deriv2)]
+
+
+def test_init(deriv):
+    f = Filtered(*deriv)
+    assert f.report == {V("CVE-2018-0001"), V("CVE-2018-0002"), V("CVE-2018-0003")}
+    assert not f.masked
+
+
+def test_add_unspecific_rule(deriv):
+    f = Filtered(*deriv)
+    f.add(WhitelistRule(pname="test", version="1.2"))
+    assert not f.report
+
+
+def test_add_rule_with_cves(filt):
+    filt.add(WhitelistRule(pname="test", version="1.2", cve={"CVE-2018-0001"}))
+    assert filt.report == {V("CVE-2018-0002"), V("CVE-2018-0003")}
+    assert filt.masked == {V("CVE-2018-0001")}
+
+
+def test_add_temporary_whitelist(filt):
+    assert not filt.until
+    filt.add(WhitelistRule(pname="test", version="1.2", until="2018-03-05"))
+    assert filt.until == datetime.date(2018, 3, 5)
+
+
+@pytest.fixture(name="wl_items")
+def fixture_wl_items(items):
+    # makes deriv1 list only one CVE
+    items[1].add(WhitelistRule(cve={"CVE-2018-0004"}, issue_url="https://tracker/4"))
+    # makes deriv2 disappear completely
+    items[2].add(WhitelistRule(pname="bar", comment="irrelevant"))
+    return items
+
+
+def test_output_text(wl_items, capsys):
+    output_text(wl_items, show_whitelisted=True)
+    assert (
+        capsys.readouterr().out
+        == """\
+2 derivations with active advisories
+
+------------------------------------------------------------------------
+foo-1
+
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2018-0005
+https://nvd.nist.gov/vuln/detail/CVE-2018-0004  [whitelisted]
+
+Issue(s):
+https://tracker/4
+
+------------------------------------------------------------------------
+test-0.2
+
+/nix/store/zsawgflc1fq77ijjzb1369zi6kxnc36j-test-0.2
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2018-0003     9.8
+https://nvd.nist.gov/vuln/detail/CVE-2018-0001
+https://nvd.nist.gov/vuln/detail/CVE-2018-0002
+
+------------------------------------------------------------------------
+bar-2
+
+CVE                                                CVSSv3
+https://nvd.nist.gov/vuln/detail/CVE-2018-0006     5.0  [whitelisted]
+
+Comment:
+* irrelevant
+"""
+    )
+
+
+def test_output_json(wl_items, capsys):
+    output_json(wl_items)
+    assert json.loads(capsys.readouterr().out) == [
+        {
+            "affected_by": ["CVE-2018-0005"],
+            "derivation": None,
+            "name": "foo-1",
+            "pname": "foo",
+            "version": "1",
+            "whitelisted": ["CVE-2018-0004"],
+            "cvssv3_basescore": {},
+            "description": {},
+        },
+        {
+            "affected_by": ["CVE-2018-0001", "CVE-2018-0002", "CVE-2018-0003"],
+            "derivation": "/nix/store/zsawgflc1fq77ijjzb1369zi6kxnc36j-test-0.2",
+            "name": "test-0.2",
+            "pname": "test",
+            "version": "0.2",
+            "whitelisted": [],
+            "cvssv3_basescore": {
+                "CVE-2018-0003": 9.8,
+            },
+            "description": {},
+        },
+    ]
+
+
+def test_exitcode(items, capsys):
+    assert output([], json_dump=True) == 0
+    # something to report
+    assert output(items) == 2
+    # everything masked
+    for i in items:
+        i.add(WhitelistRule(pname=i.derivation.pname))
+    assert output(items) == 0
+    assert output(items, show_whitelisted=True) == 1
+    capsys.readouterr()  # swallow stdout/stderr: it doesn't matter here
+
+
+def test_description():
+    v = Vulnerability.parse(load("CVE-2010-0748"))
+    assert unstyle(fmt_vuln(v, show_description=True)) == (
+        "https://nvd.nist.gov/vuln/detail/CVE-2010-0748              "
+        "Transmission before 1.92 allows an attacker to cause a denial of "
+        "service (crash) or possibly have other unspecified impact via a "
+        "large number of tr arguments in a magnet link."
+    )
+
+
+def test_description_json(capsys):
+    d = Derive(name="test-0.2")
+    v = Vulnerability.parse(load("CVE-2010-0748"))
+    output_json([Filtered(d, {v})])
+    assert json.loads(capsys.readouterr().out) == [
+        {
+            "affected_by": ["CVE-2010-0748"],
+            "cvssv3_basescore": {},
+            "derivation": None,
+            "description": {
+                "CVE-2010-0748": "Transmission before 1.92 allows an "
+                "attacker to cause a denial of service "
+                "(crash) or possibly have other unspecified "
+                "impact via a large number of tr arguments "
+                "in a magnet link."
+            },
+            "name": "test-0.2",
+            "pname": "test",
+            "version": "0.2",
+            "whitelisted": [],
+        }
+    ]
+</file>
+
+<file path="src/vulnix/tests/resource_test.py">
+import http.server
+import os
+import signal
+from pathlib import Path
+
+import pytest
+
+from vulnix.resource import Resource, open_resources
+
+# fixtures directory
+fixtures_path = Path(os.path.dirname(os.path.realpath(__file__))) / "fixtures"
+
+
+@pytest.fixture(name="http_server")
+def fixture_http_server():
+    """Spawns a HTTP server in a separate process, serving test fixtures.
+
+    Yields base URL of the HTTP server (e.g., http://localhost:1234/)
+    """
+    oldcwd = os.getcwd()
+    os.chdir(fixtures_path)
+    httpd = http.server.HTTPServer(
+        ("localhost", 0), http.server.SimpleHTTPRequestHandler
+    )
+    port = httpd.server_port
+    child = os.fork()
+    if child == 0:
+        signal.alarm(3600)  # safety belt
+        httpd.serve_forever()
+        return  # never reached
+    os.chdir(oldcwd)
+    yield f"http://localhost:{port}/"
+    os.kill(child, signal.SIGTERM)
+    os.wait()
+
+
+def test_open_local():
+    fn = fixtures_path / "whitelist.toml"
+    with Resource(fn.as_posix()).open() as f:
+        assert f.read() == fn.read_bytes()
+
+
+def test_open_remote(http_server):
+    # pylint: disable=consider-using-with
+    with Resource(http_server + "/whitelist.toml").open() as f:
+        assert f.read() == (fixtures_path / "whitelist.toml").read_bytes()
+
+
+def test_multiple_resources(http_server):
+    # pylint: disable=consider-using-with
+    expected = (fixtures_path / "cpio-2.12.drv").read_bytes()
+    gen = open_resources(
+        sources=[
+            (fixtures_path / "cpio-2.12.drv").as_posix(),
+            (fixtures_path / "no-such-file").as_posix(),
+            http_server + "cpio-2.12.drv",
+            http_server + "file-not-found",
+        ]
+    )
+    assert next(gen).read() == expected  # local file
+    assert next(gen).read() == expected  # remote
+    with pytest.raises(StopIteration):
+        next(gen)  # should skip nonexistent files/urls silently
+</file>
+
+<file path="src/vulnix/tests/store_test.py">
+import os
+from pathlib import Path
+
+import pytest
+
+from vulnix.derivation import Derive
+from vulnix.nix import Store
+
+
+@pytest.fixture(name="json")
+def fixture_json():
+    fixtures_path = Path(os.path.dirname(os.path.realpath(__file__))) / "fixtures"
+    return (fixtures_path / "pkgs.json").open()
+
+
+def test_load_json(json):
+    s = Store(requisites=False)
+    s.load_pkgs_json(json)
+    assert s.derivations == set(
+        [
+            Derive(name="acpitool-0.5.1", patches="ac.patch battery.patch"),
+            Derive(name="aespipe-2.4f"),
+            Derive(name="boolector-3.0.0", patches="CVE-2019-7560.patch CVE-2019-7559"),
+        ]
+    )
+</file>
+
+<file path="src/vulnix/tests/test_derivation.py">
+import os
+import tempfile
+from pathlib import Path
+
+import pytest
+
+from vulnix.derivation import Derive, SkipDrv, load, split_name
+from vulnix.vulnerability import Vulnerability
+
+V = Vulnerability
+
+
+def drv(fixture):
+    fixtures_path = Path(os.path.dirname(os.path.realpath(__file__))) / "fixtures"
+    return load((fixtures_path / f"{fixture}.drv").as_posix())
+
+
+def test_load_drv_explicit_version():
+    d = drv("cyrus-sasl-2.5.10")
+    assert d.pname == "cyrus-sasl"
+    assert d.version == "2.5.10"
+
+
+def test_should_not_load_arbitrary_code():
+    with tempfile.NamedTemporaryFile(prefix="security_breach") as b:
+        with tempfile.NamedTemporaryFile(prefix="evil_eval", mode="w") as f:
+            print(
+                f"""
+Derive(envVars={{'name': str((lambda: open('{b.name}', 'w').write('shellcode'))())}})
+""",
+                file=f,
+            )
+            f.flush()
+            with pytest.raises(NameError):
+                load(f.name)
+            assert os.path.getsize(b.name) == 0
+
+
+def test_split_name():
+    assert split_name("network-2.6.3.2-r1.cabal") == ("network", "2.6.3.2-r1.cabal")
+    assert split_name("python2.7-pytest-runner-2.6.2.drv") == (
+        "python2.7-pytest-runner",
+        "2.6.2",
+    )
+    assert split_name("hook.drv") == ("hook", None)
+
+
+def test_split_nameversion():
+    d = Derive(envVars={"name": "bundler-1.10.5-0"})
+    assert d.pname == "bundler"
+    assert d.version == "1.10.5-0"
+
+
+def test_split_name_noversion():
+    with pytest.raises(SkipDrv):
+        Derive(envVars={"name": "hook"})
+
+
+def test_read_version_from_environment_variables():
+    d1 = drv("xercesc-3.2.3")
+    assert d1.name == "xercesc"
+    assert d1.version == "3.2.3"
+
+    d2 = Derive(envVars={"name": "test", "version": "1.2.3"})
+    assert d2.version == "1.2.3"
+
+
+def test_guess_cves_from_direct_patches_bzip2():
+    deriv = drv("bzip2-1.0.6.0.1")
+    assert {"CVE-2016-3189"} == deriv.applied_patches()
+
+
+def test_guess_cves_from_fetchpatch():
+    deriv = drv("cpio-2.12")
+    assert {"CVE-2015-1197", "CVE-2016-2037"} == deriv.applied_patches()
+
+
+def test_patches_with_multiple_cves():
+    deriv = drv("audiofile-0.3.6")
+    assert {
+        "CVE-2015-7747",
+        "CVE-2017-6827",
+        "CVE-2017-6828",
+        "CVE-2017-6829",
+        "CVE-2017-6830",
+        "CVE-2017-6831",
+        "CVE-2017-6832",
+        "CVE-2017-6833",
+        "CVE-2017-6834",
+        "CVE-2017-6835",
+        "CVE-2017-6836",
+        "CVE-2017-6837",
+        "CVE-2017-6838",
+        "CVE-2017-6839",
+    } == deriv.applied_patches()
+
+
+def test_check_returns_cves(nvd):
+    """Test for CVE-2016-9844 which is listed but has a patch."""
+    nvd.update()
+    d = drv("transmission-1.91")
+    assert d.check(nvd) == {
+        V("CVE-2010-0748", cvssv3=9.8),
+    }
+
+
+def test_ignore_patched_cves_during_check(nvd):
+    """Test for CVE-2016-9844 which is listed but has a patch."""
+    nvd.update()
+    d = drv("unzip-6.0")
+    assert set() == d.check(nvd)
+
+
+def test_ordering():
+    assert Derive(name="python-2.7.14") == Derive(name="python-2.7.14")
+    assert Derive(name="python-2.7.14") != Derive(name="python-2.7.13")
+    assert Derive(name="coreutils-8.29") < Derive(name="patch-2.7.6")
+    assert Derive(name="python-2.7.5") >= Derive(name="patch-2.7.6")
+    assert Derive(name="python-2.7.6") > Derive(name="patch-2.7.6")
+    assert Derive(name="python-2.7.14") > Derive(name="python-2.7.13")
+    assert Derive(name="patch-2.7.14") <= Derive(name="python-2.7.13")
+    assert Derive(name="python-2.7.13") <= Derive(name="python-2.7.14")
+    assert Derive(name="openssl-1.0.1d") < Derive(name="openssl-1.0.1e")
+
+
+def test_structured_attrs():
+    d = drv("structured-attrs-1")
+    assert d.name == "structured-attrs-1"
+
+
+def test_product_candidates():
+    assert ["linux-kernel", "linux_kernel"] == list(
+        Derive(name="linux-kernel-4.0").product_candidates()
+    )
+    assert [
+        "Email-Address",
+        "Email_Address",
+        "email-address",
+        "email_address",
+    ] == list(Derive(name="Email-Address-1").product_candidates())
+</file>
+
+<file path="src/vulnix/tests/utils_test.py">
+from vulnix.utils import compare_versions, haskeys, split_components
+
+
+def test_compare_versions():
+    """Tests from https://nixos.org/nix/manual/#ssec-version-comparisons"""
+    assert -1 == compare_versions("1.0", "2.3")
+    assert -1 == compare_versions("2.1", "2.3")
+    assert 0 == compare_versions("2.3", "2.3")
+    assert 1 == compare_versions("2.5", "2.3")
+    assert 1 == compare_versions("3.1", "2.3")
+    assert 1 == compare_versions("2.3.1", "2.3")
+    assert 1 == compare_versions("2.3.1", "2.3a")
+    assert 1 == compare_versions("2.3", "2.3pre")
+    assert -1 == compare_versions("2.3pre1", "2.3")
+    assert -1 == compare_versions("2.3pre3", "2.3pre12")
+    assert -1 == compare_versions("2.3a", "2.3c")
+    assert -1 == compare_versions("2.3pre1", "2.3c")
+    assert -1 == compare_versions("2.3pre1", "2.3q")
+
+
+def test_split_components():
+    assert ["2", "3", "pre", "1"] == list(split_components("2.3pre1"))
+    assert ["2019", "11", "01"] == list(split_components("2019-11-01"))
+    assert ["5", "1", "a", "lts"] == list(split_components("5.1a-lts"))
+
+
+def test_haskeys():
+    assert not haskeys({}, "foo")
+    assert haskeys({"foo": 1}, "foo")
+    assert not haskeys({"foo": 1}, "foo", "bar")
+    assert haskeys({"foo": {"bar": 1}}, "foo", "bar")
+    assert not haskeys({"foo": {"bar": 1}}, "foo", "baz")
+</file>
+
+<file path="src/vulnix/tests/vulnerability_test.py">
+import json
+import os
+from pathlib import Path
+
+from vulnix.vulnerability import Node, Vulnerability
+
+V = Vulnerability
+
+
+def load(cve):
+    fixtures_path = Path(os.path.dirname(os.path.realpath(__file__))) / "fixtures"
+    return json.loads((fixtures_path / f"{cve}.json").read_text())["cve"]
+
+
+def test_parse_single_matches():
+    v = V.parse(load("CVE-2016-2183"))
+    # redhat entries do not get compressed, python & openssl do
+    assert v.nodes == [
+        Node("redhat", "jboss_enterprise_application_platform", "6.0.0"),
+        Node("redhat", "jboss_enterprise_web_server", "1.0.0"),
+        Node("redhat", "jboss_enterprise_web_server", "2.0.0"),
+        Node("redhat", "jboss_web_server", "3.0"),
+        Node("python", "python", [">=2.7.0", "<2.7.13"]),
+        Node("python", "python", [">=3.4.0", "<3.4.7"]),
+        Node("python", "python", [">=3.5.0", "<3.5.3"]),
+    ]
+    assert v.match("python", "3.5.2")
+    assert not v.match("python", "3.5.3")
+
+
+def test_ignore_AND_operator():
+    # pylint: disable=invalid-name
+    # The AND operators are usually incomplete or incorrect. We prefer to get a
+    # few more false positives by ignoring them altogether.
+    v = V.parse(load("CVE-2010-0748"))
+    assert v.nodes == [Node("transmissionbt", "transmission", ["<1.92"])]
+    assert v.match("transmission", "1.91")
+    assert not v.match("transmission", "1.92")
+
+
+def test_product_not_found(nvd):
+    assert [] == nvd.by_product("nonexistent-product")
+
+
+def test_str():
+    assert "CVE-2016-2183" == str(
+        V("CVE-2016-2183", Node("openssl", "openssl", "1.0.1a"))
+    )
+
+
+def test_match_multiple_version_ranges():
+    v = V.parse(load("CVE-2019-11041"))
+    assert v.match("php", "7.2.20")
+    assert not v.match("php", "7.2.21")
+
+
+def test_match_right_version():
+    # This CVE contains a non-matching range for openssl and a matching range
+    # for an Oracle product. Make sure that the matching algo considers the
+    # product name.
+    v = V.parse(load("CVE-2015-1789"))
+    assert v.match("openssl", "1.0.2-beta1")
+    assert not v.match("openssl", "1.1.1d")
+
+
+def test_compress_strings():
+    v = V.parse(load("CVE-2015-1789"))
+    assert v.nodes[0].vendor == v.nodes[1].vendor
+    assert id(v.nodes[0].vendor) == id(v.nodes[1].vendor)
+    assert v.nodes[0].product == v.nodes[1].product
+    assert id(v.nodes[0].product) == id(v.nodes[1].product)
+
+
+def test_cvss_score():
+    v = V.parse(load("CVE-2019-10160"))
+    assert v.cvssv3 == 9.8
+    assert v.cvssv2 == 5.0
+
+
+def test_no_cvss_score():
+    v = V.parse(load("CVE-2010-0748"))
+    assert v.cvssv3 == 0.0
+    assert v.cvssv2 == 0.0
+
+
+def test_cve_ordering():
+    assert V("CVE-2019-0001") < V("CVE-2019-0002")
+    assert V("CVE-2019-0002") == V("CVE-2019-0002")
+    assert V("CVE-2019-0001") > V("CVE-2018-0001")
+    assert V("CVE-2019-10000") > V("CVE-2018-2000")
+    assert V("CVE-2019-0700") > V("CVE-2018-0699")
+</file>
+
+<file path="src/vulnix/tests/whitelist_test.py">
+import datetime
+import io
+
+import freezegun
+import pytest
+
+from vulnix.derivation import Derive
+from vulnix.output import Filtered
+from vulnix.vulnerability import Vulnerability
+from vulnix.whitelist import Whitelist, WhitelistRule
+
+V = Vulnerability
+
+
+@freezegun.freeze_time("2018-02-28")
+def check_whitelist_entries(wl):
+    assert len(wl) == 6
+
+    entry = wl["*"]
+    assert entry.cve == {"CVE-2015-2504", "CVE-2015-7696"}
+    assert entry.issue_url == set()
+    assert entry.comment == []
+    assert not hasattr(entry, "status")
+
+    assert wl["libxslt"].comment == ["broken, won't fix"]
+    assert wl["libxslt-2.0"].until == datetime.date(2018, 3, 1)
+    assert wl["unzip"].cve == {"CVE-2015-7696"}
+    assert wl["audiofile-0.3.2"] is not None
+
+    entry = wl["audiofile-0.3.6"]
+    assert entry.issue_url == {"https://fb.flyingcircus.io/f/cases/26909/"}
+    assert entry.cve == {"CVE-2017-6827", "CVE-2017-6834", "CVE-2017-6828"}
+
+
+def test_from_yaml(whitelist_yaml):
+    check_whitelist_entries(Whitelist.load(whitelist_yaml))
+
+
+def test_from_toml(whitelist_toml):
+    check_whitelist_entries(Whitelist.load(whitelist_toml))
+
+
+def test_neither_name_nor_cve():
+    with pytest.raises(RuntimeError):
+        Whitelist.load(io.StringIO("-\n  comment: invalid entry\n"))
+
+
+def test_parse_until():
+    wl = Whitelist.load(io.StringIO('["libarchive"]\nuntil = "2019-03-10"\n'))
+    assert len(wl.entries) == 1
+    assert wl.entries["libarchive"].until == datetime.date(2019, 3, 10)
+
+
+def test_match_pname_version():
+    rule = WhitelistRule(pname="libxslt", version="2.0")
+    assert rule.covers(Derive(name="libxslt-2.0"))
+    assert not rule.covers(Derive(name="libxslt-2.1"))
+
+
+def test_match_pname_only():
+    rule = WhitelistRule(pname="libxslt", version="*")
+    assert rule.covers(Derive(name="libxslt-2.0"))
+    assert rule.covers(Derive(name="libxslt-2.1"))
+    assert not rule.covers(Derive(name="libxml2-2.0"))
+
+
+def test_match_pname_version_cve():
+    rule = WhitelistRule(pname="cpio", version="2.12", cve=["CVE-2015-1197"])
+    assert rule.covers(Derive(name="cpio-2.12"), {V("CVE-2015-1197")})
+    assert not rule.covers(Derive(name="cpio-2.12"), {V("CVE-2015-1198")})
+
+
+def test_match_cve_only():
+    rule = WhitelistRule(cve=["CVE-2015-1197", "CVE-2016-2037"])
+    assert rule.covers(Derive(name="cpio-2.12"), {V("CVE-2015-1197")})
+    assert not rule.covers(Derive(name="cpio-2.12"), {V("CVE-2016-2038")})
+
+
+def test_match_partial():
+    rule = WhitelistRule(cve=["CVE-2015-1197", "CVE-2016-2037"])
+    assert rule.covers(
+        Derive(name="cpio-2.12"), {V("CVE-2015-1197"), V("CVE-2015-1198")}
+    )
+
+
+def test_until():
+    rule = WhitelistRule(pname="libxslt", until="2018-04-12")
+    d = Derive(name="libxslt-2.0")
+    with freezegun.freeze_time("2018-04-11"):
+        assert rule.covers(d)
+    with freezegun.freeze_time("2018-04-12"):
+        assert not rule.covers(d)
+
+
+def test_not_whitelisted(whitelist):
+    filtered = whitelist.find(Derive(name="cpio-2.12"), {V("CVE-2016-2037")})
+    assert filtered.rules == []
+    assert filtered.report == {V("CVE-2016-2037")}
+
+
+def test_filter(whitelist):
+    affected = {
+        # not filtered
+        Derive(name="cpio-2.12"): {V("CVE-2016-2037")},
+        # partially filtered
+        Derive(name="audiofile-0.3.6"): {V("CVE-2017-6826"), V("CVE-2017-6827")},
+        # fully filtered
+        Derive(name="unzip-6.0"): {V("CVE-2015-7696")},
+        # fully filtered w/o specific CVEs
+        Derive(name="audiofile-0.3.2"): {V("CVE-2018-2668")},
+    }
+    f = whitelist.filter(affected)
+    assert f[0].report == {V("CVE-2016-2037")}
+    assert f[1].report == {V("CVE-2017-6826")}
+    assert f[2].report == set()
+    assert f[3].report == set()
+
+
+def test_merge(whitelist):
+    new = Whitelist.load(
+        io.StringIO(
+            """\
+["libxslt-2.0"]
+until = "2018-02-25"
+comment = "latest date wins"
+
+["audiofile-0.3.6"]
+cve = ["CVE-2017-6827", "CVE-2017-6839"]
+comment = "new stuff should be appended"
+issue_url = "https://github.com/NixOS/nixpkgs/issues/30959"
+
+["libtasn1-4.12"]
+cve = ["CVE-2017-10790"]
+"""
+        )
+    )
+    whitelist.merge(new)
+    assert len(whitelist) == 7
+
+    libxslt = whitelist["libxslt-2.0"]
+    assert libxslt.until == datetime.date(2018, 3, 1)
+    assert libxslt.comment == ["latest date wins"]
+
+    audiofile = whitelist["audiofile-0.3.6"]
+    assert audiofile.cve == {
+        "CVE-2017-6827",
+        "CVE-2017-6834",
+        "CVE-2017-6828",
+        "CVE-2017-6839",
+    }
+    assert audiofile.comment == [
+        "some issues not fixed upstream",
+        "new stuff should be appended",
+    ]
+    assert audiofile.issue_url == {
+        "https://fb.flyingcircus.io/f/cases/26909/",
+        "https://github.com/NixOS/nixpkgs/issues/30959",
+    }
+
+    libtasn1 = whitelist["libtasn1-4.12"]
+    assert libtasn1.cve == {"CVE-2017-10790"}
+
+
+def test_merge_into_empty():
+    wl = Whitelist()
+    new = Whitelist.load(
+        io.StringIO(
+            """\
+["libxslt"]
+["audiofile-0.3.6"]
+"""
+        )
+    )
+    wl.merge(new)
+    assert set(wl.entries.keys()) == {"libxslt", "audiofile-0.3.6"}
+
+
+def test_until_latest_wins(whitelist):
+    new = Whitelist.load(
+        io.StringIO(
+            """\
+["libxslt-2.0"]
+until = "2018-03-02"
+
+["audiofile-0.3.2"]
+until = "2018-04-01"
+"""
+        )
+    )
+    whitelist.merge(new)
+    assert whitelist["libxslt-2.0"].until == datetime.date(2018, 3, 2)
+    assert whitelist["audiofile-0.3.2"].until == datetime.date(2018, 4, 1)
+
+
+@freezegun.freeze_time("2018-02-28")
+def test_dump_str(whitelist):
+    assert (
+        str(whitelist)
+        == """\
+["*"]
+cve = [ "CVE-2015-2504", "CVE-2015-7696" ]
+
+[libxslt]
+comment = "broken, won't fix"
+
+[unzip]
+cve = "CVE-2015-7696"
+
+["libxslt-2.0"]
+cve = [ "CVE-2015-9019", "CVE-2017-2477" ]
+until = "2018-03-01"
+
+["audiofile-0.3.2"]
+
+["audiofile-0.3.6"]
+cve = [ "CVE-2017-6827", "CVE-2017-6828", "CVE-2017-6834" ]
+comment = "some issues not fixed upstream"
+issue_url = "https://fb.flyingcircus.io/f/cases/26909/"
+"""
+    )
+
+
+@freezegun.freeze_time("2018-03-01")
+def test_dump_str_remove_outdated(whitelist):
+    assert (
+        str(whitelist)
+        == """\
+["*"]
+cve = [ "CVE-2015-2504", "CVE-2015-7696" ]
+
+[libxslt]
+comment = "broken, won't fix"
+
+[unzip]
+cve = "CVE-2015-7696"
+
+["audiofile-0.3.2"]
+
+["audiofile-0.3.6"]
+cve = [ "CVE-2017-6827", "CVE-2017-6828", "CVE-2017-6834" ]
+comment = "some issues not fixed upstream"
+issue_url = "https://fb.flyingcircus.io/f/cases/26909/"
+"""
+    )
+
+
+@freezegun.freeze_time("2018-02-28")
+def test_dump_add_cve(whitelist):
+    whitelist.add_from(
+        Filtered(
+            Derive(name="libxslt-2.0"),
+            {
+                V("CVE-2019-13118"),
+            },
+        )
+    )
+    assert """\
+["libxslt-2.0"]
+cve = [ "CVE-2015-9019", "CVE-2017-2477", "CVE-2019-13118" ]
+until = "2018-03-01"
+""" in str(whitelist)
+
+
+def test_toml_missing_quote():
+    t = io.StringIO(
+        """\
+[libxslt-2.0.1]
+comment = "unquoted, triggers TOML's table syntax inadvertently"
+"""
+    )
+    with pytest.raises(RuntimeError):
+        Whitelist.load(t)
+
+
+def test_toml_malformed_url():
+    with pytest.raises(ValueError):
+        Whitelist.load(io.StringIO('["pkg"]\nissue_url = "foobar"'))
+
+
+def test_section_header_unexpected_space():
+    with pytest.raises(RuntimeError):
+        Whitelist.load(
+            io.StringIO(
+                """
+["ok-section-1.0"]
+
+[ "broken-section-1.1" ]
+comment = "whitespace confuses TOML parser"
+"""
+            )
+        )
+
+
+def test_section_header_unexpected_space_2():
+    with pytest.raises(RuntimeError):
+        Whitelist.load(
+            io.StringIO(
+                """
+["broken-section 1.2"]
+comment = "incorrect whitespace between package and version"
+"""
+            )
+        )
+
+
+def test_section_header_alphanumeric():
+    Whitelist.load(
+        io.StringIO(
+            """
+[systemd-236]
+comment = "section headers consisting only of alphanum chars are ok"
+"""
+        )
+    )
+</file>
+
+<file path="src/vulnix/__init__.py">
+# Make this a Python package.
+</file>
+
+<file path="src/vulnix/derivation.py">
+# pylint: disable=invalid-name, eval-used
+
+import functools
+import json
+import logging
+import re
+
+from .utils import compare_versions
+
+_log = logging.getLogger(__name__)
+
+
+class SkipDrv(RuntimeError):
+    """This derivation cannot be treated as package."""
+
+    # pylint: disable=unnecessary-pass
+    pass
+
+
+# see parseDrvName built-in Nix function
+# https://nixos.org/nix/manual/#ssec-builtins
+R_VERSION = re.compile(r"^(\S+?)-([0-9]\S*)$")
+
+
+def split_name(fullname):
+    """Returns the pure package name and version of a derivation."""
+    if fullname.endswith(".drv"):
+        fullname = fullname[:-4]
+    m = R_VERSION.match(fullname)
+    if m:
+        return m.group(1), m.group(2)
+    return fullname, None
+
+
+def load(path):
+    with open(path, encoding="utf-8") as f:
+        d_obj = eval(f.read(), {"__builtins__": {}, "Derive": Derive}, {})
+    _log.debug("Loading drv %s", d_obj.name)
+    d_obj.store_path = path
+    return d_obj
+
+
+def destructure(env):
+    """Decodes Nix 2.0 __structuredAttrs."""
+    return json.loads(env["__json"])
+
+
+IGNORE_EXT = {
+    ".tar.gz",
+    ".tar.bz2",
+    ".tar.xz",
+    ".tar.lz",
+    ".tgz",
+    ".zip",
+    ".gem",
+    ".patch",
+    ".patch.gz",
+    ".patch.xz",
+    ".diff",
+}
+
+
+@functools.total_ordering
+class Derive:
+    """Nix derivation as found as .drv files in the Nix store."""
+
+    store_path = None
+
+    def __init__(
+        self,
+        _outputs=None,
+        _inputDrvs=None,
+        _inputSrcs=None,
+        _system=None,
+        _builder=None,
+        _args=None,
+        envVars=None,
+        _derivations=None,
+        name=None,
+        patches=None,
+    ):
+        """Create a derivation from a .drv file.
+
+        The derivation files are just accidentally Python-syntax, but
+        hey! :-)
+        """
+        if envVars is None:
+            envVars = {}
+        envVars = dict(envVars)
+        self.name = name or envVars.get("name")
+        if not self.name:
+            self.name = destructure(envVars)["name"]
+        for e in IGNORE_EXT:
+            if self.name.endswith(e):
+                raise SkipDrv()
+
+        self.pname, self.version = split_name(self.name)
+        if self.version is None and "version" in envVars:
+            self.version = envVars["version"]
+
+        if not self.version:
+            raise SkipDrv()
+        self.patches = patches or envVars.get("patches", "")
+
+    def __repr__(self):
+        return f"<Derive({repr(self.name)})>"
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return NotImplementedError()
+        return self.name == other.name and self.patches == other.patches
+
+    def __hash__(self):
+        return hash(self.name)
+
+    def __lt__(self, other):
+        if self.pname < other.pname:
+            return True
+        if self.pname > other.pname:
+            return False
+        return compare_versions(self.version, other.version) == -1
+
+    def __gt__(self, other):
+        if self.pname > other.pname:
+            return True
+        if self.pname < other.pname:
+            return False
+        return compare_versions(self.version, other.version) == 1
+
+    def product_candidates(self):
+        """Return product name variations in order of preference."""
+        underscore = self.pname.replace("-", "_")
+        c = [self.pname, underscore, self.pname.lower(), underscore.lower()]
+        yield c[0]
+        for i in range(1, len(c)):
+            if c[i] not in c[0:i]:
+                yield c[i]
+
+    def check(self, nvd):
+        affected_by = set()
+        patched_cves = self.applied_patches()
+        for pname in self.product_candidates():
+            for vuln in nvd.affected(pname, self.version):
+                if vuln.cve_id not in patched_cves:
+                    affected_by.add(vuln)
+            if affected_by:
+                # don't try further product candidates
+                return affected_by
+        return affected_by
+
+    R_CVE = re.compile(r"CVE-\d{4}-\d+", flags=re.IGNORECASE)
+
+    def applied_patches(self):
+        """Guess which CVEs are patched from patch names."""
+        return set(m.group(0).upper() for m in self.R_CVE.finditer(self.patches))
+</file>
+
+<file path="src/vulnix/main.py">
+"""Usage: vulnix {--system | PATH [...]}
+
+vulnix is a tool that scan the NixOS store for packages with known
+security issues. There are three main modes of operation:
+
+
+* Is my NixOS system installation affected?
+
+Invoke:  vulnix --system
+
+
+* Is my project affected?
+
+Invoke after nix-build:  vulnix ./result
+
+
+See vulnix --help for a full list of options.
+"""
+
+import importlib.metadata
+import logging
+import sys
+
+import click
+
+from .nix import Store
+from .nvd import DEFAULT_CACHE_DIR, DEFAULT_MIRROR, NVD
+from .output import output
+from .resource import open_resources
+from .utils import Timer
+from .whitelist import Whitelist
+
+CURRENT_SYSTEM = "/nix/var/nix/gcroots/current-system"
+
+_log = logging.getLogger(__name__)
+
+
+def howto():
+    head, tail = __doc__.split("\n", 1)
+    click.secho(head, fg="yellow")
+    click.echo(tail, nl=False)
+
+
+def init_logging(verbose):
+    logging.getLogger("requests").setLevel(logging.ERROR)
+    if verbose >= 2:
+        logging.basicConfig(level=logging.DEBUG)
+    elif verbose >= 1:
+        logging.basicConfig(level=logging.INFO)
+    else:
+        logging.basicConfig(level=logging.WARNING)
+
+
+def populate_store(store, gc_roots, profiles, paths):
+    """Load derivations from nix store depending on cmdline invocation."""
+    if gc_roots:
+        store.add_gc_roots()
+    for profile in profiles:
+        store.add_profile(profile)
+    for path in paths:
+        store.add_path(path)
+    return store
+
+
+def run(nvd, store):
+    """Returns a dict with affected derivations and vulnerabilities."""
+    affected = {}
+    for derivation in store.derivations:
+        vulns = derivation.check(nvd)
+        if vulns:
+            affected[derivation] = vulns
+    _log.debug("Unfiltered affected: %r", affected)
+    return affected
+
+
+@click.command("vulnix")
+# what to scan
+@click.option("-S", "--system", is_flag=True, help="Scan the current system.")
+@click.option(
+    "-G",
+    "--gc-roots",
+    is_flag=True,
+    help="Scan all active GC roots (including old ones).",
+)
+@click.option(
+    "-p",
+    "--profile",
+    type=click.Path(exists=True),
+    multiple=True,
+    help="Scan this profile (eg: ~/.nix-profile)",
+)
+@click.option(
+    "-f", "--from-file", type=click.File(mode="r"), help="Read derivations from file"
+)
+@click.argument("path", nargs=-1, type=click.Path(exists=True))
+# modify operation
+@click.option(
+    "-w",
+    "--whitelist",
+    multiple=True,
+    callback=open_resources,
+    help="Load whitelist from file or URL (may be given multiple times).",
+)
+@click.option(
+    "-W",
+    "--write-whitelist",
+    type=click.File(mode="a"),
+    help="Write TOML whitelist containing current matches.",
+)
+@click.option(
+    "-c",
+    "--cache-dir",
+    type=click.Path(file_okay=False),
+    default=DEFAULT_CACHE_DIR,
+    help=f"Cache directory to store parsed archive data. Default: {DEFAULT_CACHE_DIR}",
+)
+@click.option(
+    "-r/-R",
+    "--requisites/--no-requisites",
+    default=True,
+    help="Yes: determine transitive closure. No: examine just the "
+    "passed derivations (default: yes).",
+)
+@click.option(
+    "-C",
+    "--closure",
+    is_flag=True,
+    help="Examine the closure of an output path "
+    "(runtime dependencies). Implies --no-requisites.",
+)
+@click.option(
+    "-m",
+    "--mirror",
+    help=f"Mirror to fetch NVD archives from. Default: {DEFAULT_MIRROR}.",
+    default=DEFAULT_MIRROR,
+)
+# output control
+@click.option("-j", "--json/--no-json", help="JSON vs. human readable output.")
+@click.option(
+    "-s", "--show-whitelisted", is_flag=True, help="Shows whitelisted items as well"
+)
+@click.option(
+    "-D",
+    "--show-description",
+    is_flag=True,
+    help="Show descriptions of vulnerabilities",
+)
+@click.option(
+    "-v", "--verbose", count=True, help="Increase output verbosity (up to 2 times)."
+)
+@click.option("-V", "--version", is_flag=True, help="Print vulnix version and exit.")
+@click.option(
+    "--default-whitelist/--no-default-whitelist",
+    default=True,
+    help="(obsolete; kept for compatibility reasons)",
+)
+@click.option(
+    "-F", "--notfixed", is_flag=True, help="(obsolete; kept for compatibility reasons)"
+)
+def main(
+    verbose,
+    gc_roots,
+    system,
+    from_file,
+    profile,
+    path,
+    mirror,
+    cache_dir,
+    requisites,
+    closure,
+    whitelist,
+    write_whitelist,
+    version,
+    json,
+    show_whitelisted,
+    show_description,
+    default_whitelist,
+    notfixed,
+):
+    # pylint: disable=too-many-arguments,too-many-positional-arguments,unused-argument
+    # pylint: disable=too-many-locals,too-many-branches
+    if version:
+        versionstr = "0.0.0-unknown"
+        try:
+            versionstr = importlib.metadata.version("vulnix")
+        except importlib.metadata.PackageNotFoundError:
+            pass
+        print("vulnix " + versionstr)
+        sys.exit(0)
+
+    if closure:
+        requisites = False
+
+    if not (gc_roots or system or profile or path or from_file):
+        howto()
+        sys.exit(3)
+
+    init_logging(verbose)
+
+    paths = list(path)
+    if system:
+        paths.append(CURRENT_SYSTEM)
+
+    try:
+        with Timer("Load whitelists"):
+            wh_sources = whitelist
+            whitelist = Whitelist()
+            for wl in wh_sources:
+                whitelist.merge(Whitelist.load(wl))
+        with Timer("Load derivations"):
+            store = Store(requisites, closure)
+            if from_file:
+                if from_file.name.endswith(".json"):
+                    _log.debug("loading packages.json")
+                    store.load_pkgs_json(from_file)
+                else:
+                    for drv in from_file.readlines():
+                        paths.append(drv.strip())
+            else:
+                populate_store(store, gc_roots, profile, paths)
+        with NVD(mirror, cache_dir) as nvd:
+            with Timer("Update NVD data"):
+                nvd.update()
+            with Timer("Scan vulnerabilities"):
+                filtered_items = whitelist.filter(run(nvd, store))
+
+            rc = output(
+                filtered_items,
+                json,
+                show_whitelisted,
+                show_description,
+            )
+            if write_whitelist:
+                for i in filtered_items:
+                    whitelist.add_from(i)
+                write_whitelist.close()
+                with open(write_whitelist.name, "w", encoding="utf-8") as f:
+                    f.write(str(whitelist))
+        sys.exit(rc)
+
+    # This needs to happen outside the NVD context: otherwise ZODB will abort
+    # the transaction and we will keep updating over and over.
+    except RuntimeError as e:
+        _log.exception(e)
+        sys.exit(2)
+</file>
+
+<file path="src/vulnix/nix.py">
+import json
+import logging
+import os.path as p
+
+from .derivation import Derive, SkipDrv, load
+from .utils import call
+
+_log = logging.getLogger(__name__)
+
+
+class Store:
+    def __init__(self, requisites=True, closure=False):
+        self.requisites = requisites
+        self.closure = closure
+        self.derivations = set()
+        self.experimental_flag_needed = None
+
+    def add_gc_roots(self):
+        """Add derivations found for all live GC roots.
+
+        Note that this usually includes old system versions.
+        """
+        _log.debug("Loading all live derivations")
+        for d in call(["nix-store", "--gc", "--print-live"]).splitlines():
+            self.update(d)
+
+    def add_profile(self, profile):
+        """Add derivations found in this nix profile."""
+        json_manifest_path = p.join(profile, "manifest.json")
+        if p.exists(json_manifest_path):
+            _log.debug("Loading derivations from %s", json_manifest_path)
+            with open(json_manifest_path, "r", encoding="utf-8") as f:
+                json_manifest = json.load(f)
+            elements = json_manifest["elements"]
+            # nix profile elements in manifest.json can be in two
+            # different formats: https://github.com/NixOS/nix/pull/9656
+            if isinstance(elements, dict):
+                for name in elements:
+                    element = elements[name]
+                    if not element["active"]:
+                        continue
+                    for path in element["storePaths"]:
+                        self.add_path(path)
+            if isinstance(elements, list):
+                for element in elements:
+                    if not element["active"]:
+                        continue
+                    for path in element["storePaths"]:
+                        self.add_path(path)
+        else:
+            _log.debug("Loading derivations from user profile %s", profile)
+            for line in call(
+                ["nix-env", "-q", "--out-path", "--profile", profile]
+            ).splitlines():
+                self.add_path(line.split()[1])
+
+    def _call_nix(self, args):
+        if self.experimental_flag_needed is None:
+            self.experimental_flag_needed = "--experimental-features" in call(
+                ["nix", "--help"]
+            )
+
+        if self.experimental_flag_needed:
+            return call(["nix", "--experimental-features", "nix-command flakes"] + args)
+        return call(["nix"] + args)
+
+    def _find_deriver(self, path, qpi_deriver="undef"):
+        if not path or not qpi_deriver:
+            return None
+        if path.endswith(".drv"):
+            return path
+        # Deriver from QueryPathInfo
+        if qpi_deriver == "undef":
+            qpi_deriver = call(["nix-store", "-qd", path]).strip()
+        _log.debug("qpi_deriver: %s", qpi_deriver)
+        if qpi_deriver and qpi_deriver != "unknown-deriver" and p.exists(qpi_deriver):
+            return qpi_deriver
+        # Deriver from QueryValidDerivers
+        qvd_deriver = list(
+            json.loads(self._call_nix(["show-derivation", path])).keys()
+        )[0]
+        _log.debug("qvd_deriver: %s", qvd_deriver)
+        if qvd_deriver and p.exists(qvd_deriver):
+            return qvd_deriver
+
+        error = ""
+        if qpi_deriver and qpi_deriver != "unknown-deriver":
+            error += f"Deriver `{qpi_deriver}` does not exist.  "
+        if qvd_deriver and qvd_deriver != qpi_deriver:
+            error += f"Deriver `{qvd_deriver}` does not exist.  "
+        if error:
+            raise RuntimeError(error + f"Couldn't find deriver for path `{path}`")
+        raise RuntimeError(
+            "Cannot determine deriver. Is this really a path into the nix store?", path
+        )
+
+    def _find_outputs(self, path):
+        if not path.endswith(".drv"):
+            return [path]
+
+        result = []
+        for drv in json.loads(self._call_nix(["show-derivation", path])).values():
+            for output in drv.get("outputs").values():
+                result.append(output.get("path"))
+        return result
+
+    def add_path(self, path):
+        # pylint: disable=too-many-branches
+        """Add the closure of all derivations referenced by a store path."""
+        if not p.exists(path):
+            raise RuntimeError(
+                f"path `{path}` does not exist - cannot load "
+                "derivations referenced from it"
+            )
+        _log.debug('Loading derivations referenced by "%s"', path)
+
+        if self.closure:
+            for output in self._find_outputs(path):
+                data = json.loads(self._call_nix(["path-info", "-r", "--json", output]))
+                if not data:
+                    continue
+                # 'nix path-info -r --json' can return two different json
+                # output format: https://github.com/NixOS/nix/pull/9242
+                if isinstance(data, dict):
+                    for outpath, info in data.items():
+                        drv = info.get("deriver")
+                        candidate = self._find_deriver(outpath, qpi_deriver=drv)
+                        self.update(candidate)
+                elif isinstance(data, list):
+                    for info in data:
+                        outpath = info.get("path")
+                        drv = info.get("deriver")
+                        candidate = self._find_deriver(outpath, qpi_deriver=drv)
+                        self.update(candidate)
+                else:
+                    _log.warning("path-info for '%s' returned unexpected json", output)
+        else:
+            deriver = self._find_deriver(path)
+            if self.requisites:
+                for candidate in call(["nix-store", "-qR", deriver]).splitlines():
+                    self.update(candidate)
+            else:
+                self.update(deriver)
+
+    def update(self, drv_path):
+        if not drv_path or not drv_path.endswith(".drv"):
+            return
+        try:
+            drv_obj = load(drv_path)
+        except SkipDrv:
+            return
+        self.derivations.add(drv_obj)
+
+    def load_pkgs_json(self, json_fobj):
+        for pkg in json.load(json_fobj).values():
+            try:
+                patches = pkg["patches"]
+                if "known_vulnerabilities" in pkg:
+                    patches.extend(pkg["known_vulnerabilities"])
+                self.derivations.add(
+                    Derive(name=pkg["name"], patches=" ".join(patches))
+                )
+            except SkipDrv:
+                _log.debug("skipping: %s", pkg)
+                continue
+</file>
+
+<file path="src/vulnix/nvd.py">
+import fcntl
+import glob
+import gzip
+import json
+import logging
+import os
+import os.path as p
+from datetime import date, datetime, timedelta
+
+import requests
+import transaction
+import ZODB
+import ZODB.FileStorage
+
+# pylint: disable=no-name-in-module
+from BTrees import OOBTree
+from persistent import Persistent
+
+from .vulnerability import Vulnerability
+
+DEFAULT_MIRROR = "https://nvd.nist.gov/feeds/json/cve/2.0/"
+DEFAULT_CACHE_DIR = "~/.cache/vulnix"
+
+_log = logging.getLogger(__name__)
+
+
+class NVD:
+    """Access to the National Vulnerability Database.
+
+    https://nvd.nist.gov/
+    """
+
+    def __init__(self, mirror=DEFAULT_MIRROR, cache_dir=DEFAULT_CACHE_DIR):
+        self._lock = None
+        self._db = None
+        self._connection = None
+        self._root = None
+        self.mirror = mirror.rstrip("/") + "/"
+        self.cache_dir = p.expanduser(cache_dir)
+        current = date.today().year
+        self.available_archives = list(range(current - 5, current + 1))
+
+    def lock(self):
+        # pylint: disable=consider-using-with
+        self._lock = open(p.join(self.cache_dir, "lock"), "a", encoding="utf-8")
+        try:
+            fcntl.lockf(self._lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            _log.info("Waiting for NVD lock...")
+        fcntl.lockf(self._lock, fcntl.LOCK_EX)
+
+    def __enter__(self):
+        """Keeps database connection open while in this context."""
+        _log.debug("Opening database in %s", self.cache_dir)
+        os.makedirs(self.cache_dir, exist_ok=True)
+        self.lock()
+        self._db = ZODB.DB(
+            ZODB.FileStorage.FileStorage(p.join(self.cache_dir, "Data.fs"))
+        )
+        self._connection = self._db.open()
+        self._root = self._connection.root()
+        try:
+            self._root.setdefault("advisory", OOBTree.OOBTree())
+            self._root.setdefault("by_product", OOBTree.OOBTree())
+            self._root.setdefault("meta", Meta())
+            # may trigger exceptions if the database is inconsistent
+            list(self._root["by_product"].keys())
+            if "archives" in self._root:
+                _log.warning("Pre-1.9.0 database found - rebuilding")
+                self.reinit()
+        except (TypeError, EOFError):
+            _log.warning("Incompatible objects found in database - rebuilding DB")
+            self.reinit()
+        return self
+
+    def __exit__(self, exc_type=None, exc_value=None, exc_tb=None):
+        if exc_type is None:
+            if self.meta.should_pack():
+                _log.debug("Packing database")
+                self._db.pack()
+            transaction.commit()
+        else:
+            transaction.abort()
+        self._connection.close()
+        self._db.close()
+        self._lock = None
+
+    def reinit(self):
+        """Remove old DB and rebuild it from scratch."""
+        self._root = None
+        transaction.abort()
+        self._connection.close()
+        self._db = None
+        for f in glob.glob(p.join(self.cache_dir, "Data.fs*")):
+            os.unlink(f)
+        self._db = ZODB.DB(
+            ZODB.FileStorage.FileStorage(p.join(self.cache_dir, "Data.fs"))
+        )
+        self._connection = self._db.open()
+        self._root = self._connection.root()
+        self._root["advisory"] = OOBTree.OOBTree()
+        self._root["by_product"] = OOBTree.OOBTree()
+        self._root["meta"] = Meta()
+
+    @property
+    def meta(self):
+        return self._root["meta"]
+
+    def relevant_archives(self):
+        """Returns list of NVD archives to check.
+
+        If there was an update within the last two hours, nothing is
+        done. If the last update was recent enough to be covered by
+        the 'modified' feed, only that is checked. Else, all feeds
+        are checked.
+        """
+        last_update = self.meta.last_update
+        if last_update > datetime.now() - timedelta(hours=2):
+            return []
+        # the "modified" feed is sufficient if used frequently enough
+        if last_update > datetime.now() - timedelta(days=7):
+            return ["modified"]
+        return self.available_archives
+
+    def update(self):
+        """Download archives (if changed) and add CVEs to database."""
+        changed = []
+        for a in self.relevant_archives():
+            arch = Archive(a)
+            changed.append(arch.download(self.mirror, self.meta))
+            self.add(arch)
+        if any(changed):
+            self.meta.last_update = datetime.now()
+            self.reindex()
+
+    def add(self, archive):
+        advisories = self._root["advisory"]
+        for cve_id, adv in archive.items():
+            advisories[cve_id] = adv
+
+    def reindex(self):
+        """Regenerate product index."""
+        _log.info("Reindexing database")
+        del self._root["by_product"]
+        bp = OOBTree.OOBTree()
+        for vuln in self._root["advisory"].values():
+            if vuln.nodes:
+                for prod in (n.product for n in vuln.nodes):
+                    bp.setdefault(prod, [])
+                    bp[prod].append(vuln)
+        self._root["by_product"] = bp
+        transaction.commit()
+
+    def by_id(self, cve_id):
+        """Returns vuln or raises KeyError."""
+        return self._root["advisory"][cve_id]
+
+    def by_product(self, product):
+        """Returns list of matching vulns or empty list."""
+        try:
+            return self._root["by_product"][product]
+        except KeyError:
+            return []
+
+    def affected(self, pname, version):
+        """Returns list of matching vulnerabilities."""
+        res = set()
+        for vuln in self.by_product(pname):
+            if vuln.match(pname, version):
+                res.add(vuln)
+        return res
+
+
+class Archive:
+    """Single JSON data structure from NIST NVD."""
+
+    def __init__(self, name):
+        """Creates JSON feed object.
+
+        `name` consists of a year or "modified".
+        """
+        self.name = name
+        self.download_uri = f"nvdcve-2.0-{name}.json.gz"
+        self.advisories = {}
+
+    def download(self, mirror, meta):
+        """Fetches compressed JSON data from NIST.
+
+        Nothing is done if we have already seen the same version of
+        the feed before.
+
+        Returns True if anything has been loaded successfully.
+        """
+        url = mirror + self.download_uri
+        _log.info("Loading %s", url)
+        r = requests.get(url, headers=meta.headers_for(url), timeout=10)
+        r.raise_for_status()
+        if r.status_code == 200:
+            _log.debug('Loading JSON feed "%s"', self.name)
+            self.parse(gzip.decompress(r.content).decode("utf-8"))
+            meta.update_headers_for(url, r.headers)
+            return True
+        _log.debug('Skipping JSON feed "%s" (%s)', self.name, r.reason)
+        return False
+
+    def parse(self, nvd_json):
+        added = 0
+        raw = json.loads(nvd_json)
+        for item in raw["vulnerabilities"]:
+            try:
+                vuln = Vulnerability.parse(item["cve"])
+                self.advisories[vuln.cve_id] = vuln
+                added += 1
+            except ValueError:
+                _log.debug("Failed to parse NVD item: %s", item)
+        _log.debug("Added %s vulnerabilities", added)
+
+    def items(self):
+        return self.advisories.items()
+
+
+class Meta(Persistent):
+    """Metadate for database maintenance control"""
+
+    pack_counter = 0
+    last_update = datetime(1970, 1, 1)
+    etag = None
+
+    def should_pack(self):
+        self.pack_counter += 1
+        if self.pack_counter > 25:
+            self.pack_counter = 0
+            return True
+        return False
+
+    def headers_for(self, url):
+        """Returns dict of additional request headers."""
+        if self.etag and url in self.etag:
+            return {"If-None-Match": self.etag[url]}
+        return {}
+
+    def update_headers_for(self, url, resp_headers):
+        """Updates self from HTTP response headers."""
+        if "ETag" in resp_headers:
+            if self.etag is None:
+                self.etag = OOBTree.OOBTree()
+            self.etag[url] = resp_headers["ETag"]
+</file>
+
+<file path="src/vulnix/output.py">
+import functools
+import json
+from operator import attrgetter
+
+import click
+
+
+def fmt_vuln(v, show_description=False):
+    out = f"https://nvd.nist.gov/vuln/detail/{v.cve_id:17} {v.cvssv3 or '':<8} "
+    if show_description:
+        # Show the description in a different color as they can run over the
+        # line length, and this makes distinguishing them from the next entry
+        # easy.
+        out += click.style(v.description or "", fg="cyan")
+    return out.rstrip()
+
+
+def vuln_sort_key(v):
+    """Sort by CVSSv3 descending and CVE_ID ascending."""
+    return (-v.cvssv3, v)
+
+
+class Filtered:
+    """Derivation with whitelist filtering applied.
+
+    Initially, all CVEs are in the `report` set. When whitelist rules
+    are added via `add()`, matching CVEs are moved into the `masked`
+    set. Output formatting depends on which of these sets have any
+    members.
+    """
+
+    until = None
+
+    def __init__(self, derivation, vulnerabilities):
+        self.derivation = derivation
+        self.rules = []
+        self.report = vulnerabilities
+        self.masked = set()
+
+    def __repr__(self):
+        return (
+            f"<Filtered({self.derivation.pname}, {self.rules}, "
+            f"{len(self.report)}, {len(self.masked)})>"
+        )
+
+    def add(self, wl_rule):
+        self.rules.append(wl_rule)
+        if wl_rule.until:
+            if not self.until or self.until > wl_rule.until:
+                self.until = wl_rule.until
+        if wl_rule.cve:
+            for _r in wl_rule.cve:
+                mask = set(vuln for vuln in self.report if vuln.cve_id in wl_rule.cve)
+                self.report -= mask
+                self.masked |= mask
+        else:
+            self.masked |= self.report
+            self.report = set()
+
+    def print(self, show_masked=False, show_description=False):
+        if not self.report and not show_masked:
+            return
+        d = self.derivation
+        wl = not self.report
+
+        click.secho(f"\n{'-' * 72}", dim=wl)
+        click.secho(f"{d.name}\n", fg="yellow", bold=True, dim=wl)
+        if d.store_path:
+            click.secho(d.store_path, fg="magenta", dim=wl)
+
+        click.secho(
+            f"{'CVE':50} {'CVSSv3':<8} {'Description' if show_description else ''}".rstrip(),
+            dim=wl,
+        )
+        for v in sorted(self.report, key=vuln_sort_key):
+            click.echo(fmt_vuln(v, show_description))
+        if show_masked:
+            for v in sorted(self.masked, key=vuln_sort_key):
+                click.secho(f"{fmt_vuln(v, show_description)}  [whitelisted]", dim=True)
+
+        issues = functools.reduce(set.union, (r.issue_url for r in self.rules), set())
+        if issues:
+            click.secho("\nIssue(s):", fg="cyan", dim=wl)
+            for url in issues:
+                click.secho(url, fg="cyan", dim=wl)
+        for rule in self.rules:
+            if rule.comment:
+                click.secho("\nComment:", fg="blue", dim=wl)
+                for comment in rule.comment:
+                    click.secho("* " + comment, fg="blue", dim=wl)
+
+
+def output_text(vulns, show_whitelisted=False, show_description=False):
+    report = [v for v in vulns if v.report]
+    wl = [v for v in vulns if not v.report]
+
+    if not report and not show_whitelisted:
+        if wl:
+            click.secho(
+                f"Nothing to show, but {len(wl)} left out due to whitelisting",
+                fg="blue",
+            )
+        else:
+            click.secho("Found no advisories. Excellent!", fg="green")
+        return
+
+    click.secho(f"{len(report)} derivations with active advisories", fg="red")
+    if wl and not show_whitelisted:
+        click.secho(f"{len(wl)} derivations left out due to whitelisting", fg="blue")
+
+    for i in sorted(report, key=attrgetter("derivation")):
+        i.print(show_whitelisted, show_description)
+    if show_whitelisted:
+        for i in sorted(wl, key=attrgetter("derivation")):
+            i.print(show_whitelisted, show_description)
+    if wl and not show_whitelisted:
+        click.secho(
+            "\nuse --show-whitelisted to see derivations with only whitelisted CVEs",
+            fg="blue",
+        )
+
+
+def output_json(items, show_whitelisted=False):
+    out = []
+    for i in sorted(items, key=attrgetter("derivation")):
+        if not i.report and not show_whitelisted:
+            continue
+        d = i.derivation
+        out.append(
+            {
+                "name": d.name,
+                "pname": d.pname,
+                "version": d.version,
+                "derivation": d.store_path,
+                "affected_by": sorted(v.cve_id for v in i.report),
+                "whitelisted": sorted(v.cve_id for v in i.masked),
+                "cvssv3_basescore": {
+                    v.cve_id: v.cvssv3 for v in (i.report | i.masked) if v.cvssv3
+                },
+                "description": {
+                    v.cve_id: v.description
+                    for v in (i.report | i.masked)
+                    if v.description
+                },
+            }
+        )
+    print(json.dumps(out, indent=1))
+
+
+def output(items, json_dump=False, show_whitelisted=False, show_description=False):
+    if json_dump:
+        output_json(items, show_whitelisted)
+    else:
+        output_text(items, show_whitelisted, show_description)
+    if any(i.report for i in items):
+        return 2
+    if show_whitelisted and any(i.masked for i in items):
+        return 1
+    return 0
+</file>
+
+<file path="src/vulnix/resource.py">
+# pylint: disable=too-few-public-methods,contextmanager-generator-missing-cleanup
+
+import contextlib
+import logging
+import re
+import urllib
+
+_log = logging.getLogger(__name__)
+
+
+class Resource:
+    R_URL_LIKE = re.compile(r"^[a-z]+://")
+
+    def __init__(self, source, timeout=60):
+        self.source = source
+        self.remote = self.R_URL_LIKE.match(source)
+        self.timeout = timeout
+
+    @contextlib.contextmanager
+    def open(self):
+        if self.remote:
+            yield urllib.request.urlopen(self.source, timeout=self.timeout)
+        else:
+            yield open(self.source, "rb")
+
+
+def open_resources(_click_ctx=None, _click_param=None, sources=None):
+    """Yields read-only binary fobjs for all given sources.
+
+    Resources with open/connection errors are ignored and warnings are
+    logged.
+
+    Designed for use as click option callback.
+    """
+    if sources:
+        for s in sources:
+            try:
+                with Resource(s).open() as f:
+                    yield f
+            except (EnvironmentError, urllib.error.URLError) as e:
+                _log.warning("failed to open %s: %s", s, e)
+</file>
+
+<file path="src/vulnix/utils.py">
+import itertools
+import logging
+import subprocess
+import sys
+import tempfile
+import time
+
+_log = logging.getLogger(__name__)
+
+
+def call(cmd):
+    """Executes `cmd` and swallow stderr iff returncode is 0."""
+    with tempfile.TemporaryFile(prefix="stderr") as capture:
+        try:
+            output = subprocess.check_output(cmd, stderr=capture)
+        except subprocess.CalledProcessError:
+            capture.seek(0)
+            sys.stderr.write(capture.read().decode("ascii", errors="replace"))
+            raise
+    return output.decode()
+
+
+class Timer:
+    def __init__(self, section):
+        self.start = None
+        self.end = None
+        self.interval = None
+        self.section = section
+
+    def __enter__(self):
+        _log.debug(">>> %s", self.section)
+        self.start = time.clock_gettime(time.CLOCK_MONOTONIC)
+        return self
+
+    def __exit__(self, *exc):
+        self.end = time.clock_gettime(time.CLOCK_MONOTONIC)
+        self.interval = self.end - self.start
+        _log.debug("<<< %s %.2fs", self.section, self.interval)
+        return False  # re-raise
+
+
+def components_lt(left, right):
+    """Port from nix/src/libexpr/names.cc"""
+    # pylint: disable=too-many-return-statements
+    try:
+        lnum = int(left)
+    except ValueError:
+        lnum = None
+    try:
+        rnum = int(right)
+    except ValueError:
+        rnum = None
+    if lnum is not None and rnum is not None:
+        return lnum < rnum
+    if left == "" and rnum is not None:
+        return True
+    if left == "pre" and right != "pre":
+        return True
+    if right == "pre":
+        return False
+    if rnum is not None:
+        return True
+    if lnum is not None:
+        return False
+    return left < right
+
+
+def category(char):
+    """Classify `char` into: punctuation, digit, non-digit."""
+    if char in (".", "-"):
+        return 0
+    if char in ("0", "1", "2", "3", "4", "5", "6", "7", "8", "9"):
+        return 1
+    return 2
+
+
+def split_components(v):
+    """Yield cohesive groups of digits or non-digits. Skip punctuation."""
+    start = 0
+    stop = len(v)
+    while start < stop:
+        cat0 = category(v[start])
+        i = start + 1
+        while i < stop and category(v[i]) == cat0:
+            i += 1
+        if cat0 != 0:
+            yield v[start:i]
+        start = i
+
+
+def compare_versions(left, right):
+    """Compare two versions with the same logic as `nix-env -u`.
+
+    Returns -1 if `left` is older than `right`, 1 if `left` is newer
+    than `right`, and 0 if both versions are considered equal.
+
+    See https://nixos.org/nix/manual/#ssec-version-comparisons for rules
+    and examples.
+    """
+    if left == right:
+        return 0
+    for lc, rc in itertools.zip_longest(
+        split_components(left), split_components(right), fillvalue=""
+    ):
+        if lc == rc:
+            continue
+        if components_lt(lc, rc):
+            return -1
+        if components_lt(rc, lc):
+            return 1
+    return 0
+
+
+def haskeys(d, *keys):
+    """Returns True if all keys are present in a nested dict `d`."""
+    if len(keys) == 1:
+        return keys[0] in d
+    first = keys[0]
+    if first in d and isinstance(d[first], dict):
+        return haskeys(d[first], *keys[1:])
+    return False
+</file>
+
+<file path="src/vulnix/vulnerability.py">
+import functools
+import logging
+import re
+
+from persistent import Persistent
+
+from .utils import compare_versions, haskeys
+
+_log = logging.getLogger(__name__)
+
+
+@functools.total_ordering
+class Vulnerability(Persistent):
+    """Represents a single vulnerability.
+
+    Note that this vulnerability can be attached to different products
+    and versions, this is called 'configurations' in CPE lingo. We
+    represent theses as `Node` objects.
+    """
+
+    cve_id = None
+    nodes = None
+    cvssv3 = 0.0
+    cvssv2 = 0.0
+    description = None
+
+    def __init__(
+        self, cve_id, nodes=None, cvssv4=0.0, cvssv3=0.0, cvssv2=0.0, description=""
+    ):
+        # pylint: disable=too-many-arguments, too-many-positional-arguments
+        self.cve_id = cve_id
+        self.nodes = nodes or []
+        self.cvssv4 = float(cvssv4)
+        self.cvssv3 = float(cvssv3)
+        self.cvssv2 = float(cvssv2)
+        self.description = description
+
+    def __str__(self):
+        return self.cve_id
+
+    def __repr__(self):
+        return f"<Vulnerability {self.cve_id} (cvssv3: {self.cvssv3})>"
+
+    def __eq__(self, other):
+        return self.cve_id == other.cve_id
+
+    def __lt__(self, other):
+        """Order CVEs numerically not lexicographically."""
+        (_, s_year, s_id) = self.cve_id.split("-")
+        (_, o_year, o_id) = other.cve_id.split("-")
+        return (int(s_year), int(s_id)) < (int(o_year), int(o_id))
+
+    def __hash__(self):
+        return hash(self.cve_id)
+
+    @classmethod
+    def parse(cls, item):
+        """Create Vulnerability object from NVD JSON snippet."""
+        res = cls(item["id"])
+        if "configurations" in item:
+            for conf in item["configurations"]:
+                res.nodes.extend(Node.parse(conf.get("nodes", [])))
+        if haskeys(item, "metrics", "cvssMetricV40"):
+            res.cvssv4 = float(
+                item["metrics"]["cvssMetricV40"][0]["cvssData"]["baseScore"]
+            )
+        if haskeys(item, "metrics", "cvssMetricV31"):
+            res.cvssv3 = float(
+                item["metrics"]["cvssMetricV31"][0]["cvssData"]["baseScore"]
+            )
+        elif haskeys(item, "metrics", "cvssMetricV30"):
+            res.cvssv3 = float(
+                item["metrics"]["cvssMetricV30"][0]["cvssData"]["baseScore"]
+            )
+        if haskeys(item, "metrics", "cvssMetricV2"):
+            res.cvssv2 = float(
+                item["metrics"]["cvssMetricV2"][0]["cvssData"]["baseScore"]
+            )
+        if haskeys(item, "descriptions"):
+            res.description = next(
+                (
+                    description["value"]
+                    for description in item["descriptions"]
+                    if description.get("lang", "en") == "en"
+                ),
+                "",
+            )
+        return res
+
+    def match(self, pname, pvers):
+        """Returns True if package version is covered by any node."""
+        for n in self.nodes:
+            if not n.product == pname:
+                continue
+            if isinstance(n.version, str) and n.version == pvers:
+                _log.debug("version match: %s %s to (%s:%s)", self, n, pname, pvers)
+                return True
+            if isinstance(n.version, list) and all(
+                in_range(pvers, v) for v in n.version
+            ):
+                _log.debug("range match: %s %s to (%s:%s)", self, n, pname, pvers)
+                return True
+        return False
+
+
+class Node:
+    """CPE configuration item.
+
+    Node uses a simplified matching logic:
+
+    - Don't try to grok the AND/OR logic. NVD data seems to be illogical
+      or incomplete in many cases. We accept false positives instead.
+
+    - Currently, vendor strings are ignored completely while matching.
+      This may change in a future version.
+    """
+
+    vendor = None
+    product = None
+    version = None
+
+    def __init__(self, vendor, product, version=None):
+        self.vendor = vendor
+        self.product = product
+        self.version = version or []
+
+    @classmethod
+    def parse(cls, nodes):
+        res = []
+        for node in nodes:
+            res += cls.parse_matches(node.get("cpeMatch", []))
+        return res
+
+    R_UNQUOTE = re.compile(r"(\\:)+")
+
+    @classmethod
+    def parse_matches(cls, cpe_match):
+        # pylint: disable=too-many-branches
+        nodes = []
+        for expr in cpe_match:
+            if expr.get("vulnerable") is not True:
+                continue
+            if "criteria" not in expr:
+                continue
+            cpeuri = cls.R_UNQUOTE.sub("-", expr["criteria"])
+            (cpe, cpevers, typ, vendor, product, vers, rev, _) = cpeuri.split(":", 7)
+            if cpe != "cpe" or cpevers != "2.3" or typ != "a":
+                continue
+            e = cls(vendor, product)
+            if vers and vers != "*" and vers != "-":
+                if rev and rev != "*" and rev != "-":
+                    vers = vers + "-" + rev
+                # Exact match: Change self.version to a string with a single
+                # version. Doing this, future attempts to apppend() will fail.
+                e.version = str(vers)
+            else:
+                if "versionStartIncluding" in expr:
+                    e.version.append(">=" + expr["versionStartIncluding"])
+                if "versionStartExcluding" in expr:
+                    e.version.append(">" + expr["versionStartExcluding"])
+                if "versionEndIncluding" in expr:
+                    e.version.append("<=" + expr["versionEndIncluding"])
+                if "versionEndExcluding" in expr:
+                    e.version.append("<" + expr["versionEndExcluding"])
+            if e.version:
+                # no point adding an expr without any version match
+                nodes.append(e)
+        # dedup strings
+        if len(nodes) > 1:
+            first = nodes[0]
+            for n in nodes[1:]:
+                if n.vendor == first.vendor:
+                    n.vendor = first.vendor
+                if n.product == first.product:
+                    n.product = first.product
+        return nodes
+
+    def __eq__(self, other):
+        return (
+            self.vendor == other.vendor
+            and self.product == other.product
+            and isinstance(self.version, type(other.version))
+            and self.version == other.version
+        )
+
+    def __repr__(self):
+        return f"<Node {self.vendor}:{self.product}, {self.version}>"
+
+
+def in_range(pvers, spec):
+    """Returns True if package version `pvers` complies with `spec`."""
+    if spec[1] == "=":
+        if pvers == spec[2:]:
+            return True
+        idx = 2
+    else:
+        idx = 1
+    if spec[0] == ">":
+        return compare_versions(pvers, spec[idx:]) == 1
+    if spec[0] == "<":
+        return compare_versions(pvers, spec[idx:]) == -1
+    raise ValueError("Invalid version spec", spec)
+</file>
+
+<file path="src/vulnix/whitelist.py">
+# pylint: disable=no-member
+
+import collections
+import datetime
+import logging
+import re
+import urllib.parse
+
+import toml
+import yaml
+
+from vulnix.derivation import split_name
+from vulnix.output import Filtered
+
+_log = logging.getLogger(__name__)
+
+
+# brackets must be followed/preceded immediately by quotation marks
+RE_INV_SECT_START = re.compile(r'^\s*\[[^"a-zA-Z]', re.MULTILINE)
+RE_INV_SECT_END = re.compile(r'^\s*\[[^\]]*[^"a-zA-Z0-9]\]$', re.MULTILINE)
+
+
+def check_section_header(content):
+    m_begin = RE_INV_SECT_START.search(content)
+    m_end = RE_INV_SECT_END.search(content)
+    if m_begin or m_end:
+        raise RuntimeError(
+            "section header must start with '[\"' and end with '\"]'", m_begin, m_end
+        )
+
+
+def read_toml(content):
+    check_section_header(content)
+    for k, v in toml.loads(content, collections.OrderedDict).items():
+        if len(v.values()) and isinstance(list(v.values())[0], dict):
+            raise RuntimeError("malformed section header -- forgot quotes?", k)
+        pname, version = split_name(k)
+        yield WhitelistRule(pname=pname, version=version, **v)
+
+
+def read_yaml(content):
+    for item in yaml.safe_load(content):
+        pname = item.pop("name", None)
+        yield WhitelistRule(pname=pname, **item)
+
+
+def dump_multivalued(val):
+    if len(val) == 1:
+        return list(val)[0]
+    val_l = list(val)
+    val_l.sort()
+    return val_l
+
+
+class WhitelistRule:
+    """Single whitelist entry.
+
+    Supported fields:
+    - pname: package name or `*` for any package
+    - version: package version (only if pname is set)
+    - cve: affected by CVEs (multi-valued, set)
+    - until: this entry will be disabled after the given date (YYYY-MM-DD)
+    - issue_url: bug/case ID URLs (multi-valued, set)
+    - comment: free form text (multi-valued, list)
+    - status (ignored for compatibility reasons)
+
+    The version field may be empty which means that all versions of the
+    given package are affected. The package may be "*" to indicate any
+    package. In this case, there must be at least one CVE ID present.
+
+    If there are both package and CVE IDs set, only vulnerable items
+    which match both are whitelisted.
+    """
+
+    pname = None
+    version = None
+
+    def __init__(self, **kw):
+        for field in ["pname", "version"]:
+            self.__dict__[field] = kw.pop(field, None) or "*"
+        for field in ["cve", "issue_url"]:
+            v = kw.pop(field, [])
+            if isinstance(v, set):
+                self.__dict__[field] = v
+            elif isinstance(v, list):
+                self.__dict__[field] = set(v)
+            else:
+                self.__dict__[field] = set([v])
+        if self.pname == "*" and not self.cve:
+            raise RuntimeError("either pname or CVE must be set", kw)
+        for url in self.issue_url:
+            scheme, netloc, path = urllib.parse.urlparse(url)[0:3]
+            if not scheme or not netloc or not path:
+                raise ValueError("issue must be a valid URL", url)
+        v = kw.pop("comment", [])
+        self.comment = v if isinstance(v, list) else [v]
+        self.until = None
+        if "until" in kw:
+            if isinstance(kw["until"], (datetime.datetime, datetime.date)):
+                self.until = kw.pop("until")
+            else:
+                self.until = datetime.datetime.strptime(
+                    kw.pop("until"), "%Y-%m-%d"
+                ).date()
+        kw.pop("status", "")  # compat
+        if kw:
+            _log.warning("Unrecognized whitelist keys: %s", kw.keys)
+
+    @property
+    def name(self):
+        if self.version == "*":
+            return self.pname
+        return f"{self.pname}-{self.version}"
+
+    def dump(self):
+        """Returns this entry as a ready-to-serialize dict.
+
+        If this entry has expired, None is returned. The date in the
+        'until' field is already formatted.
+        """
+        if self.until and self.until <= datetime.date.today():
+            return None
+        res = collections.OrderedDict()
+        for field in ["cve", "comment", "issue_url"]:
+            val = getattr(self, field)
+            if val:
+                res[field] = dump_multivalued(val)
+        if self.until:
+            res["until"] = str(self.until)
+        return res
+
+    def update(self, other):
+        if self.pname != other.pname or self.version != other.version:
+            raise RuntimeError("cannot merge rules for different packages", self, other)
+        self.cve.update(other.cve)
+        if other.until:
+            if not self.until or (self.until and other.until > self.until):
+                self.until = other.until
+        self.issue_url.update(other.issue_url)
+        self.comment.extend(other.comment)
+
+    def covers(self, deriv, vulns=None):
+        """Is the given derivation covered by this whitelist item?
+
+        If so, a tuple (match type, whitelist item) is returned.
+        """
+        if vulns is None:
+            vulns = set()
+        if self.pname not in ("*", deriv.pname):
+            return False
+        if self.version not in ("*", deriv.version):
+            return False
+        if self.cve and vulns and self.cve & set(v.cve_id for v in vulns) == set():
+            return False
+        if self.until and self.until <= datetime.date.today():
+            return False
+        return True
+
+
+class Whitelist:
+    """Collection of WhitelistRules.
+
+    It can be populated either by reading a config file (`load`) or by
+    synthesizing rules from derivations (`add_from`). A whitelist is
+    able to save itself into a config file with stable sort order.
+    """
+
+    def __init__(self):
+        self.entries = collections.OrderedDict()
+
+    def __len__(self):
+        return len(self.entries)
+
+    def __getitem__(self, key):
+        return self.entries[key]
+
+    def __str__(self):
+        """Formats whitelist as string. Used to dump it to a file."""
+        return toml.dumps(self.dump()).replace(",]\n", " ]\n")
+
+    TOML_SECTION_START = re.compile(r"^\[.*\]", re.MULTILINE)
+    YAML_SECTION_START = re.compile(r"^-", re.MULTILINE)
+    SECTION_FORMAT = re.compile(r"^[a-zA-Z0-9_.*-]+$")
+
+    @classmethod
+    def load(cls, fobj):
+        """Loads whitelist from file-like object.
+
+        The format (TOML or YAML) is guessed using a heuristic.
+        """
+        content = fobj.read()
+        if isinstance(content, bytes):
+            content = content.decode("utf-8")
+        filename = ""
+        if hasattr(fobj, "name") and fobj.name:
+            filename = fobj.name
+        elif hasattr(fobj, "geturl"):
+            filename = fobj.geturl()
+        try:
+            return cls._parse_cfg(content, filename)
+        except (toml.TomlDecodeError, IndexError) as e:
+            raise RuntimeError(f"failed to load `{filename}`: {e}") from e
+
+    @classmethod
+    def _parse_cfg(cls, content, filename):
+        if filename.endswith(".toml"):
+            gen = read_toml(content)
+        elif filename.endswith(".yaml"):
+            gen = read_yaml(content)
+        elif cls.TOML_SECTION_START.search(content):
+            gen = read_toml(content)
+        elif cls.YAML_SECTION_START.search(content):
+            gen = read_yaml(content)
+        else:
+            raise RuntimeError("cannot detect whitelist format")
+
+        self = cls()
+        for rule in gen:
+            if not self.SECTION_FORMAT.match(rule.pname):
+                raise RuntimeError("invalid package selector", rule.pname)
+            self.insert(rule)
+        return self
+
+    def dump(self):
+        """Serializes whitelist into dict."""
+        res = collections.OrderedDict()
+        for k, v in self.entries.items():
+            _log.debug("Creating WL entry for %s", k)
+            entry = v.dump()
+            if entry is not None:
+                res[k] = entry
+        return res
+
+    def candidates(self, pname, version):
+        """Matching rules in order of decreasing specificity."""
+        try:
+            yield self.entries[f"{pname}-{version}"]
+        except KeyError:
+            pass
+        try:
+            yield self.entries[pname]
+        except KeyError:
+            pass
+        try:
+            yield self.entries["*"]
+        except KeyError:
+            pass
+
+    def find(self, derivation, vulns):
+        """Compiles all matching rules into a `Filtered` object."""
+        f = Filtered(derivation, vulns)
+        for cand in self.candidates(derivation.pname, derivation.version):
+            if cand.covers(derivation, vulns):
+                f.add(cand)
+        return f
+
+    def filter(self, affected):
+        return [self.find(deriv, vulns) for (deriv, vulns) in affected.items()]
+
+    def insert(self, rule):
+        self.entries[rule.name] = rule
+
+    def update(self, rule):
+        name = rule.name
+        if name in self.entries:
+            self.entries[name].update(rule)
+        else:
+            self.entries[name] = rule
+
+    def merge(self, other):
+        for rule in other.entries.values():
+            self.update(rule)
+
+    def add_from(self, filtered_item):
+        self.update(
+            WhitelistRule(
+                pname=filtered_item.derivation.pname,
+                version=filtered_item.derivation.version,
+                cve={i.cve_id for i in filtered_item.report},
+            )
+        )
+</file>
+
+<file path=".editorconfig">
+# .editorconfig
+#
+# Source for controlling tabulation and formatting of files by name
+#
+# https://editorconfig.org
+#
+
+root = true
+
+# Set file defaults
+[*]
+charset = utf-8
+end_of_line = lf
+indent_size = 4
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.md]
+indent_size = 2
+trim_trailing_whitespace = false
+
+[Makefile]
+indent_size = 8
+indent_style = tab
+
+# Default to two spaces for data languages
+[*.{nix,rst}]
+indent_size = 2
+indent_style = space
+</file>
+
+<file path=".gitignore">
+bin/
+/.cache/
+/.coverage
+deploy-rsa
+develop-eggs/
+dist/
+/doc/vulnix*.[15]
+/doc/vulnix*.[15].html
+*.egg-info/
+.eggs/
+htmlcov/
+include
+.installed.cfg
+lib/
+lib64
+/Library/Caches
+nvdcve-2.0-*.xml
+nvdcve-2.0-*.xml.gz
+official-cpe-dictionary*
+pip-selfcheck.json
+*.py?
+.pytest_cache/
+pyvenv.cfg
+README.html
+.remote-sync.json
+/report.xml
+/result
+/result-*
+/share/
+*.sublime-project
+*.sublime-workspace
+*.sw?
+/tags
+</file>
+
+<file path="CHANGES.rst">
+Changes
+=======
+
+1.12.2 (2025-10-13)
+-------------------
+
+- Back to using NIST for NVD data (#139)
+
+
+1.12.1 (2025-09-01)
+-------------------
+
+- Stop using deprecated python pkg_resources module (#132)
+
+
+1.12.0 (2025-08-22)
+-------------------
+
+- Start using nvd-json-data-feeds for NVD data (#129)
+
+
+1.11.0 (2025-03-21)
+-------------------
+
+- Package vulnix as flake (#106)
+
+- Start using linters and code-formatters: isort, nixfmt, dadnix, statix (#106), pylint (#107), ruff (#109)
+
+- Support getting version from derivation's environment variables (#111)
+
+- Apply github actions security best practices (#113)
+
+
+1.10.2 (2024-12-13)
+-------------------
+
+- Fix nix profile scan (#103).
+
+- Fix runtime dependency scan (#101).
+
+- Fix default.nix after nixpkgs vulnix path changed (#102).
+
+- Enable flake support (#99).
+
+- Add '--closure' option to scan only the runtime dependencies (#80).
+
+- Start using github actions for CI (#90).
+
+
+1.10.1 (2022-02-06)
+-------------------
+
+- Expose CVE descriptions in both plain text and JSON output (#78).
+
+- Fix compatibility issue due to pyyaml 6.0 in nixpkgs-unstable (#83).
+
+
+1.10.0 (2021-07-16)
+-------------------
+
+- Extend `-f`/`--file` input. It now also accepts JSON input containing package
+  names and applied patches.
+
+- Wait rather than fail on concurrent invocations (#60).
+
+- Ignore NVD entries without cpe23Uri (#68).
+
+- Add `--profile` option to scan user environments (#72).
+
+- Wait for lock on concurrent invocations instead of failing (#73).
+
+- Improved tactics to find derivers (#74).
+
+- Correctly handle the case when both an explicit version and version ranges are
+  given in a NVD expression (#77).
+
+
+1.9.6 (2020-07-02)
+------------------
+
+- Fix flake8 check (#64).
+
+- Packaging: Improve keywords.
+
+
+1.9.5 (2020-06-30)
+------------------
+
+- Add `-f` option which reads a list of derivations directly from a file.
+
+- Exclude .tgz derivations by default.
+
+- Change default mirror for NIST feeds (#61).
+
+- Python 3.8 compatbility.
+
+
+1.9.4 (2019-12-11)
+------------------
+
+- Fix "invalid package selector" bug.
+
+
+1.9.3 (2019-11-26)
+------------------
+
+- Print CVSS scores by default.
+
+- Fix reliability problem when migrating from old databases (#58).
+
+
+1.9.2 (2019-11-16)
+------------------
+
+- Improve performance by pre-fetching all cached CPE configurations for each
+  candidate vulnerability. This change requires to rebuild the ZODB database,
+  which is done transparently.
+
+- Fix bug that crashed vulnix when trying to extend existing whitelist entries
+  with new CVEs (#57).
+
+
+1.9.1 (2019-11-14)
+------------------
+
+- Fix packaging bug.
+
+
+1.9.0 (2019-11-13)
+------------------
+
+- Pull NVD feeds from https://nvd.nist.gov/feeds/json/cve/1.1/ as XML feeds have
+  been discontinued (#55).
+
+- Print CVSS v3 base scores for each CVE. Order by descending CVSS score (#53).
+
+- Evaluate version ranges in CPE entries.
+
+
+1.8.2 (2019-06-17)
+------------------
+
+- Process package versions containing a hyphen properly (e.g., R versions)
+  (#50).
+
+
+1.8.1 (2019-04-08)
+------------------
+
+- Builds with both PyYAML 3.13 and 5.1 (#49).
+
+
+1.8.0 (2019-03-09)
+------------------
+
+- Exit code 1 is returned only in conjunction with `--show-whitelisted` (#45).
+- Fix bug in the processing of the 'until' whitelist field (#43).
+
+
+1.7.1 (2018-07-23)
+------------------
+
+- Improve error messages when TOML files contain syntax errors.
+- Fix install requirements so that they match upstream nixpkgs
+  (NixOS/nixpkgs#43999).
+
+
+1.7 (2018-07-20)
+----------------
+
+- Selective CVE reporting: Only those CVEs are reported for which no whitelist
+  entry exists (#41).
+- Consider all applicable whitelist entries for a given package (pkg-version,
+  pkg, "*") (#42).
+- Refine TOML section header check.
+
+
+1.6.3 (2018-05-02)
+------------------
+
+- *Really* fix FC-101294. Now for whitelists containing more than one line :)
+- Fail on spaces between package and version in whitelist headers.
+
+
+1.6.2 (2018-05-02)
+------------------
+
+- Sort CVEs in JSON output.
+- Bugfix: fail clearly if section headers are not quoted (FC-101294).
+
+
+1.6.1 (2018-04-20)
+------------------
+
+- Parse derivation files with `__structuredAttrs = true` (#37).
+
+
+1.6.0 (2018-04-19)
+------------------
+
+- Completely reworked whitelisting subsystem. Whitelists can now be written as
+  TOML files and support a more expressive range of options including expiry
+  datedates. The old YAML syntax is still supported (#36).
+- Ignore case when guessing CVE identifiers from patch file names (thanks to
+  @adisbladis).
+- Add man pages (#29).
+
+
+1.4.0 (2017-11-27)
+------------------
+
+- Guesses applied CVE patches out of the `patches` derivation envVar (see
+  nixpkgs FC-15660).
+
+
+1.3.4 (2017-10-29)
+------------------
+
+- Add '--no-requisites' flag which stops vulnix from determining the transitive
+  closure of derivations passed on the command line.
+- Provide structured JSON output with `--json`.
+- Remove whitelist from README as it is quite buggy right now.
+
+
+1.3.3 (2017-10-16)
+------------------
+
+- Fix return code bug (FC-28741).
+- Fix partial whitelisting of products where several vulnerable versions are
+  present on the system at the same time (#24).
+- Improve error reporting for incorrectly formed whitelist rules.
+
+
+1.3.2 (2017-10-06)
+------------------
+
+- Minor: fix packaging issues.
+
+
+1.3.1 (2017-10-06)
+------------------
+
+- Security: Fix arbitrary code execution bug during derivation evaluation.
+
+
+1.3.0 (2017-09-18)
+------------------
+
+- `.drv` files may be specified directly on the command line.
+- Updated PyPI dependencies.
+- Document system requirements (#12).
+- Don't leave large files in /tmp around.
+- Remove duplicate CVEs in output (#25).
+- Fix bug with reporting less than 3 vulnerabilities (#28).
+
+
+1.2.2 (2017-01-28)
+------------------
+
+- Packaging improvements: pin versions in setup.py, include NVDCVE test data in
+  sdist.
+- Reduce NVDCVE fixture size. This cuts tests run time by more than 50%.
+
+
+1.2.1 (2017-01-27)
+------------------
+
+- Skip `/nix/var/nix/gcroots/booted-system` during system check.
+- Make output a bit easier to read by removing visual clutter.
+
+
+1.2 (2016-12-22)
+----------------
+
+- Improve CPU and memory usage: refactored the way we fetch, parse, store and
+  process data. We now leverage ZODB as the storage for parsed data that is
+  efficient to look up.
+
+  On our test systems this caused memory usage to drop from > 1GiB to ~70MiB
+  and a pure evaluation of existing data to around 7-10 seconds.
+
+  This change requires a re-retrieval of all historic sources.
+
+- Improve unit test coverage with at least a smoke test for our new fetching
+  procedure.
+
+1.1.5 (2016-10-13)
+------------------
+
+- Keep a reverse index: product name -> vulnerabilities to speed up scan process.
+- Mark 'in progress' vulnerabilities with an asterisk
+- The '-w' switch accepts URLs, too
+- vulnix no longer scans /var/nix/var/gcroots/booted-system
+- only cached files are saved (archives are to be deleted)
+- added travis build: runs periodically against nixpkgs/master and updates
+  requirements*.nix files in case of success
+
+
+1.1.4 (2016-08-25)
+------------------
+
+- Add `src` to PYTHONPATH so that tests run also on older NixOS versions
+  (tested on 15.09).
+- Correct URL, add metadata.
+- Add nix to propagatedBuildInputs, as vulnix calls `nix-store` at runtime.
+
+
+1.1.3 (2016-08-16)
+------------------
+
+- Pin the Python version to 3.4 (Nix only)
+
+
+1.1.2 (2016-08-15)
+------------------
+
+- Add Nix expressions (Nix/NixOS) to MANIFEST.in
+
+
+1.1.1 (2016-08-12)
+------------------
+
+- Add VERSION to MANIFEST.in
+
+
+1.1 (2016-08-11)
+----------------
+
+- Scans the whole system (NixOS only), the current user environment, or a
+  project-specific path (e.g., ./result). #1
+
+- Allow to specify site-specific whitelists in addition to the builtin default
+  whitelist. #4
+
+- Fully repeatable install using default.nix. Thanks to Rok Garbas. #4
+
+- Cache pre-parsed NVD files for improved scanning speed. #2
+
+- Support multiple whitelists (repeat -w option). #3
+
+- Cache NVD files in `~/.cache/vulnix`. #7
+
+- Document whitelist file format. #10
+
+- Fix Nix build on macOS. #11
+</file>
+
+<file path="default.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-FileCopyrightText: 2020-2021 Eelco Dolstra and the flake-compat contributors
+#
+# SPDX-License-Identifier: MIT
+# This file originates from:
+# https://github.com/nix-community/flake-compat
+# This file provides backward compatibility to nix < 2.4 clients
+{
+  system ? builtins.currentSystem,
+}:
+let
+  lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+
+  inherit (lock.nodes.flake-compat.locked)
+    owner
+    repo
+    rev
+    narHash
+    ;
+
+  flake-compat = fetchTarball {
+    url = "https://github.com/${owner}/${repo}/archive/${rev}.tar.gz";
+    sha256 = narHash;
+  };
+
+  flake = import flake-compat {
+    inherit system;
+    src = ./.;
+  };
+in
+flake.defaultNix
+</file>
+
+<file path="flake.lock">
+{
+  "nodes": {
+    "flake-compat": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1746162366,
+        "narHash": "sha256-5SSSZ/oQkwfcAz/o/6TlejlVGqeK08wyREBQ5qFFPhM=",
+        "owner": "nix-community",
+        "repo": "flake-compat",
+        "rev": "0f158086a2ecdbb138cd0429410e44994f1b7e4b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "flake-compat",
+        "type": "github"
+      }
+    },
+    "flake-parts": {
+      "inputs": {
+        "nixpkgs-lib": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1756770412,
+        "narHash": "sha256-+uWLQZccFHwqpGqr2Yt5VsW/PbeJVTn9Dk6SHWhNRPw=",
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "rev": "4524271976b625a4a605beefd893f270620fd751",
+        "type": "github"
+      },
+      "original": {
+        "owner": "hercules-ci",
+        "repo": "flake-parts",
+        "type": "github"
+      }
+    },
+    "flake-root": {
+      "locked": {
+        "lastModified": 1723604017,
+        "narHash": "sha256-rBtQ8gg+Dn4Sx/s+pvjdq3CB2wQNzx9XGFq/JVGCB6k=",
+        "owner": "srid",
+        "repo": "flake-root",
+        "rev": "b759a56851e10cb13f6b8e5698af7b59c44be26e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "srid",
+        "repo": "flake-root",
+        "type": "github"
+      }
+    },
+    "nixpkgs": {
+      "locked": {
+        "lastModified": 1757068644,
+        "narHash": "sha256-NOrUtIhTkIIumj1E/Rsv1J37Yi3xGStISEo8tZm3KW4=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "8eb28adfa3dc4de28e792e3bf49fcf9007ca8ac9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-unstable",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "root": {
+      "inputs": {
+        "flake-compat": "flake-compat",
+        "flake-parts": "flake-parts",
+        "flake-root": "flake-root",
+        "nixpkgs": "nixpkgs",
+        "treefmt-nix": "treefmt-nix"
+      }
+    },
+    "treefmt-nix": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1756662192,
+        "narHash": "sha256-F1oFfV51AE259I85av+MAia221XwMHCOtZCMcZLK2Jk=",
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "rev": "1aabc6c05ccbcbf4a635fb7a90400e44282f61c4",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "treefmt-nix",
+        "type": "github"
+      }
+    }
+  },
+  "root": "root",
+  "version": 7
+}
+</file>
+
+<file path="flake.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-License-Identifier: BSD-3-Clause
+{
+  description = "Flakes file for vulnix";
+
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    flake-root.url = "github:srid/flake-root";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
+    flake-compat = {
+      url = "github:nix-community/flake-compat";
+      flake = false;
+    };
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake
+      {
+        inherit inputs;
+      }
+      {
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+          "x86_64-darwin"
+          "aarch64-darwin"
+        ];
+        imports = [
+          ./nix
+        ];
+      };
+}
+</file>
+
+<file path="HACKING.rst">
+Building vulnix
+===============
+
+To create a development environment, use a Python 3 virtualenv::
+
+    python3 -m venv .
+    bin/pip install -e ".[test]"
+
+Run tests::
+
+    bin/py.test
+
+
+Building man pages
+==================
+
+The provided makefile needs ronn_ to convert Markdown to troff::
+
+    make -C doc
+
+.. _ronn: https://rtomayko.github.io/ronn/
+</file>
+
+<file path="LICENSE">
+Copyright (c) Flying Circus Internet Operations GmbH. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution.
+
+3. Neither the name of the copyright holder nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+</file>
+
+<file path="MANIFEST.in">
+exclude doc
+include LICENSE
+include VERSION
+include *.rst
+recursive-include src *.py *.yaml *.drv *.toml *.json *.json.gz
+recursive-include doc *.txt *.md Makefile
+</file>
+
+<file path="README.rst">
+Nix(OS) vulnerability scanner
+=============================
+
+This is a utility that validates a Nix store for any packages that are
+reachable from live paths and likely to be affected by vulnerabilities
+listed in the NVD.
+
+It implements a CLI utility to inspect the current status and a
+monitoring integration for Sensu.
+
+Example output
+
+.. code:: text
+
+  2 derivations with active advisories
+
+  ------------------------------------------------------------------------
+  binutils-2.31.1
+
+  /nix/store/zc1lbkaf9l9hlsp1jdiq3si56nsglymh-binutils-2.31.1.drv
+  CVE                                                CVSSv3
+  https://nvd.nist.gov/vuln/detail/CVE-2018-1000876  7.8
+  https://nvd.nist.gov/vuln/detail/CVE-2018-20657    7.5
+  https://nvd.nist.gov/vuln/detail/CVE-2018-20712    6.5
+
+  ------------------------------------------------------------------------
+  libssh2-1.9.0
+
+  /nix/store/mfpfclry68r4sv4mcc9hb88z0lb9jk1c-libssh2-1.9.0.drv
+  CVE                                                CVSSv3
+  https://nvd.nist.gov/vuln/detail/CVE-2019-17498    8.1
+
+
+Theory of operation
+-------------------
+
+``vulnix`` pulls all published CVEs from NIST_ and caches them locally. It
+matches name and version of all derivations referenced from the command line
+against known CVE entries. A *whitelist* is used to filter out unwanted results.
+
+Matching Nix package names to NVD products is currently done via a coarse
+heuristic. First, a direct match is tried. If no product can be found,
+variations with lower case and underscore instead of hyphen are tried. It is
+clear that this mapping is too simplistic and needs to be improved in future
+versions.
+
+
+System requirements
+-------------------
+
+- Depends on common Nix tools like ``nix-store``. These are expected to be in
+  $PATH.
+- Depends on being able to interact with the Nix store database
+  (/nix/var/nix/db). This means that it must either run as the same user that
+  owns the Nix store database or ``nix-daemon`` must be active.
+- Parses ``*.drv`` files directly. Tested with Nix >=1.10 and 2.x.
+- It refuses to work without some locale environment settings. Try ``export
+  LANG=C.UTF-8`` if you see encoding errors.
+
+
+Usage Example
+=============
+
+- What vulnerabilities are listed for my current system
+
+.. code:: shell
+
+  vulnix --system
+
+- Check ``nix-build`` output together with its transitive closure
+
+.. code:: shell
+
+  vulnix result/
+
+- Check all passed derivations, but don't determine requisites
+
+.. code:: shell
+
+  vulnix -R /nix/store/*.drv
+
+- JSON output for machine post-processing
+
+.. code:: shell
+
+  vulnix --json /nix/store/my-derivation.drv
+
+See ``vulnix --help`` for a list of all options.
+
+
+Whitelisting
+============
+
+``vulnix`` output may contain false positives, unfixable packages or stuff which
+is known to be addressed. The *whitelist* feature allows to exclude packages
+matching certain criteria.
+
+Usage
+-----
+
+Load whitelists from either local files or HTTP servers
+
+.. code:: shell
+
+  vulnix -w /path/to/whitelist.toml \
+         -w https://example.org/published-whitelist.toml
+
+Syntax
+------
+
+Whitelists are TOML_ files which contain the package to be filtered as section
+headers, followed by further per-package options.
+
+Section headings - package selection
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Exclude a package at a specific version
+
+.. code:: toml
+
+  ["openjpeg-2.3.0"]
+
+Exclude a package regardless of version (additional CVE filters may apply, see
+below)
+
+.. code:: toml
+
+  ["openjpeg"]
+
+Exclude all packages (see below for CVE filters, again)
+
+.. code:: toml
+
+  ["*"]
+
+Options
+^^^^^^^
+
+cve
+  List of CVE identifiers to match. The whitelist rule is valid as long as the
+  detected CVEs are a subset of the CVEs listed here. If additional CVEs are
+  detected, this whitelist rule is not effective anymore.
+
+until
+  Date in the form "YYYY-MM-DD" which confines this rule's lifetime. On the
+  specified date and later, this whitelist rule is not effective anymore.
+
+issue_url
+  URL or list of URLs that point to any issue tracker. Informational only.
+
+comment
+  String or list of strings containing free text. Informational only.
+
+
+Examples
+--------
+
+Create a ticket on your favourite issue tracker. Estimate the time to get the
+vulnerable package fixed. Create whitelist entry:
+
+.. code:: toml
+
+  ["ffmpeg-3.4.2"]
+  cve = ["CVE-2018-6912", "CVE-2018-7557"]
+  until = "2018-05-01"
+  issue_url = "https://issues.example.com/29952"
+  comment = "need to backport patch"
+
+This particular version of ffmpeg will be left out from reports until either
+another CVE gets published or the specified date is reached.
+
+
+CVE patch auto-detection
+========================
+
+``vulnix`` will inspect derivations for patches which supposedly fix specific
+CVEs. When a patch filename contains one or more CVE identifiers, these will not
+reported anymore. Example Nix code:
+
+.. code:: nix
+
+  {
+    patches = [ ./CVE-2018-6951.patch ];
+  }
+
+Patches which fix multiple CVEs should name them all with a non-numeric
+separator, e.g. ``CVE-2017-14159+CVE-2017-17740.patch``.
+
+Auto-detection even works when patches are pulled via ``fetchpatch`` and friends
+as long as there is a CVE identifier in the name. Example:
+
+.. code:: nix
+
+  {
+    patches = [
+      (fetchpatch {
+        name = "CVE-2018-9055.patch";
+        url = http://paste.opensuse.org/view/raw/330751ce;
+        sha256 = "0m798m6c4v9yyhql7x684j5kppcm6884n1rrb9ljz8p9aqq2jqnm";
+      })
+    ];
+  }
+
+
+.. _NIST: https://nvd.nist.gov/vuln/
+.. _TOML: https://github.com/toml-lang/toml/
+</file>
+
+<file path="setup.cfg">
+[tool:pytest]
+addopts = --tb=native --cov=src/vulnix --cov-report=html --junitxml=report.xml src/vulnix
+junit_family=xunit2
+
+[aliases]
+test=pytest
+</file>
+
+<file path="setup.py">
+"""Scans a Nix store for derivations that are affected by vulnerabilities."""
+
+import os.path
+
+from setuptools import find_packages, setup
+
+
+def project_path(*names):
+    return os.path.join(os.path.dirname(__file__), *names)
+
+
+with open(project_path("VERSION"), encoding="utf-8") as f:
+    version = f.read().strip()
+
+long_description = []
+
+for rst in ["README.rst", "HACKING.rst", "CHANGES.rst"]:
+    with open(project_path(rst), encoding="utf-8") as f:
+        long_description.append(f.read())
+
+setup(
+    name="vulnix",
+    version=version,
+    install_requires=[
+        "click>=6.7",
+        "pyyaml>=5",
+        "requests>=2.18",
+        "toml>=0.9",
+        "ZODB>=5.4",
+        "zodbpickle>=2",
+    ],
+    extras_require={
+        "test": [
+            "freezegun>0.3",
+            "pytest>=3.2",
+            "pytest-cov>=2.7",
+            "setuptools_scm>=1.15",
+        ],
+    },
+    entry_points="""
+        [console_scripts]
+            vulnix = vulnix.main:main
+    """,
+    author="Flying Circus Internet Operations GmbH",
+    author_email="mail@flyingcircus.io",
+    license="BSD-3-Clause",
+    url="https://github.com/flyingcircusio/vulnix",
+    keywords="security,nixos,nixpkgs,cve,nvd",
+    classifiers="""\
+Development Status :: 5 - Production/Stable
+Environment :: Console
+Intended Audience :: System Administrators
+License :: OSI Approved :: BSD License
+Operating System :: POSIX
+Programming Language :: Python
+Programming Language :: Python :: 3 :: Only
+Programming Language :: Python :: 3.5
+Programming Language :: Python :: 3.6
+Programming Language :: Python :: 3.7
+Programming Language :: Python :: 3.8
+Topic :: System :: Systems Administration
+"""[:-1].split("\n"),
+    description=__doc__.strip(),
+    long_description="\n\n".join(long_description),
+    packages=find_packages("src"),
+    package_dir={"": "src"},
+    include_package_data=True,
+    zip_safe=False,
+)
+</file>
+
+<file path="shell.nix">
+# SPDX-FileCopyrightText: 2024 Technology Innovation Institute (TII)
+# SPDX-FileCopyrightText: 2020-2021 Eelco Dolstra and the flake-compat contributors
+#
+# SPDX-License-Identifier: MIT
+# This file originates from:
+# https://github.com/nix-community/flake-compat
+# This file provides backward compatibility to nix < 2.4 clients
+{
+  system ? builtins.currentSystem,
+}:
+let
+  lock = builtins.fromJSON (builtins.readFile ./flake.lock);
+
+  inherit (lock.nodes.flake-compat.locked)
+    owner
+    repo
+    rev
+    narHash
+    ;
+
+  flake-compat = fetchTarball {
+    url = "https://github.com/${owner}/${repo}/archive/${rev}.tar.gz";
+    sha256 = narHash;
+  };
+
+  flake = import flake-compat {
+    inherit system;
+    src = ./.;
+  };
+in
+flake.shellNix
+</file>
+
+<file path="VERSION">
+1.12.2
+</file>
+
+</files>
