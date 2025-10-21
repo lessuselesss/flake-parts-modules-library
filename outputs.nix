@@ -34,6 +34,46 @@ inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } {
     };
   };
 
+  # Flake outputs
+  flake = {
+    # Export all modules as flakeModules for easy importing
+    flakeModules = {
+      # Configuration Management
+      home-manager = ./modules/home-manager.nix;
+      ez-configs = ./modules/ez-configs.nix;
+
+      # Development Tools
+      devshell = ./modules/devshell.nix;
+      devenv = ./modules/devenv.nix;
+      flake-root = ./modules/flake-root.nix;
+      haskell-flake = ./modules/haskell-flake.nix;
+      input-branches = ./modules/input-branches.nix;
+      mission-control = ./modules/mission-control.nix;
+      std = ./modules/std.nix;
+
+      # Code Quality & Formatting
+      treefmt-nix = ./modules/treefmt-nix.nix;
+      pre-commit-hooks-nix = ./modules/pre-commit-hooks-nix.nix;
+
+      # Secrets Management
+      agenix-rekey = ./modules/agenix-rekey.nix;
+      agenix-shell = ./modules/agenix-shell.nix;
+
+      # Services & Process Management
+      services-flake = ./modules/services-flake.nix;
+      process-compose-flake = ./modules/process-compose-flake.nix;
+
+      # Infrastructure & System Configuration
+      disko = ./modules/disko.nix;
+
+      # CI/CD & Deployment
+      hercules-ci-effects = ./modules/hercules-ci-effects.nix;
+
+      # Visualization & Documentation
+      nix-topology = ./modules/nix-topology.nix;
+    };
+  };
+
   # Per-system configuration
   perSystem = { config, pkgs, system, ... }: {
     # Example: Define a development shell
